@@ -50,6 +50,94 @@
     "knowsAbout": ["Discord", "Modération", "Gestion de communauté", "Réseaux sociaux"]
   }
   </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Combien coûtent vos services ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Il n'y a pas de prix fixe : chaque projet est différent. Je vous propose un devis sur mesure, adapté à vos besoins et à votre communauté."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Comment se déroule une mission ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Tout commence par une prise de contact. Nous fixons ensuite un appel pour échanger sur vos objectifs, puis je mets en place le projet."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Sous quel délai répondez-vous ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Je réponds à chaque demande en une semaine maximum."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Quels moyens de paiement acceptez-vous ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Le paiement se fait par virement bancaire ou par PayPal."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Proposez-vous une gestion sur la durée ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Oui. Au-delà de la mise en place, je peux assurer la gestion de votre communauté sur le long terme."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Avec qui travaillez-vous ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "J'accompagne principalement des créateurs de contenu et des entreprises."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "De quels accès avez-vous besoin ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sur Discord, j'ai besoin de la totalité des accès au serveur. Pour les réseaux sociaux, les accès demandés dépendent de la mission."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Quels bots utilisez-vous ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "J'utilise les bots développés par Arvenis, le collectif que je dirige."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Pouvez-vous recruter et gérer un staff ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Oui. Je dispose d'équipes et je mène des recrutements pour constituer un staff adapté à votre communauté."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Pouvez-vous intervenir sur un serveur existant ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Oui. Je peux reprendre et restructurer un serveur déjà en place, comme en créer un de zéro."
+        }
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
   <!-- Sprite d'icônes (Lucide + Simple Icons) -->
@@ -106,6 +194,7 @@
         <a href="#projets" data-text="Projets"><span>Projets</span></a>
         <a href="#avis" data-text="Avis"><span>Avis</span></a>
         <a href="#reseaux" data-text="Réseaux"><span>Réseaux</span></a>
+        <a href="#faq" data-text="FAQ"><span>FAQ</span></a>
         <span class="nav__indicator" aria-hidden="true"></span>
       </nav>
       <a href="#contact" class="btn btn--primary btn--sm magnetic nav__cta"><span>Contact</span></a>
@@ -121,7 +210,8 @@
       <a href="#projets"><small>02</small>Projets</a>
       <a href="#avis"><small>03</small>Avis</a>
       <a href="#reseaux"><small>04</small>Réseaux</a>
-      <a href="#contact"><small>05</small>Contact</a>
+      <a href="#faq"><small>05</small>FAQ</a>
+      <a href="#contact"><small>06</small>Contact</a>
     </nav>
     <p class="menu__foot">Disponible pour de nouvelles collaborations</p>
   </div>
@@ -509,6 +599,139 @@
       </div>
     </section>
 
+    <!-- FAQ -->
+    <section class="section faq" id="faq">
+      <div class="container faq__grid">
+        <header class="faq__head">
+          <p class="eyebrow" data-reveal>FAQ</p>
+          <h2 class="title" data-split>Vos questions, <em>mes réponses</em>.</h2>
+          <p class="section__lead" data-reveal>Une autre question&nbsp;? <a class="faq__link" href="#contact">Écrivez-moi</a>, je vous réponds directement.</p>
+        </header>
+        <div class="faq__list js-faq" data-stagger>
+          <div class="faq__item" data-reveal>
+            <h3 class="faq__h">
+              <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-1" id="faq-1-q">
+                <span class="faq__num">01</span>
+                <span class="faq__text">Combien coûtent vos services&nbsp;?</span>
+                <span class="faq__icon" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div class="faq__a" id="faq-1" role="region" aria-labelledby="faq-1-q">
+              <div><p>Il n'y a pas de prix fixe&nbsp;: chaque projet est différent. Je vous propose un devis sur mesure, adapté à vos besoins et à votre communauté.</p></div>
+            </div>
+          </div>
+          <div class="faq__item" data-reveal>
+            <h3 class="faq__h">
+              <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-2" id="faq-2-q">
+                <span class="faq__num">02</span>
+                <span class="faq__text">Comment se déroule une mission&nbsp;?</span>
+                <span class="faq__icon" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div class="faq__a" id="faq-2" role="region" aria-labelledby="faq-2-q">
+              <div><p>Tout commence par une prise de contact. Nous fixons ensuite un appel pour échanger sur vos objectifs, puis je mets en place le projet.</p></div>
+            </div>
+          </div>
+          <div class="faq__item" data-reveal>
+            <h3 class="faq__h">
+              <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-3" id="faq-3-q">
+                <span class="faq__num">03</span>
+                <span class="faq__text">Sous quel délai répondez-vous&nbsp;?</span>
+                <span class="faq__icon" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div class="faq__a" id="faq-3" role="region" aria-labelledby="faq-3-q">
+              <div><p>Je réponds à chaque demande en une semaine maximum.</p></div>
+            </div>
+          </div>
+          <div class="faq__item" data-reveal>
+            <h3 class="faq__h">
+              <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-4" id="faq-4-q">
+                <span class="faq__num">04</span>
+                <span class="faq__text">Quels moyens de paiement acceptez-vous&nbsp;?</span>
+                <span class="faq__icon" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div class="faq__a" id="faq-4" role="region" aria-labelledby="faq-4-q">
+              <div><p>Le paiement se fait par virement bancaire ou par PayPal.</p></div>
+            </div>
+          </div>
+          <div class="faq__item" data-reveal>
+            <h3 class="faq__h">
+              <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-5" id="faq-5-q">
+                <span class="faq__num">05</span>
+                <span class="faq__text">Proposez-vous une gestion sur la durée&nbsp;?</span>
+                <span class="faq__icon" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div class="faq__a" id="faq-5" role="region" aria-labelledby="faq-5-q">
+              <div><p>Oui. Au-delà de la mise en place, je peux assurer la gestion de votre communauté sur le long terme.</p></div>
+            </div>
+          </div>
+          <div class="faq__item" data-reveal>
+            <h3 class="faq__h">
+              <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-6" id="faq-6-q">
+                <span class="faq__num">06</span>
+                <span class="faq__text">Avec qui travaillez-vous&nbsp;?</span>
+                <span class="faq__icon" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div class="faq__a" id="faq-6" role="region" aria-labelledby="faq-6-q">
+              <div><p>J'accompagne principalement des créateurs de contenu et des entreprises.</p></div>
+            </div>
+          </div>
+          <div class="faq__item" data-reveal>
+            <h3 class="faq__h">
+              <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-7" id="faq-7-q">
+                <span class="faq__num">07</span>
+                <span class="faq__text">De quels accès avez-vous besoin&nbsp;?</span>
+                <span class="faq__icon" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div class="faq__a" id="faq-7" role="region" aria-labelledby="faq-7-q">
+              <div><p>Sur Discord, j'ai besoin de la totalité des accès au serveur. Pour les réseaux sociaux, les accès demandés dépendent de la mission.</p></div>
+            </div>
+          </div>
+          <div class="faq__item" data-reveal>
+            <h3 class="faq__h">
+              <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-8" id="faq-8-q">
+                <span class="faq__num">08</span>
+                <span class="faq__text">Quels bots utilisez-vous&nbsp;?</span>
+                <span class="faq__icon" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div class="faq__a" id="faq-8" role="region" aria-labelledby="faq-8-q">
+              <div><p>J'utilise les bots développés par Arvenis, le collectif que je dirige.</p></div>
+            </div>
+          </div>
+          <div class="faq__item" data-reveal>
+            <h3 class="faq__h">
+              <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-9" id="faq-9-q">
+                <span class="faq__num">09</span>
+                <span class="faq__text">Pouvez-vous recruter et gérer un staff&nbsp;?</span>
+                <span class="faq__icon" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div class="faq__a" id="faq-9" role="region" aria-labelledby="faq-9-q">
+              <div><p>Oui. Je dispose d'équipes et je mène des recrutements pour constituer un staff adapté à votre communauté.</p></div>
+            </div>
+          </div>
+          <div class="faq__item" data-reveal>
+            <h3 class="faq__h">
+              <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-10" id="faq-10-q">
+                <span class="faq__num">10</span>
+                <span class="faq__text">Pouvez-vous intervenir sur un serveur existant&nbsp;?</span>
+                <span class="faq__icon" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div class="faq__a" id="faq-10" role="region" aria-labelledby="faq-10-q">
+              <div><p>Oui. Je peux reprendre et restructurer un serveur déjà en place, comme en créer un de zéro.</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- CONTACT -->
     <section class="contact" id="contact">
       <div class="contact__bg" aria-hidden="true">
@@ -605,6 +828,7 @@
         <a href="#methode">Méthode</a>
         <a href="#projets">Projets</a>
         <a href="#avis">Avis</a>
+        <a href="#faq">FAQ</a>
       </nav>
       <div>
         <p class="footer__title">Social</p>

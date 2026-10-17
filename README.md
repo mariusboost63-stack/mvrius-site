@@ -1,8 +1,9 @@
-# mvrius.fr
+# mvriuus.fr
 
 Site vitrine de **Mvrius** — Community Manager Discord & réseaux sociaux.
 
-Site statique (HTML / CSS / JS, sans dépendance) hébergé sur **GitHub Pages**.
+Site statique (HTML / CSS / JS, sans dépendance) hébergé sur **GitHub Pages**,
+avec le domaine `mvriuus.fr` (fichier `CNAME`).
 Chaque modification poussée sur la branche `main` est publiée automatiquement.
 
 ## Structure
@@ -11,18 +12,15 @@ Chaque modification poussée sur la branche `main` est publiée automatiquement.
 index.html              → toutes les sections du site
 404.html                → page « introuvable »
 assets/css/style.css    → styles et animations
-assets/js/main.js       → interactions (intro, scroll, maquette Discord…)
+assets/js/main.js       → interactions (intro, maquette Discord, carrousel, FAQ, formulaire…)
 assets/fonts/           → polices auto-hébergées (Bricolage Grotesque, Inter, Instrument Serif)
-assets/img/profile.jpg  → photo de profil (à ajouter)
-assets/img/favicon.svg  → icône de l'onglet
+assets/img/             → photo de profil, logos et visuels des projets, image d'aperçu (og.jpg)
 ```
 
-## Contenu à compléter
+## Services externes
 
-Les éléments à remplacer sont signalés par un commentaire `À COMPLÉTER` dans `index.html`
-et par un contour pointillé orange sur le site :
-
-- photo de profil → `assets/img/profile.jpg`
-- projets (section « Mes projets »)
-- avis clients (section « Avis »)
-- liens des réseaux sociaux et lien Discord du bouton de contact
+- **Compteurs Discord** : récupérés dans le navigateur via l'API publique des invitations
+  (`discord.gg/france`, `arvenis`, `nicola`, `byilhan`). Si Discord ne répond pas,
+  les valeurs écrites dans `index.html` restent affichées.
+- **Formulaire de devis** : envoyé via [FormSubmit](https://formsubmit.co) vers
+  `contact@mvriuus.fr`. La première demande déclenche un e-mail d'activation à valider.

@@ -293,6 +293,20 @@
     });
   }
 
+  /* ---------- FAQ ---------- */
+  const faqItems = $$('.faq__item');
+  faqItems.forEach(item => {
+    const btn = $('.faq__q', item);
+    btn.addEventListener('click', () => {
+      const open = !item.classList.contains('is-open');
+      // Une seule réponse ouverte à la fois
+      faqItems.forEach(other => {
+        other.classList.toggle('is-open', other === item && open);
+        $('.faq__q', other).setAttribute('aria-expanded', String(other === item && open));
+      });
+    });
+  });
+
   /* ---------- Bandeau défilant ---------- */
   const marquee = $('.js-marquee');
   let mq = { x: 0, period: 0, dir: -1 };
