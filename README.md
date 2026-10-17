@@ -9,8 +9,10 @@ Chaque modification poussée sur la branche `main` est publiée automatiquement.
 ## Structure
 
 ```
-index.html              → toutes les sections du site
+index.html              → toutes les sections du site (français)
+en/index.html           → version anglaise, générée par tools/build-en.py
 404.html                → page « introuvable »
+site.webmanifest        → nom et icônes quand le site est ajouté à l'écran d'accueil
 assets/css/style.css    → styles et animations
 assets/js/main.js       → interactions (intro, maquette Discord, carrousel, FAQ, formulaire…)
 assets/fonts/           → polices auto-hébergées (Bricolage Grotesque, Inter, Instrument Serif)
@@ -24,3 +26,15 @@ assets/img/             → photo de profil, logos et visuels des projets, image
   les valeurs écrites dans `index.html` restent affichées.
 - **Formulaire de devis** : envoyé via [FormSubmit](https://formsubmit.co) vers
   `contact@mvriuus.fr`. La première demande déclenche un e-mail d'activation à valider.
+
+## Version anglaise
+
+`en/index.html` est générée à partir de `index.html` :
+
+```
+python3 tools/build-en.py
+```
+
+Le script contient la table de traduction. Si un texte français a changé, il s'arrête
+et indique la phrase à retraduire. Les valeurs envoyées par le formulaire restent en
+français pour que les e-mails reçus soient identiques dans les deux langues.

@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mvrius — Discord Community Manager &amp; Social Media</title>
+  <meta name="description" content="Marius (Mvrius), Discord community management expert: professional moderation, technical administration, engagement strategies and social media management.">
+  <meta name="theme-color" content="#07080c">
+  <link rel="canonical" href="https://mvriuus.fr/en/">
+  <link rel="alternate" hreflang="fr" href="https://mvriuus.fr/">
+  <link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/">
+  <link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="fr_FR">
+  <meta property="og:site_name" content="Mvrius">
+  <meta property="og:title" content="Mvrius — Discord Community Manager">
+  <meta property="og:description" content="CEO of Arvenis, manager of Le Café Français and administrator of the Nico Là and Byilhan communities. Moderation, administration and engagement strategies on Discord.">
+  <meta property="og:url" content="https://mvriuus.fr/en/">
+  <meta property="og:image" content="https://mvriuus.fr/assets/img/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Mvrius, Discord Community Manager: Le Café Français, Arvenis, Nico Là and Byilhan">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://mvriuus.fr/assets/img/og.jpg">
+
+  <link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../assets/img/apple-touch-icon.png">
+  <link rel="manifest" href="../site.webmanifest">
+  <meta name="apple-mobile-web-app-title" content="Mvrius">
+  <link rel="preload" href="../assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="../assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    (function (d) {
+      d.classList.add('js');
+      try { if (sessionStorage.getItem('mv-intro')) d.classList.add('intro-seen'); } catch (e) {}
+      if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) d.classList.add('reduced');
+      // Filet de sécurité : si le JS principal ne démarre pas, on affiche tout le contenu.
+      setTimeout(function () { if (!window.MV) d.classList.remove('js'); }, 4000);
+    })(document.documentElement);
+  </script>
+  <script src="../assets/js/main.js" defer></script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Marius",
+    "alternateName": "Mvrius",
+    "url": "https://mvriuus.fr/en/",
+    "jobTitle": "Discord Community Manager, CEO of Arvenis",
+    "email": "mailto:contact@mvriuus.fr",
+    "sameAs": [
+      "https://www.instagram.com/mvriuus_/",
+      "https://guns.lol/an"
+    ],
+    "knowsAbout": [
+      "Discord",
+      "Moderation",
+      "Community management",
+      "Social media"
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How much do your services cost?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "There is no fixed price: every project is different. I will send you a custom quote tailored to your needs and your community."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does a project work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "It all starts with getting in touch. We then schedule a call to discuss your goals, and I set up the project."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How quickly do you respond?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "I respond to every request within one week at most."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Which payment methods do you accept?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Payment is made by bank transfer or PayPal."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Do you offer long-term management?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Beyond the initial setup, I can manage your community over the long term."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Who do you work with?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "I mainly work with content creators and businesses."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What access do you need?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "On Discord, I need full access to the server. For social media, the access required depends on the project."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Which bots do you use?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "I use the bots developed by Arvenis, the collective I run."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can you recruit and manage a staff team?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. I have teams and I run recruitment to build a staff that fits your community."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can you work on an existing server?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. I can take over and restructure an existing server, or build one from scratch."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <!-- Sprite d'icônes (Lucide + Simple Icons) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+      <symbol id="i-arrow-up-right" viewBox="0 0 24 24"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></symbol>
+      <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></symbol>
+      <symbol id="i-message" viewBox="0 0 24 24"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/></symbol>
+      <symbol id="i-bot" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></symbol>
+      <symbol id="i-trending" viewBox="0 0 24 24"><path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/></symbol>
+      <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/></symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+      <symbol id="i-megaphone" viewBox="0 0 24 24"><path d="M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/><path d="M6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14"/><path d="M8 6v8"/></symbol>
+      <symbol id="i-rules" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></symbol>
+      <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+      <symbol id="i-quote" viewBox="0 0 24 24"><path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/><path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/></symbol>
+      <symbol id="i-hash" viewBox="0 0 24 24"><path d="M4 9h16"/><path d="M4 15h16"/><path d="M10 3 8 21"/><path d="m16 3-2 18"/></symbol>
+      <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/></symbol>
+      <symbol id="b-instagram" viewBox="0 0 24 24"><path d="M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077"/></symbol>
+      <symbol id="b-discord" viewBox="0 0 24 24"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></symbol>
+    </defs>
+  </svg>
+
+  <a class="skip" href="#main">Skip to content</a>
+
+  <!-- Écran d'intro -->
+  <div class="loader" aria-hidden="true">
+    <div class="loader__word"><span>M</span><span>v</span><span>r</span><span>i</span><span>u</span><span>s</span></div>
+    <div class="loader__meta"><span>Community Manager</span><span class="loader__count">00</span></div>
+    <div class="loader__bar"><span></span></div>
+  </div>
+
+  <div class="progress" aria-hidden="true"><span></span></div>
+  <div class="cursor" aria-hidden="true"><span class="cursor__ring"><span class="cursor__label"></span></span></div>
+
+  <!-- Navigation -->
+  <header class="nav" id="nav">
+    <div class="nav__inner">
+      <a href="#top" class="brand" aria-label="Mvrius, back to top">
+        <span class="avatar avatar--sm"><span class="avatar__fallback">M</span><img src="../assets/img/profile-sm.jpg" alt="" width="36" height="36" onerror="this.remove()"></span>
+        <span class="brand__name">Mvrius</span>
+      </a>
+      <nav class="nav__links" aria-label="Main navigation">
+        <a href="#services" data-text="Services"><span>Services</span></a>
+        <a href="#projets" data-text="Projects"><span>Projects</span></a>
+        <a href="#avis" data-text="Reviews"><span>Reviews</span></a>
+        <a href="#reseaux" data-text="Socials"><span>Socials</span></a>
+        <a href="#faq" data-text="FAQ"><span>FAQ</span></a>
+        <span class="nav__indicator" aria-hidden="true"></span>
+      </nav>
+      <a class="lang" href="../" hreflang="fr" lang="fr" aria-label="Version française">FR</a>
+      <a href="#contact" class="btn btn--primary btn--sm magnetic nav__cta"><span>Contact</span></a>
+      <button class="burger" type="button" aria-expanded="false" aria-controls="menu" aria-label="Open menu">
+        <span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <div class="menu" id="menu" aria-hidden="true">
+    <nav class="menu__links" aria-label="Mobile menu">
+      <a href="#services"><small>01</small>Services</a>
+      <a href="#projets"><small>02</small>Projects</a>
+      <a href="#avis"><small>03</small>Reviews</a>
+      <a href="#reseaux"><small>04</small>Socials</a>
+      <a href="#faq"><small>05</small>FAQ</a>
+      <a href="#contact"><small>06</small>Contact</a>
+    </nav>
+    <p class="menu__foot">Available for new collaborations</p>
+  </div>
+
+  <main id="main">
+
+    <!-- HERO -->
+    <section class="hero" id="top">
+      <div class="hero__bg" aria-hidden="true">
+        <div class="aurora"><span></span><span></span><span></span></div>
+        <div class="gridlines"></div>
+        <div class="hero__spot"></div>
+      </div>
+
+      <div class="container hero__inner">
+        <div class="hero__copy">
+          <p class="pill" data-hero><span class="avatar avatar--xs"><span class="avatar__fallback">M</span><img src="../assets/img/profile-sm.jpg" alt="" width="26" height="26" onerror="this.remove()"></span><span class="pulse"></span>Available for new collaborations</p>
+          <h1 class="hero__title">
+            <span class="line"><span style="--i:0">I grow your</span></span>
+            <span class="line"><span style="--i:1"><em>communities</em></span></span>
+            <span class="line"><span style="--i:2">on Discord<span class="accent-dot">.</span></span></span>
+          </h1>
+          <p class="hero__lead" data-hero>Discord community management expert: professional moderation, technical administration and engagement strategies to build healthy, active and lasting spaces.</p>
+          <div class="hero__cta" data-hero>
+            <a class="btn btn--primary magnetic" href="#projets"><span>See my projects</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
+            <a class="btn btn--ghost magnetic" href="#contact"><span>Contact me</span></a>
+          </div>
+          <div class="trust" data-hero>
+            <div class="trust__avatars" aria-hidden="true">
+              <span><img src="../assets/img/projets/arvenis-logo.webp" alt="" width="40" height="40"></span>
+              <span><img src="../assets/img/projets/cafe-logo.webp" alt="" width="40" height="40"></span>
+              <span><img src="../assets/img/projets/nico-pdp.webp" alt="" width="40" height="40"></span>
+              <span><img src="../assets/img/projets/byilhan-pdp.webp" alt="" width="40" height="40"></span>
+            </div>
+            <p>CEO of <b>Arvenis</b>, manager of <b>Le Café Français</b> and administrator of the <b>Nico Là</b> and <b>Byilhan</b> communities.</p>
+          </div>
+        </div>
+
+        <div class="hero__visual" aria-hidden="true">
+          <div class="mock" data-depth="0.4">
+            <div class="mock__rail">
+              <span class="srv srv--home"><svg><use href="#b-discord"/></svg></span>
+              <span class="srv__sep"></span>
+              <span class="srv srv--img is-active"><img src="../assets/img/projets/cafe-logo.webp" alt="" width="40" height="40"></span>
+              <span class="srv srv--img"><img src="../assets/img/projets/arvenis-logo.webp" alt="" width="40" height="40"></span>
+              <span class="srv srv--img"><img src="../assets/img/projets/nico-pdp.webp" alt="" width="40" height="40"></span>
+              <span class="srv srv--img"><img src="../assets/img/projets/byilhan-pdp.webp" alt="" width="40" height="40"></span>
+              <span class="srv srv--add">+</span>
+            </div>
+            <div class="mock__channels">
+              <p class="mock__server">Le Café Français ☕🎃</p>
+              <div class="mock__list">
+                <p class="mock__cat">🎃 Statistiques</p>
+                <p class="ch"><svg><use href="#i-volume"/></svg>🧟 | Membres: <span class="js-members-raw">9208</span></p>
+                <p class="ch"><svg><use href="#i-volume"/></svg>🦇 | .gg/france</p>
+                <p class="mock__cat">🌐 Café Français</p>
+                <p class="ch"><svg><use href="#i-rules"/></svg>🪦 | nos-règles</p>
+                <p class="ch"><svg><use href="#i-hash"/></svg>🎃 | accueil</p>
+                <p class="ch"><svg><use href="#i-megaphone"/></svg>🕯️ | annonces</p>
+                <p class="ch"><svg><use href="#i-megaphone"/></svg>🕸️ | patch-note</p>
+                <p class="ch"><svg><use href="#i-megaphone"/></svg>🍬 | concours</p>
+                <p class="ch"><svg><use href="#i-megaphone"/></svg>👻 | événements</p>
+                <p class="ch"><svg><use href="#i-megaphone"/></svg>🧙 | le-petit-savoir</p>
+                <p class="ch"><svg><use href="#i-megaphone"/></svg>🧛 | recrutements</p>
+                <p class="ch"><svg><use href="#i-hash"/></svg>🧪 | support</p>
+                <p class="mock__cat">☕ Communauté</p>
+                <p class="ch is-active"><svg><use href="#i-hash"/></svg>💬 | discussion</p>
+              </div>
+            </div>
+            <div class="mock__chat">
+              <div class="mock__head">
+                <span><svg><use href="#i-hash"/></svg>💬 | discussion</span>
+                <span class="mock__online"><svg><use href="#i-users"/></svg><b class="js-members">9,208</b> members</span>
+              </div>
+              <div class="mock__msgs js-chat"></div>
+              <div class="mock__input">Message #💬 | discussion</div>
+            </div>
+          </div>
+          <div class="chip chip--a" data-depth="1.1"><svg class="ico"><use href="#i-shield"/></svg>Moderation</div>
+          <div class="chip chip--b" data-depth="0.8"><svg class="ico"><use href="#i-bot"/></svg>Bots &amp; automations</div>
+          <div class="chip chip--c" data-depth="1.4"><svg class="ico"><use href="#i-trending"/></svg>Engagement</div>
+        </div>
+      </div>
+
+      <a href="#services" class="scroll-cue" aria-label="Scroll down"><span class="scroll-cue__line"></span>Scroll</a>
+    </section>
+
+    <!-- MARQUEE -->
+    <div class="marquee-wrap" aria-hidden="true">
+    <div class="marquee">
+      <div class="marquee__track js-marquee">
+        <span>Moderation</span><svg class="star"><use href="#i-sparkle"/></svg>
+        <span class="o">Administration</span><svg class="star"><use href="#i-sparkle"/></svg>
+        <span>Bots &amp; automations</span><svg class="star"><use href="#i-sparkle"/></svg>
+        <span class="o">Engagement</span><svg class="star"><use href="#i-sparkle"/></svg>
+        <span>Events</span><svg class="star"><use href="#i-sparkle"/></svg>
+        <span class="o">Social media</span><svg class="star"><use href="#i-sparkle"/></svg>
+      </div>
+    </div>
+    </div>
+
+    <!-- SERVICES -->
+    <section class="section services" id="services">
+      <div class="container">
+        <header class="section__head">
+          <p class="eyebrow" data-reveal>Services</p>
+          <h2 class="title" data-split>End-to-end <em>expertise</em></h2>
+          <p class="section__lead" data-reveal>A professional approach to building healthy, engaged Discord communities.</p>
+        </header>
+
+        <div class="cards" data-stagger>
+          <article class="card spotlight" data-reveal>
+            <div class="card__top">
+              <span class="card__icon"><svg class="ico"><use href="#i-shield"/></svg></span>
+              <span class="card__num">01</span>
+            </div>
+            <h3>Professional moderation</h3>
+            <p>Keeping a healthy environment with fair rule enforcement and conflict management.</p>
+            <ul class="tags"><li>Rules</li><li>Conflict management</li><li>Moderation team</li></ul>
+          </article>
+          <article class="card spotlight" data-reveal>
+            <div class="card__top">
+              <span class="card__icon"><svg class="ico"><use href="#i-settings"/></svg></span>
+              <span class="card__num">02</span>
+            </div>
+            <h3>Technical administration</h3>
+            <p>Optimal setup, automation and advanced permission management.</p>
+            <ul class="tags"><li>Roles &amp; permissions</li><li>Bots</li><li>Automations</li></ul>
+          </article>
+          <article class="card spotlight" data-reveal>
+            <div class="card__top">
+              <span class="card__icon"><svg class="ico"><use href="#i-users"/></svg></span>
+              <span class="card__num">03</span>
+            </div>
+            <h3>Community growth</h3>
+            <p>Engagement strategies to retain and grow your community.</p>
+            <ul class="tags"><li>Events</li><li>Retention</li><li>Growth</li></ul>
+          </article>
+          <article class="card spotlight" data-reveal>
+            <div class="card__top">
+              <span class="card__icon"><svg class="ico"><use href="#i-message"/></svg></span>
+              <span class="card__num">04</span>
+            </div>
+            <h3>Social media management</h3>
+            <p>Help managing and growing your presence on social media.</p>
+            <ul class="tags"><li>Planning</li><li>Copywriting</li><li>Strategy</li></ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROJETS -->
+    <section class="section projects" id="projets">
+      <div class="container">
+        <header class="section__head section__head--row">
+          <div>
+            <p class="eyebrow" data-reveal>My projects</p>
+            <h2 class="title" data-split>Communities I bring to <em>life</em>.</h2>
+          </div>
+          <p class="section__lead" data-reveal>My own servers, and those of the creators I work with. <span class="live-note"><i></i>Live numbers from Discord</span></p>
+        </header>
+
+        <ul class="plist" data-stagger>
+          <li class="plist__item" data-reveal>
+            <a class="prow" href="https://discord.gg/france" target="_blank" rel="noopener" data-invite="france" data-preview="0" data-cursor="Join" style="--c1:#4d7cff;--c2:#ff5a6a">
+              <span class="prow__num">01</span>
+              <span class="prow__logo"><img src="../assets/img/projets/cafe-logo.webp" alt="" width="64" height="64" loading="lazy"></span>
+              <span class="prow__main">
+                <span class="prow__name">Le Café Français</span>
+                <span class="prow__desc">French-speaking community</span>
+              </span>
+              <span class="prow__stats">
+                <span class="prow__live" hidden><i></i><b data-online></b> online</span>
+                <span class="prow__count"><b data-members>9,208</b> members</span>
+              </span>
+              <span class="prow__role">Manager</span>
+              <span class="prow__arrow"><svg class="ico"><use href="#i-arrow-up-right"/></svg></span>
+            </a>
+          </li>
+          <li class="plist__item" data-reveal>
+            <a class="prow" href="https://discord.gg/arvenis" target="_blank" rel="noopener" data-invite="arvenis" data-preview="1" data-cursor="Join" style="--c1:#af7dff;--c2:#5865f2">
+              <span class="prow__num">02</span>
+              <span class="prow__logo"><img src="../assets/img/projets/arvenis-logo.webp" alt="" width="64" height="64" loading="lazy"></span>
+              <span class="prow__main">
+                <span class="prow__name">Arvenis</span>
+                <span class="prow__desc">Discord bot collective</span>
+              </span>
+              <span class="prow__stats">
+                <span class="prow__live" hidden><i></i><b data-online></b> online</span>
+                <span class="prow__count" hidden><b data-members></b> members</span>
+              </span>
+              <span class="prow__role">CEO</span>
+              <span class="prow__arrow"><svg class="ico"><use href="#i-arrow-up-right"/></svg></span>
+            </a>
+          </li>
+          <li class="plist__item" data-reveal>
+            <a class="prow" href="https://discord.gg/nicola" target="_blank" rel="noopener" data-invite="nicola" data-preview="2" data-cursor="Join" style="--c1:#ffb547;--c2:#ff6b6b">
+              <span class="prow__num">03</span>
+              <span class="prow__logo"><img src="../assets/img/projets/nico-pdp.webp" alt="" width="64" height="64" loading="lazy"></span>
+              <span class="prow__main">
+                <span class="prow__name">Nico Là</span>
+                <span class="prow__desc">Influencer community</span>
+              </span>
+              <span class="prow__stats">
+                <span class="prow__live" hidden><i></i><b data-online></b> online</span>
+                <span class="prow__count" hidden><b data-members></b> members</span>
+              </span>
+              <span class="prow__role">Administrator</span>
+              <span class="prow__arrow"><svg class="ico"><use href="#i-arrow-up-right"/></svg></span>
+            </a>
+          </li>
+          <li class="plist__item" data-reveal>
+            <a class="prow" href="https://discord.gg/byilhan" target="_blank" rel="noopener" data-invite="byilhan" data-preview="3" data-cursor="Join" style="--c1:#ff9f43;--c2:#e8453c">
+              <span class="prow__num">04</span>
+              <span class="prow__logo"><img src="../assets/img/projets/byilhan-pdp.webp" alt="" width="64" height="64" loading="lazy"></span>
+              <span class="prow__main">
+                <span class="prow__name">Byilhan</span>
+                <span class="prow__desc">Influencer community</span>
+              </span>
+              <span class="prow__stats">
+                <span class="prow__live" hidden><i></i><b data-online></b> online</span>
+                <span class="prow__count" hidden><b data-members></b> members</span>
+              </span>
+              <span class="prow__role">Administrator</span>
+              <span class="prow__arrow"><svg class="ico"><use href="#i-arrow-up-right"/></svg></span>
+            </a>
+          </li>
+        </ul>
+
+        <!-- Aperçu qui suit la souris (ordinateur uniquement) -->
+        <div class="ppreview js-ppreview" aria-hidden="true">
+          <div class="ppreview__strip">
+            <div class="pcard" style="--c1:#4d7cff;--c2:#ff5a6a">
+              <span class="pcard__flag"></span>
+              <img class="pcard__logo" src="../assets/img/projets/cafe-logo.webp" alt="" width="104" height="104" loading="lazy">
+              <span class="pcard__label">discord.gg/france</span>
+            </div>
+            <div class="pcard" style="--c1:#af7dff;--c2:#5865f2">
+              <img class="pcard__logo" src="../assets/img/projets/arvenis-logo.webp" alt="" width="104" height="104" loading="lazy">
+              <span class="pcard__label">discord.gg/arvenis</span>
+            </div>
+            <div class="pcard pcard--photo" style="--c1:#ffb547;--c2:#ff6b6b">
+              <img class="pcard__bg" src="../assets/img/projets/nico-banner.webp" alt="" loading="lazy">
+              <img class="pcard__logo" src="../assets/img/projets/nico-pdp.webp" alt="" width="104" height="104" loading="lazy">
+              <span class="pcard__label">discord.gg/nicola</span>
+            </div>
+            <div class="pcard pcard--photo" style="--c1:#ff9f43;--c2:#e8453c">
+              <img class="pcard__bg" src="../assets/img/projets/byilhan-banner.webp" alt="" loading="lazy">
+              <img class="pcard__logo" src="../assets/img/projets/byilhan-pdp.webp" alt="" width="104" height="104" loading="lazy">
+              <span class="pcard__label">discord.gg/byilhan</span>
+            </div>
+          </div>
+        </div>
+
+        <a class="project-cta spotlight" href="#contact" data-reveal data-cursor="Go">
+          <span class="project-cta__title">Your server could be <em>next</em>.</span>
+          <span class="project-cta__btn"><svg class="ico"><use href="#i-arrow-up-right"/></svg></span>
+        </a>
+      </div>
+    </section>
+
+    <!-- AVIS -->
+    <section class="section reviews" id="avis">
+      <div class="container">
+        <header class="section__head section__head--row">
+          <div>
+            <p class="eyebrow" data-reveal>Reviews</p>
+            <h2 class="title" data-split>They <em>trusted</em> me.</h2>
+          </div>
+          <div class="t-nav" data-reveal>
+            <button class="t-nav__btn js-t-prev" type="button" aria-label="Previous review"><svg class="ico"><use href="#i-arrow-right"/></svg></button>
+            <button class="t-nav__btn js-t-next" type="button" aria-label="Next review"><svg class="ico"><use href="#i-arrow-right"/></svg></button>
+          </div>
+        </header>
+
+        <div class="testimonials js-testimonials" data-reveal aria-roledescription="carousel" aria-label="Client reviews">
+          <div class="testimonials__stage">
+            <figure class="testimonial spotlight is-active" aria-roledescription="slide" aria-label="Review 1 of 3">
+              <svg class="testimonial__quote" aria-hidden="true"><use href="#i-quote"/></svg>
+              <blockquote class="testimonial__text">Marius's work on the server has benefited both members and staff. His professional and complete restructuring led to better inclusion of members within the server. His efficient staff recruitment also gave members high-quality, professional moderation and activities. All in all, his work on the server is high-quality and professional! Thanks to him!</blockquote>
+              <figcaption>
+                <span class="review__av" aria-hidden="true">S</span>
+                <span><b>Stizo</b><small>Server restructuring &amp; staff recruitment</small></span>
+              </figcaption>
+            </figure>
+            <figure class="testimonial spotlight" aria-roledescription="slide" aria-label="Review 2 of 3">
+              <svg class="testimonial__quote" aria-hidden="true"><use href="#i-quote"/></svg>
+              <blockquote class="testimonial__text">Marius does thorough and serious work. Always available and committed to the tasks he is given. I have been working with him for several months and so far I have had no negative feedback to pass on. He shows rigor and discipline in the work we have done together. He is very comfortable with Discord, both the app and all of its features, and brings real added value to the team.</blockquote>
+              <figcaption>
+                <span class="review__av review__av--img" aria-hidden="true"><img src="../assets/img/projets/byilhan-pdp.webp" alt="" width="48" height="48" loading="lazy"></span>
+                <span><b>Byilhan</b><small>Influencer · Byilhan Discord server</small></span>
+              </figcaption>
+            </figure>
+            <figure class="testimonial spotlight" aria-roledescription="slide" aria-label="Review 3 of 3">
+              <svg class="testimonial__quote" aria-hidden="true"><use href="#i-quote"/></svg>
+              <blockquote class="testimonial__text">Marius was quick, efficient and attentive when creating my community server. He suggested tailored solutions and delivered professional, well-structured work. I highly recommend him!</blockquote>
+              <figcaption>
+                <span class="review__av" aria-hidden="true">G</span>
+                <span><b>Guizzi</b><small>Community server creation</small></span>
+              </figcaption>
+            </figure>
+          </div>
+          <div class="t-dots" role="tablist" aria-label="Choose a review">
+            <button class="t-dot is-active" type="button" role="tab" aria-selected="true" aria-label="Review by Stizo"><span></span></button>
+            <button class="t-dot" type="button" role="tab" aria-selected="false" aria-label="Review by Byilhan"><span></span></button>
+            <button class="t-dot" type="button" role="tab" aria-selected="false" aria-label="Review by Guizzi"><span></span></button>
+          </div>
+          <p class="t-note">Reviews translated from French.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- RÉSEAUX -->
+    <section class="section socials" id="reseaux">
+      <div class="container">
+        <header class="section__head section__head--row">
+          <div>
+            <p class="eyebrow" data-reveal>Socials</p>
+            <h2 class="title" data-split>Find me <em>everywhere</em>.</h2>
+          </div>
+          <p class="section__lead" data-reveal>Follow my updates or message me directly on the platform of your choice.</p>
+        </header>
+        <div class="social-list" data-stagger>
+          <a class="social" href="https://www.instagram.com/mvriuus_/" target="_blank" rel="noopener" style="--brand:linear-gradient(90deg,#f9ce34,#ee2a7b 45%,#6228d7);--brand-ink:#fff" data-reveal>
+            <span class="social__icon"><svg><use href="#b-instagram"/></svg></span>
+            <span class="social__name">Instagram</span>
+            <span class="social__handle">@mvriuus_</span>
+            <span class="social__arrow"><svg class="ico"><use href="#i-arrow-up-right"/></svg></span>
+          </a>
+          <a class="social" href="https://discord.gg/arvenis" target="_blank" rel="noopener" style="--brand:#5865f2;--brand-ink:#fff" data-reveal>
+            <span class="social__icon"><svg><use href="#b-discord"/></svg></span>
+            <span class="social__name">Discord</span>
+            <span class="social__handle">discord.gg/arvenis</span>
+            <span class="social__arrow"><svg class="ico"><use href="#i-arrow-up-right"/></svg></span>
+          </a>
+          <a class="social" href="https://guns.lol/an" target="_blank" rel="noopener" style="--brand:linear-gradient(90deg,#8b9bff,#c3a6ff);--brand-ink:#0a0a12" data-reveal>
+            <span class="social__icon"><svg class="ico"><use href="#i-link"/></svg></span>
+            <span class="social__name">Guns.lol</span>
+            <span class="social__handle">guns.lol/an</span>
+            <span class="social__arrow"><svg class="ico"><use href="#i-arrow-up-right"/></svg></span>
+          </a>
+          <a class="social" href="mailto:contact@mvriuus.fr" style="--brand:#eef0f8;--brand-ink:#0a0b12" data-reveal>
+            <span class="social__icon"><svg class="ico"><use href="#i-mail"/></svg></span>
+            <span class="social__name">Email</span>
+            <span class="social__handle">contact@mvriuus.fr</span>
+            <span class="social__arrow"><svg class="ico"><use href="#i-arrow-up-right"/></svg></span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section faq" id="faq">
+      <div class="container faq__grid">
+        <header class="faq__head">
+          <p class="eyebrow" data-reveal>FAQ</p>
+          <h2 class="title" data-split>Your questions, <em>my answers</em>.</h2>
+          <p class="section__lead" data-reveal>Another question? <a class="faq__link" href="#contact">Write to me</a> and I will get back to you directly.</p>
+        </header>
+        <div class="faq__list js-faq" data-stagger>
+          <div class="faq__item" data-reveal>
+            <h3 class="faq__h">
+              <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-1" id="faq-1-q">
+                <span class="faq__num">01</span>
+                <span class="faq__text">How much do your services cost?</span>
+                <span class="faq__icon" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div class="faq__a" id="faq-1" role="region" aria-labelledby="faq-1-q">
+              <div><p>There is no fixed price: every project is different. I will send you a custom quote tailored to your needs and your community.</p></div>
+            </div>
+          </div>
+          <div class="faq__item" data-reveal>
+            <h3 class="faq__h">
+              <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-2" id="faq-2-q">
+                <span class="faq__num">02</span>
+                <span class="faq__text">How does a project work?</span>
+                <span class="faq__icon" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div class="faq__a" id="faq-2" role="region" aria-labelledby="faq-2-q">
+              <div><p>It all starts with getting in touch. We then schedule a call to discuss your goals, and I set up the project.</p></div>
+            </div>
+          </div>
+          <div class="faq__item" data-reveal>
+            <h3 class="faq__h">
+              <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-3" id="faq-3-q">
+                <span class="faq__num">03</span>
+                <span class="faq__text">How quickly do you respond?</span>
+                <span class="faq__icon" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div class="faq__a" id="faq-3" role="region" aria-labelledby="faq-3-q">
+              <div><p>I respond to every request within one week at most.</p></div>
+            </div>
+          </div>
+          <div class="faq__item" data-reveal>
+            <h3 class="faq__h">
+              <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-4" id="faq-4-q">
+                <span class="faq__num">04</span>
+                <span class="faq__text">Which payment methods do you accept?</span>
+                <span class="faq__icon" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div class="faq__a" id="faq-4" role="region" aria-labelledby="faq-4-q">
+              <div><p>Payment is made by bank transfer or PayPal.</p></div>
+            </div>
+          </div>
+          <div class="faq__item" data-reveal>
+            <h3 class="faq__h">
+              <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-5" id="faq-5-q">
+                <span class="faq__num">05</span>
+                <span class="faq__text">Do you offer long-term management?</span>
+                <span class="faq__icon" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div class="faq__a" id="faq-5" role="region" aria-labelledby="faq-5-q">
+              <div><p>Yes. Beyond the initial setup, I can manage your community over the long term.</p></div>
+            </div>
+          </div>
+          <div class="faq__item" data-reveal>
+            <h3 class="faq__h">
+              <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-6" id="faq-6-q">
+                <span class="faq__num">06</span>
+                <span class="faq__text">Who do you work with?</span>
+                <span class="faq__icon" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div class="faq__a" id="faq-6" role="region" aria-labelledby="faq-6-q">
+              <div><p>I mainly work with content creators and businesses.</p></div>
+            </div>
+          </div>
+          <div class="faq__item" data-reveal>
+            <h3 class="faq__h">
+              <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-7" id="faq-7-q">
+                <span class="faq__num">07</span>
+                <span class="faq__text">What access do you need?</span>
+                <span class="faq__icon" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div class="faq__a" id="faq-7" role="region" aria-labelledby="faq-7-q">
+              <div><p>On Discord, I need full access to the server. For social media, the access required depends on the project.</p></div>
+            </div>
+          </div>
+          <div class="faq__item" data-reveal>
+            <h3 class="faq__h">
+              <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-8" id="faq-8-q">
+                <span class="faq__num">08</span>
+                <span class="faq__text">Which bots do you use?</span>
+                <span class="faq__icon" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div class="faq__a" id="faq-8" role="region" aria-labelledby="faq-8-q">
+              <div><p>I use the bots developed by Arvenis, the collective I run.</p></div>
+            </div>
+          </div>
+          <div class="faq__item" data-reveal>
+            <h3 class="faq__h">
+              <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-9" id="faq-9-q">
+                <span class="faq__num">09</span>
+                <span class="faq__text">Can you recruit and manage a staff team?</span>
+                <span class="faq__icon" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div class="faq__a" id="faq-9" role="region" aria-labelledby="faq-9-q">
+              <div><p>Yes. I have teams and I run recruitment to build a staff that fits your community.</p></div>
+            </div>
+          </div>
+          <div class="faq__item" data-reveal>
+            <h3 class="faq__h">
+              <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-10" id="faq-10-q">
+                <span class="faq__num">10</span>
+                <span class="faq__text">Can you work on an existing server?</span>
+                <span class="faq__icon" aria-hidden="true"></span>
+              </button>
+            </h3>
+            <div class="faq__a" id="faq-10" role="region" aria-labelledby="faq-10-q">
+              <div><p>Yes. I can take over and restructure an existing server, or build one from scratch.</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section class="contact" id="contact">
+      <div class="contact__bg" aria-hidden="true">
+        <div class="orbit orbit--1"><span></span></div>
+        <div class="orbit orbit--2"><span></span><span></span></div>
+        <div class="orbit orbit--3"><span></span></div>
+        <div class="contact__glow"></div>
+      </div>
+      <div class="container contact__inner">
+        <p class="eyebrow" data-reveal>Contact</p>
+        <h2 class="contact__title" data-split>Ready to grow <em>your community</em>?</h2>
+        <p class="contact__lead" data-reveal>Tell me about your project: I will get back to you quickly with a tailored proposal.</p>
+
+        <form class="quote js-quote" action="https://formsubmit.co/contact@mvriuus.fr" method="POST" novalidate data-reveal>
+          <input type="hidden" name="_subject" value="Nouvelle demande de devis (version anglaise) — mvriuus.fr">
+          <input type="hidden" name="_template" value="table">
+          <input type="hidden" name="_captcha" value="false">
+          <input class="quote__honey" type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+          <div class="quote__body">
+            <fieldset class="quote__group">
+              <legend>Project type</legend>
+              <div class="chips">
+              <label class="chip-opt"><input type="radio" name="Projet" value="Création de serveur" required><span>Server creation</span></label>
+              <label class="chip-opt"><input type="radio" name="Projet" value="Restructuration" required><span>Restructuring</span></label>
+              <label class="chip-opt"><input type="radio" name="Projet" value="Gestion &amp; modération" required><span>Management &amp; moderation</span></label>
+              <label class="chip-opt"><input type="radio" name="Projet" value="Réseaux sociaux" required><span>Social media</span></label>
+              <label class="chip-opt"><input type="radio" name="Projet" value="Autre" required><span>Other</span></label>
+              </div>
+            </fieldset>
+            <fieldset class="quote__group">
+              <legend>Community size</legend>
+              <div class="chips">
+              <label class="chip-opt"><input type="radio" name="Taille" value="Pas encore lancée"><span>Not launched yet</span></label>
+              <label class="chip-opt"><input type="radio" name="Taille" value="Moins de 500 membres"><span>Under 500 members</span></label>
+              <label class="chip-opt"><input type="radio" name="Taille" value="500 à 5 000 membres"><span>500 to 5,000 members</span></label>
+              <label class="chip-opt"><input type="radio" name="Taille" value="Plus de 5 000 membres"><span>Over 5,000 members</span></label>
+              </div>
+            </fieldset>
+
+            <div class="quote__grid">
+              <label class="field"><input name="Nom" type="text" required placeholder=" " autocomplete="name"><span>Name or username</span></label>
+              <label class="field"><input name="email" type="email" required placeholder=" " autocomplete="email"><span>Email</span></label>
+              <label class="field"><input name="Discord" type="text" placeholder=" " autocomplete="off"><span>Discord username (optional)</span></label>
+              <label class="field field--select">
+                <select name="Délai">
+                  <option value="Dès que possible">As soon as possible</option>
+                  <option value="Dans le mois">Within the month</option>
+                  <option value="Pas pressé">No rush</option>
+                </select>
+                <span>Desired timeline</span>
+              </label>
+              <label class="field field--full"><textarea name="Message" rows="5" required placeholder=" "></textarea><span>Tell me about your project</span></label>
+            </div>
+
+            <div class="quote__foot">
+              <button class="btn btn--primary btn--lg quote__submit" type="submit"><span class="quote__spinner" aria-hidden="true"></span><span class="quote__label">Send my request</span><svg class="ico"><use href="#i-arrow-right"/></svg></button>
+              <p class="quote__status" role="status" aria-live="polite"></p>
+            </div>
+          </div>
+
+          <div class="quote__done" hidden>
+            <svg class="quote__check" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24"/><path d="m15 27 7 7 15-15"/></svg>
+            <p class="quote__done-title">Thanks, your request is on its way!</p>
+            <p>I will get back to you as soon as possible at the address you provided.</p>
+          </div>
+        </form>
+
+        <div class="contact__alt" data-reveal>
+          <span>Or directly:</span>
+          <button class="copy js-copy" type="button" data-copy="contact@mvriuus.fr">
+            <span class="copy__text">contact@mvriuus.fr</span>
+            <span class="copy__icon" aria-hidden="true"><svg class="ico copy__ico"><use href="#i-copy"/></svg><svg class="ico copy__ok"><use href="#i-check"/></svg></span>
+            <span class="copy__status" role="status" aria-live="polite"></span>
+          </button>
+          <a class="copy" href="https://discord.gg/arvenis" target="_blank" rel="noopener"><svg class="ico ico--fill"><use href="#b-discord"/></svg><span class="copy__text">Discord</span></a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__grid">
+      <div class="footer__brand">
+        <a href="#top" class="brand">
+          <span class="avatar avatar--sm"><span class="avatar__fallback">M</span><img src="../assets/img/profile-sm.jpg" alt="" width="36" height="36" loading="lazy" onerror="this.remove()"></span>
+          <span class="brand__name">Mvrius</span>
+        </a>
+        <p>Discord community management expert. Available for new collaborations.</p>
+      </div>
+      <nav aria-label="Footer navigation">
+        <p class="footer__title">Navigation</p>
+        <a href="#services">Services</a>
+        <a href="#projets">Projects</a>
+        <a href="#avis">Reviews</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <div>
+        <p class="footer__title">Social</p>
+        <a href="https://www.instagram.com/mvriuus_/" target="_blank" rel="noopener">Instagram</a>
+        <a href="https://discord.gg/arvenis" target="_blank" rel="noopener">Discord</a>
+        <a href="https://guns.lol/an" target="_blank" rel="noopener">Guns.lol</a>
+      </div>
+      <div>
+        <p class="footer__title">Contact</p>
+        <a href="mailto:contact@mvriuus.fr">contact@mvriuus.fr</a>
+        <a href="#top" class="footer__top">Back to top <svg class="ico"><use href="#i-arrow-up"/></svg></a>
+      </div>
+    </div>
+    <p class="footer__word" aria-hidden="true" data-stagger><span>M</span><span>V</span><span>R</span><span>I</span><span>U</span><span>S</span></p>
+    <div class="container footer__bottom">
+      <p>© <span class="js-year">2026</span> Mvrius. All rights reserved.</p>
+      <p>Crafted with care · Hosted on GitHub Pages</p>
+    </div>
+  </footer>
+</body>
+</html>

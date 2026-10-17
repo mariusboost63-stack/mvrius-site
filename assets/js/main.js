@@ -111,7 +111,23 @@
   });
 
   const pad2 = n => String(n).padStart(2, '0');
-  const fmt = n => n.toLocaleString('fr-FR');
+  // Textes de l'interface selon la langue de la page (<html lang>)
+  const LANG = root.lang === 'en' ? 'en' : 'fr';
+  const T = {
+    fr: {
+      locale: 'fr-FR', typing: "est en train d'écrire…", today: "Aujourd'hui à",
+      copied: 'Adresse copiée !', sending: 'Envoi en cours…', send: 'Envoyer ma demande',
+      invalid: 'Merci de compléter les champs en rouge.', failed: "L'envoi n'a pas fonctionné. Écrivez-moi directement à",
+      mailSubject: 'Demande de devis', menuOpen: 'Ouvrir le menu', menuClose: 'Fermer le menu',
+    },
+    en: {
+      locale: 'en-US', typing: 'is typing…', today: 'Today at',
+      copied: 'Address copied!', sending: 'Sending…', send: 'Send my request',
+      invalid: 'Please fill in the fields in red.', failed: "Sending didn't work. Email me directly at",
+      mailSubject: 'Quote request', menuOpen: 'Open menu', menuClose: 'Close menu',
+    },
+  }[LANG];
+  const fmt = n => n.toLocaleString(T.locale);
 
   /* ---------- Compteurs Discord en direct ---------- */
   function animateNumber(el, to) {
@@ -183,21 +199,21 @@
   if (quote) {
     const status = $('.quote__status', quote);
     const label = $('.quote__label', quote);
-    const mailto = data => 'mailto:contact@mvriuus.fr?subject=' + encodeURIComponent('Demande de devis')
+    const mailto = data => 'mailto:contact@mvriuus.fr?subject=' + encodeURIComponent(T.mailSubject)
       + '&body=' + encodeURIComponent(Object.entries(data).filter(([k]) => !k.startsWith('_')).map(([k, v]) => `${k} : ${v}`).join('\n'));
     quote.addEventListener('submit', async e => {
       e.preventDefault();
       status.textContent = '';
       if (!quote.checkValidity()) {
         quote.classList.add('was-validated');
-        status.textContent = 'Merci de compléter les champs en rouge.';
+        status.textContent = T.invalid;
         $(':invalid:not(fieldset)', quote)?.focus();
         return;
       }
       if (quote.elements._honey.value) return;
       const data = Object.fromEntries(new FormData(quote));
       quote.classList.add('is-sending');
-      label.textContent = 'Envoi en cours…';
+      label.textContent = T.sending;
       try {
         const res = await fetch('https://formsubmit.co/ajax/contact@mvriuus.fr', {
           method: 'POST',
@@ -210,10 +226,10 @@
         $('.quote__done', quote).hidden = false;
         quote.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
       } catch (err) {
-        status.innerHTML = `L'envoi n'a pas fonctionné. Écrivez-moi directement à <a href="${mailto(data)}">contact@mvriuus.fr</a>.`;
+        status.innerHTML = `${T.failed} <a href="${mailto(data)}">contact@mvriuus.fr</a>.`;
       } finally {
         quote.classList.remove('is-sending');
-        label.textContent = 'Envoyer ma demande';
+        label.textContent = T.send;
       }
     });
   }
@@ -225,7 +241,7 @@
     btn.addEventListener('click', async () => {
       try {
         await navigator.clipboard.writeText(btn.dataset.copy);
-        status.textContent = 'Adresse copiée !';
+        status.textContent = T.copied;
       } catch (e) {
         window.location.href = 'mailto:' + btn.dataset.copy;
         return;
@@ -333,7 +349,7 @@
   const toggleMenu = open => {
     root.classList.toggle('menu-open', open);
     burger.setAttribute('aria-expanded', String(open));
-    burger.setAttribute('aria-label', open ? 'Fermer le menu' : 'Ouvrir le menu');
+    burger.setAttribute('aria-label', open ? T.menuClose : T.menuOpen);
     menu.setAttribute('aria-hidden', String(!open));
     if (open) nav.classList.remove('is-hidden');
   };
@@ -416,7 +432,7 @@
       : `<span class="msg__av" style="--h:${m.h}">${m.name[0]}</span>`;
     const tag = m.tag ? `<span class="msg__tag msg__tag--mod">${m.tag}</span>` : '';
     const react = m.react ? `<span class="msg__react">${m.react}</span>` : '';
-    el.innerHTML = `${av}<div><p class="msg__name">${m.name}${tag}<time>Aujourd'hui à ${hhmm}</time></p><p class="msg__text">${m.text}</p>${react}</div>`;
+    el.innerHTML = `${av}<div><p class="msg__name">${m.name}${tag}<time>${T.today} ${hhmm}</time></p><p class="msg__text">${m.text}</p>${react}</div>`;
     return el;
   }
   function trimChat() {
@@ -451,7 +467,7 @@
         idx++;
         const typing = document.createElement('div');
         typing.className = 'typing';
-        typing.innerHTML = `<i><span></span><span></span><span></span></i>${m.name} est en train d'écrire…`;
+        typing.innerHTML = `<i><span></span><span></span><span></span></i>${m.name} ${T.typing}`;
         chat.append(typing);
         trimChat();
         await wait(1300);
