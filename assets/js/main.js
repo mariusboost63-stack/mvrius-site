@@ -99,14 +99,16 @@
   if (reduced || !('IntersectionObserver' in window)) {
     revealTargets.forEach(el => el.classList.add('is-in'));
   } else {
-    const io = new IntersectionObserver(entries => {
-      entries.forEach(e => {
-        if (!e.isIntersecting) return;
-        e.target.classList.add('is-in');
-        io.unobserve(e.target);
-      });
-    }, { rootMargin: '0px 0px -12% 0px', threshold: 0 }); // fiable même pour les blocs très hauts
-    revealTargets.forEach(el => io.observe(el));
+    const show = (entries, obs) => entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      e.target.classList.add('is-in');
+      obs.unobserve(e.target);
+    });
+    const io = new IntersectionObserver(show, { rootMargin: '0px 0px -12% 0px', threshold: 0 }); // fiable même pour les blocs très hauts
+    // Tout en bas de la page, la marge empêcherait l'apparition : on observe sans marge
+    const ioEnd = new IntersectionObserver(show, { threshold: 0 });
+    const endY = document.documentElement.scrollHeight - innerHeight * .15;
+    revealTargets.forEach(el => (el.getBoundingClientRect().bottom + scrollY > endY ? ioEnd : io).observe(el));
   }
   // Une fois apparu, on retire le délai pour que les survols restent vifs
   document.addEventListener('transitionend', e => {
@@ -119,7 +121,7 @@
   const T = {
     fr: {
       locale: 'fr-FR', typing: "est en train d'écrire…", today: "Aujourd'hui à",
-      copied: 'Adresse copiée !', sending: 'Envoi en cours…',
+      copied: 'Adresse copiée !', linkCopied: 'Lien copié !', sending: 'Envoi en cours…',
       invalid: 'Merci de compléter les champs en rouge.', failed: "L'envoi n'a pas fonctionné. Écrivez-moi directement à",
       menuOpen: 'Ouvrir le menu', menuClose: 'Fermer le menu',
       diagDone: 'Résultat', colon: '\u00a0: ',
@@ -128,7 +130,7 @@
     },
     en: {
       locale: 'en-US', typing: 'is typing…', today: 'Today at',
-      copied: 'Address copied!', sending: 'Sending…',
+      copied: 'Address copied!', linkCopied: 'Link copied!', sending: 'Sending…',
       invalid: 'Please fill in the fields in red.', failed: "Sending didn't work. Email me directly at",
       menuOpen: 'Open menu', menuClose: 'Close menu',
       diagDone: 'Result', colon: ': ',
@@ -273,6 +275,55 @@
       t = setTimeout(() => { btn.classList.remove('is-copied'); status.textContent = ''; }, 2200);
     });
   });
+
+  /* ---------- Articles : partage ---------- */
+  const shareBtn = $('.js-share');
+  if (shareBtn && navigator.share) {
+    shareBtn.hidden = false;
+    shareBtn.addEventListener('click', () => {
+      navigator.share({ title: shareBtn.dataset.title, url: shareBtn.dataset.url }).catch(() => {});
+    });
+  }
+  $$('.js-share-copy').forEach(btn => {
+    const label = $('.js-share-label', btn);
+    const text = label.textContent;
+    let t;
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(btn.dataset.url);
+      } catch (e) {
+        window.prompt(text, btn.dataset.url);
+        return;
+      }
+      label.textContent = T.linkCopied;
+      btn.classList.add('is-copied');
+      clearTimeout(t);
+      t = setTimeout(() => { btn.classList.remove('is-copied'); label.textContent = text; }, 2200);
+    });
+  });
+
+  /* ---------- Bots Arvenis : photos et bannières à jour ---------- */
+  const botCards = $$('[data-bot]');
+  if (botCards.length) {
+    fetch('https://api.arvenis.fr/profiles')
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        if (!data || !data.bots) return;
+        botCards.forEach(card => {
+          const bot = data.bots[card.dataset.bot];
+          if (!bot) return;
+          const base = url => (url || '').split('?')[0];
+          const av = $('.js-bot-avatar', card);
+          if (av && bot.avatar && base(av.src) !== base(bot.avatar)) {
+            av.onerror = () => { av.onerror = null; av.src = av.dataset.fallback; };
+            av.src = base(bot.avatar) + '?size=128';
+          }
+          const banner = $('.js-bot-banner', card);
+          if (banner && bot.banner && base(banner.src) !== base(bot.banner)) banner.src = bot.banner;
+        });
+      })
+      .catch(() => {});
+  }
 
   /* ---------- Avis : salon Discord ---------- */
   const dchan = $('.js-dchan');
@@ -636,6 +687,7 @@
 
   /* ---------- Boucle d'animation ---------- */
   const progressBar = $('.progress span');
+  const prose = $('.js-prose');
   let lastY = -1;
   let navY = scrollY;
   let vel = 0;
@@ -645,7 +697,15 @@
 
   function onScroll(y, vh) {
     // Lectures
-    const docH = document.documentElement.scrollHeight - vh;
+    // Sur un article, la barre suit la lecture du texte ; ailleurs, toute la page
+    let progress;
+    if (prose) {
+      const r = prose.getBoundingClientRect();
+      progress = clamp((vh * .7 - r.top) / r.height, 0, 1);
+    } else {
+      const docH = document.documentElement.scrollHeight - vh;
+      progress = docH > 0 ? y / docH : 0;
+    }
     const probe = vh * .4;
     let current = null;
     navSections.forEach((sec, i) => {
@@ -655,7 +715,7 @@
     });
 
     // Écritures
-    if (progressBar) progressBar.style.transform = `scaleX(${docH > 0 ? y / docH : 0})`;
+    if (progressBar) progressBar.style.transform = `scaleX(${progress})`;
     if (nav) {
       nav.classList.toggle('is-scrolled', y > 30);
       if (Math.abs(y - navY) > 8) {

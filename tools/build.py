@@ -6,25 +6,36 @@ Usage : python3 tools/build.py
 1. Ajoute aux liens vers style.css et main.js un numéro de version (?v=…) calculé
    à partir de leur contenu : les navigateurs rechargent ainsi les fichiers à
    chaque mise à jour au lieu de garder une ancienne version en mémoire.
-2. Génère les pages « Conseils » (conseils/<article>/index.html) à partir des textes
-   de tools/articles/, avec la navigation et le pied de page de l'accueil.
+2. Génère les pages « Conseils » (conseils/index.html et conseils/<article>/index.html)
+   à partir des textes de tools/articles/, avec la navigation et le pied de page de l'accueil.
 3. Génère la version anglaise (en/index.html) à partir de index.html. Chaque texte
    français de la table doit exister dans index.html : si une phrase a été modifiée
    côté français, le script s'arrête et indique laquelle.
+4. Génère sitemap.xml et robots.txt pour les moteurs de recherche.
 """
 import hashlib
 import json
 import pathlib
 import re
 import sys
+import urllib.parse
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "index.html"
 OUT = ROOT / "en" / "index.html"
 STAMPED = ["index.html", "staff/index.html", "liens/index.html", "404.html"]
 
-# Articles « Conseils », dans l'ordre d'affichage (textes dans tools/articles/<nom>.html)
-ARTICLES = ["erreurs-serveur-discord", "structurer-salons-discord", "recruter-equipe-moderation"]
+# Articles « Conseils », du plus récent au plus ancien (textes dans tools/articles/<nom>.html)
+ARTICLES = [
+    "bots-arvenis-discord", "organiser-evenement-discord", "discord-createurs-de-contenu",
+    "erreurs-serveur-discord", "structurer-salons-discord", "recruter-equipe-moderation",
+]
+SITE = "https://mvriuus.fr/"
+# Icônes utilisées seulement dans les articles (ajoutées au sprite de l'accueil)
+ARTICLE_ICONS = (
+    '      <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98"/><path d="m15.41 6.51-6.82 3.98"/></symbol>\n'
+    '      <symbol id="b-x" viewBox="0 0 24 24"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></symbol>\n'
+)
 SECTIONS = ("services", "projets", "avis", "diagnostic", "conseils", "reseaux", "faq", "contact")
 
 # (texte français, texte anglais, nombre d'occurrences attendu)
@@ -181,6 +192,7 @@ T = [
      'On Discord, I need full access to the server. For social media, the access required depends on the project.', 1),
     ('Quels bots utilisez-vous&nbsp;?', 'Which bots do you use?', 1),
     ('J\'utilise les bots développés par Arvenis, le collectif que je dirige.', 'I use the bots developed by Arvenis, the collective I run.', 1),
+    ('Découvrez-les ici</a>.', 'Discover them here</a> (in French).', 1),
     ('Pouvez-vous recruter et gérer un staff&nbsp;?', 'Can you recruit and manage a staff team?', 1),
     ('Envie d\'en faire partie&nbsp;? <a class="faq__link" href="staff/">Postulez ici</a>.',
      'Want to join? <a class="faq__link" href="../staff/">Apply here</a> (in French).', 1),
@@ -289,7 +301,8 @@ T = [
     ('Mes conseils pour votre <em>serveur</em>.', 'Tips for your <em>server</em>.', 1),
     ('Des astuces concrètes, tirées de mon expérience, pour faire grandir votre communauté.',
      'Practical advice from my experience to help your community grow. Articles in French.', 1),
-    ('href="conseils/', 'hreflang="fr" href="../conseils/', 3),
+    ('href="conseils/', 'hreflang="fr" href="../conseils/', 5),
+    ('<span>Voir tous les conseils</span>', '<span>See all tips</span>', 1),
     ('data-cursor="Lire"', 'data-cursor="Read"', 3),
     ('Communauté · 4 min de lecture', 'Community · 4 min read', 1),
     ('Organisation · 5 min de lecture', 'Organisation · 5 min read', 1),
@@ -393,54 +406,43 @@ def read_article(slug):
     return meta, body
 
 
-def build_articles(version):
-    home = SRC.read_text(encoding="utf-8")
-    sprite, nav, footer = page_parts(home, "../../")
-    data = {slug: read_article(slug) for slug in ARTICLES}
-    for slug, (meta, body) in data.items():
-        url = f"https://mvriuus.fr/conseils/{slug}/"
-        article_ld = {
-            "@context": "https://schema.org", "@type": "Article",
-            "headline": meta["title"], "description": meta["description"], "inLanguage": "fr",
-            "datePublished": meta["date"], "dateModified": meta["date"],
-            "image": "https://mvriuus.fr/assets/img/og.jpg", "mainEntityOfPage": url,
-            "author": {"@type": "Person", "name": "Mvrius", "url": "https://mvriuus.fr/"},
-            "publisher": {"@type": "Person", "name": "Mvrius", "url": "https://mvriuus.fr/"},
-        }
-        others = "\n".join(f'''          <a class="more-card spotlight" href="../{other}/" data-reveal data-cursor="Lire">
-            <span class="tip-card__tag">{m["tag"]} · {m["read"]} de lecture</span>
-            <span class="more-card__title">{m["title"]}</span>
-            <span class="tip-card__more">Lire l'article <svg class="ico"><use href="#i-arrow-right"/></svg></span>
-          </a>''' for other, (m, _) in data.items() if other != slug)
-        page = f'''<!doctype html>
+def typo(text):
+    """Espace insécable avant : ; ? ! (typographie française)."""
+    return re.sub(r" ([:;?!])", r"&nbsp;\1", text)
+
+
+def doc_head(title, description, url, version, prefix, og_type="website", ld=None):
+    """En-tête commun aux pages générées (page des conseils et articles)."""
+    ld = f"\n  {ld_block(ld)}" if ld else ""
+    return f"""<!doctype html>
 <html lang="fr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{meta["title"]} — Mvrius</title>
-  <meta name="description" content="{meta["description"]}">
+  <title>{title} — Mvrius</title>
+  <meta name="description" content="{description}">
   <meta name="theme-color" content="#07080c">
   <link rel="canonical" href="{url}">
 
-  <meta property="og:type" content="article">
+  <meta property="og:type" content="{og_type}">
   <meta property="og:locale" content="fr_FR">
   <meta property="og:site_name" content="Mvrius">
-  <meta property="og:title" content="{meta["title"]}">
-  <meta property="og:description" content="{meta["description"]}">
+  <meta property="og:title" content="{title}">
+  <meta property="og:description" content="{description}">
   <meta property="og:url" content="{url}">
-  <meta property="og:image" content="https://mvriuus.fr/assets/img/og.jpg">
+  <meta property="og:image" content="{SITE}assets/img/og.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://mvriuus.fr/assets/img/og.jpg">
+  <meta name="twitter:image" content="{SITE}assets/img/og.jpg">
 
-  <link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="../../assets/img/apple-touch-icon.png">
-  <link rel="manifest" href="../../site.webmanifest">
+  <link rel="icon" href="{prefix}assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="{prefix}assets/img/apple-touch-icon.png">
+  <link rel="manifest" href="{prefix}site.webmanifest">
   <meta name="apple-mobile-web-app-title" content="Mvrius">
-  <link rel="preload" href="../../assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="../../assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="../../assets/css/style.css?v={version}">
+  <link rel="preload" href="{prefix}assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="{prefix}assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{prefix}assets/css/style.css?v={version}">
 
   <script>
     (function (d) {{
@@ -450,10 +452,104 @@ def build_articles(version):
       setTimeout(function () {{ if (!window.MV) d.classList.remove('js'); }}, 4000);
     }})(document.documentElement);
   </script>
-  <script src="../../assets/js/main.js?v={version}" defer></script>
-  {ld_block(article_ld)}
+  <script src="{prefix}assets/js/main.js?v={version}" defer></script>{ld}
 </head>
-<body>
+"""
+
+
+def layout(home, prefix, current):
+    """Sprite, navigation et pied de page pour une page des conseils (lien « Conseils » vers la liste)."""
+    sprite, nav, footer = page_parts(home, prefix)
+    sprite = sprite.replace("    </defs>\n", ARTICLE_ICONS + "    </defs>\n", 1)
+    listing = "./" if current else f"{prefix}conseils/"
+    nav = nav.replace(f'href="{prefix}#conseils"', f'href="{listing}"')
+    footer = footer.replace(f'href="{prefix}#conseils"', f'href="{listing}"')
+    if current:
+        nav = nav.replace(f'<a href="{listing}" data-text="Conseils">', f'<a href="{listing}" data-text="Conseils" aria-current="page">')
+        nav = re.sub(r'<a href="\./"><small>(\d+)</small>Conseils', r'<a href="./" aria-current="page"><small>\1</small>Conseils', nav)
+    if sprite.count(ARTICLE_ICONS) != 1 or nav.count(f'href="{listing}"') != 2:
+        sys.exit("Conseils : sprite ou lien « Conseils » introuvable dans la navigation")
+    return sprite, nav, footer
+
+
+def tip_card(slug, meta, num, href):
+    return f"""          <a class="tip-card spotlight" href="{href}" data-reveal data-cursor="Lire">
+            <span class="tip-card__top"><span class="tip-card__icon"><svg class="ico"><use href="#{meta["icon"]}"/></svg></span><span class="tip-card__num">{num:02d}</span></span>
+            <span class="tip-card__tag">{meta["tag"]} · {meta["read"]} de lecture</span>
+            <span class="tip-card__title">{typo(meta["title"])}</span>
+            <span class="tip-card__excerpt">{typo(meta["excerpt"])}</span>
+            <span class="tip-card__more">Lire l'article <svg class="ico"><use href="#i-arrow-right"/></svg></span>
+          </a>"""
+
+
+def build_listing(home, data, version):
+    sprite, nav, footer = layout(home, "../", current=True)
+    cards = "\n".join(tip_card(slug, meta, i, f"{slug}/") for i, (slug, (meta, _)) in enumerate(data.items(), 1))
+    page = doc_head("Conseils pour votre serveur Discord",
+                    "Mes conseils pour structurer, animer et faire grandir un serveur Discord : accueil, salons, modération, événements, bots et créateurs de contenu.",
+                    f"{SITE}conseils/", version, "../") + f"""<body>
+  <!-- Page générée par tools/build.py à partir de tools/articles/ : modifier les textes là-bas -->
+{sprite}{nav}
+  <main id="main">
+    <section class="page-hero page-hero--tips">
+      <div class="hero__bg" aria-hidden="true">
+        <div class="aurora"><span></span><span></span><span></span></div>
+        <div class="gridlines"></div>
+      </div>
+      <div class="container page-hero__inner">
+        <p class="eyebrow" data-reveal>Conseils</p>
+        <h1 class="page-hero__title" data-split>Mes conseils pour votre <em>serveur</em>.</h1>
+        <p class="section__lead" data-reveal>Des astuces concrètes, tirées de mon expérience, pour structurer, animer et faire grandir votre communauté Discord.</p>
+      </div>
+    </section>
+
+    <section class="section tips tips--all">
+      <div class="container">
+        <div class="tips__grid" data-stagger>
+{cards}
+        </div>
+        <aside class="article__cta" data-reveal>
+          <p class="article__cta-title">Et votre serveur, où en est-il&nbsp;?</p>
+          <p>Faites le diagnostic express en une minute, ou parlez-moi directement de votre projet.</p>
+          <div class="article__cta-actions">
+            <a class="btn btn--primary magnetic" href="../#diagnostic"><span>Faire le diagnostic</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
+            <a class="btn btn--ghost magnetic" href="../#contact"><span>Demander un devis</span></a>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+{footer}</body>
+</html>
+"""
+    (ROOT / "conseils" / "index.html").write_text(page, encoding="utf-8")
+
+
+def build_articles(version):
+    home = SRC.read_text(encoding="utf-8")
+    sprite, nav, footer = layout(home, "../../", current=False)
+    data = {slug: read_article(slug) for slug in ARTICLES}
+    build_listing(home, data, version)
+    for i, (slug, (meta, body)) in enumerate(data.items()):
+        url = f"{SITE}conseils/{slug}/"
+        article_ld = {
+            "@context": "https://schema.org", "@type": "Article",
+            "headline": meta["title"], "description": meta["description"], "inLanguage": "fr",
+            "datePublished": meta["date"], "dateModified": meta["date"],
+            "image": f"{SITE}assets/img/og.jpg", "mainEntityOfPage": url,
+            "author": {"@type": "Person", "name": "Mvrius", "url": SITE},
+            "publisher": {"@type": "Person", "name": "Mvrius", "url": SITE},
+        }
+        # « À lire aussi » : les deux articles suivants (en boucle)
+        nexts = [ARTICLES[(i + k) % len(ARTICLES)] for k in (1, 2)]
+        others = "\n".join(f"""          <a class="more-card spotlight" href="../{other}/" data-reveal data-cursor="Lire">
+            <span class="tip-card__tag">{data[other][0]["tag"]} · {data[other][0]["read"]} de lecture</span>
+            <span class="more-card__title">{typo(data[other][0]["title"])}</span>
+            <span class="tip-card__more">Lire l'article <svg class="ico"><use href="#i-arrow-right"/></svg></span>
+          </a>""" for other in nexts)
+        tweet = "https://twitter.com/intent/tweet?" + urllib.parse.urlencode({"text": meta["title"], "url": url})
+        page = doc_head(meta["title"], meta["description"], url, version, "../../", "article", article_ld) + f"""<body class="page-article">
   <!-- Page générée par tools/build.py à partir de tools/articles/{slug}.html : modifier le texte là-bas -->
 {sprite}{nav}
   <main id="main">
@@ -464,9 +560,9 @@ def build_articles(version):
           <div class="gridlines"></div>
         </div>
         <div class="container article__head">
-          <a class="article__back" href="../../#conseils"><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg>Tous les conseils</a>
+          <a class="article__back" href="../"><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg>Tous les conseils</a>
           <p class="eyebrow" data-reveal>{meta["tag"]}</p>
-          <h1 class="article__title" data-split>{meta["title"]}</h1>
+          <h1 class="article__title" data-split>{typo(meta["title"])}</h1>
           <p class="article__meta" data-reveal>
             <span class="avatar-status"><span class="avatar avatar--sm"><span class="avatar__fallback">M</span><img src="../../assets/img/profile-sm.jpg" alt="" width="36" height="36" onerror="this.remove()"></span><span class="status js-status" hidden></span></span>
             <span>Par <b>Mvrius</b> · {meta["read"]} de lecture</span>
@@ -475,8 +571,17 @@ def build_articles(version):
       </header>
 
       <div class="container article__body">
-        <div class="prose" data-reveal>
+        <div class="prose js-prose" data-reveal>
 {body}
+        </div>
+
+        <div class="share" data-reveal>
+          <p class="share__label">Cet article peut aider quelqu'un&nbsp;? Partagez-le.</p>
+          <div class="share__actions">
+            <button class="share__btn js-share" type="button" data-title="{meta["title"]}" data-url="{url}" hidden><svg class="ico" aria-hidden="true"><use href="#i-share"/></svg><span>Partager</span></button>
+            <button class="share__btn js-share-copy" type="button" data-url="{url}"><svg class="ico" aria-hidden="true"><use href="#i-link"/></svg><span class="js-share-label">Copier le lien</span></button>
+            <a class="share__btn" href="{tweet.replace("&", "&amp;")}" target="_blank" rel="noopener"><svg class="ico ico--fill" aria-hidden="true"><use href="#b-x"/></svg><span>Partager sur X</span></a>
+          </div>
         </div>
 
         <aside class="article__cta" data-reveal>
@@ -493,6 +598,7 @@ def build_articles(version):
           <div class="more-grid" data-stagger>
 {others}
           </div>
+          <a class="article__all" href="../">Voir tous les conseils <svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
         </nav>
       </div>
     </article>
@@ -500,11 +606,31 @@ def build_articles(version):
 
 {footer}</body>
 </html>
-'''
+"""
         out = ROOT / "conseils" / slug / "index.html"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(page, encoding="utf-8")
-    print(f"Conseils : {len(data)} articles")
+    print(f"Conseils : page de liste + {len(data)} articles")
+    return data
+
+
+def build_sitemap(data):
+    """sitemap.xml (pages publiques) et robots.txt."""
+    last = max(meta["date"] for meta, _ in data.values())
+    alt = (f'\n    <xhtml:link rel="alternate" hreflang="fr" href="{SITE}"/>'
+           f'\n    <xhtml:link rel="alternate" hreflang="en" href="{SITE}en/"/>'
+           f'\n    <xhtml:link rel="alternate" hreflang="x-default" href="{SITE}"/>')
+    urls = [(SITE, None, alt), (f"{SITE}en/", None, alt), (f"{SITE}conseils/", last, "")]
+    urls += [(f"{SITE}conseils/{slug}/", meta["date"], "") for slug, (meta, _) in data.items()]
+    urls += [(f"{SITE}staff/", None, ""), (f"{SITE}liens/", None, "")]
+    rows = "\n".join(f"  <url>\n    <loc>{loc}</loc>" + (f"\n    <lastmod>{mod}</lastmod>" if mod else "") + f"{extra}\n  </url>"
+                     for loc, mod, extra in urls)
+    (ROOT / "sitemap.xml").write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n'
+        f"{rows}\n</urlset>\n", encoding="utf-8")
+    (ROOT / "robots.txt").write_text(f"User-agent: *\nAllow: /\n\nSitemap: {SITE}sitemap.xml\n", encoding="utf-8")
+    print(f"Sitemap : {len(urls)} pages")
 
 
 def sync_staff_page():
@@ -526,7 +652,7 @@ def sync_staff_page():
 def main():
     sync_staff_page()
     version = stamp()
-    build_articles(version)
+    build_sitemap(build_articles(version))
     html = SRC.read_text(encoding="utf-8")
 
     # Données structurées en anglais (remplacées d'abord : elles reprennent les textes de la FAQ)

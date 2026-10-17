@@ -828,6 +828,8 @@ em {
 .tip-card__more { display: inline-flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 22px; font-weight: 600; font-size: 14.5px; }
 .tip-card__more .ico { transition: transform .45s var(--ease); }
 .tip-card:hover .tip-card__more .ico { transform: translateX(5px); }
+.tips__foot { display: flex; justify-content: center; margin-top: clamp(28px, 4vw, 44px); }
+.tips--all { padding-top: 0; }
 
 /* ---------- Articles ---------- */
 .article__hero { position: relative; overflow: hidden; padding: clamp(140px, 16vw, 190px) 0 clamp(40px, 5vw, 60px); }
@@ -846,6 +848,8 @@ em {
 .prose h2 { margin-top: 2.2em; font-family: var(--font-display); font-weight: 650; font-size: clamp(1.4rem, 2.4vw, 1.8rem); line-height: 1.25; letter-spacing: -.02em; color: var(--text); }
 .prose h2 + p, .prose h2 + ul, .prose h2 + ol, .prose h2 + div { margin-top: .7em; }
 .prose strong { color: var(--text); font-weight: 600; }
+.prose a { color: var(--accent); border-bottom: 1px solid rgba(139, 155, 255, .45); transition: color .3s, border-color .3s; }
+.prose a:hover { color: var(--text); border-color: currentColor; }
 .prose ul, .prose ol { display: flex; flex-direction: column; gap: 10px; }
 .prose li { position: relative; padding-left: 30px; }
 .prose ul li::before { content: ""; position: absolute; left: 6px; top: .72em; width: 9px; height: 9px; border-radius: 50%; background: var(--grad); }
@@ -875,6 +879,33 @@ em {
 .more-card__title { font-family: var(--font-display); font-weight: 650; font-size: 1.2rem; line-height: 1.3; letter-spacing: -.015em; }
 .more-card .tip-card__more { padding-top: 6px; }
 .more-card:hover .tip-card__more .ico { transform: translateX(5px); }
+.article__all { display: inline-flex; align-items: center; gap: 8px; margin-top: 22px; color: var(--muted); font-weight: 600; font-size: 14.5px; transition: color .3s; }
+.article__all:hover { color: var(--text); }
+.article__all .ico { transition: transform .45s var(--ease); }
+.article__all:hover .ico { transform: translateX(5px); }
+.page-article .progress { height: 3px; }
+
+/* Partage */
+.share { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-top: clamp(40px, 6vw, 60px); padding-top: 28px; border-top: 1px solid var(--line); }
+.share__label { color: var(--muted); font-size: 15px; }
+.share__actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.share__btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 999px; border: 1px solid var(--line-2); background: rgba(255, 255, 255, .03); font-size: 14px; font-weight: 600; transition: border-color .3s, background-color .3s, color .3s, transform .4s var(--ease); }
+.share__btn:hover { border-color: rgba(255, 255, 255, .3); background: rgba(255, 255, 255, .07); transform: translateY(-2px); }
+.share__btn.is-copied { border-color: rgba(61, 220, 132, .5); color: var(--online); }
+
+/* Profils des bots (article « bots Arvenis ») */
+.prose > .bot-card { margin-top: 2.4em; }
+.bot-card { overflow: hidden; border-radius: 20px; background: #111219; border: 1px solid var(--line-2); }
+.bot-card__banner { height: clamp(96px, 17vw, 150px); background: linear-gradient(120deg, rgba(139, 155, 255, .4), rgba(195, 166, 255, .22) 60%, rgba(110, 231, 255, .18)); }
+.bot-card__banner img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.bot-card__body { display: flex; align-items: flex-end; gap: 16px; padding: 0 20px 18px; }
+.bot-card__avatar { position: relative; flex: none; width: 86px; height: 86px; margin-top: -40px; padding: 5px; border-radius: 50%; background: #111219; }
+.bot-card__avatar img { display: block; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: var(--bg-elev); }
+.prose .bot-card h2 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 0; font-size: clamp(1.3rem, 2.2vw, 1.6rem); }
+.bot-card__badge { padding: 2px 6px; border-radius: 4px; background: #5865f2; color: #fff; font-family: var(--font-body); font-size: 11px; font-weight: 700; letter-spacing: .04em; line-height: 1.4; }
+.prose__new { padding: 3px 9px; border-radius: 999px; background: var(--grad); color: #0a0b12; font-family: var(--font-body); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; line-height: 1.4; }
+.prose .bot-card__tags { margin-top: 4px; color: var(--muted); font-size: 14px; line-height: 1.4; }
+.prose .bot-card + p { margin-top: 1em; }
 
 /* ---------- FAQ ---------- */
 .faq__grid { display: grid; grid-template-columns: .8fr 1.2fr; gap: clamp(40px, 6vw, 96px); align-items: start; }
@@ -1243,6 +1274,7 @@ a.copy { padding-right: 18px; }
   .diag__grid { grid-template-columns: 1fr; }
   .tips__grid { grid-template-columns: 1fr; max-width: 620px; }
   .more-grid { grid-template-columns: 1fr; }
+  .tips--all .tips__grid { grid-template-columns: 1fr 1fr; max-width: none; }
   .page-hero__inner--split { grid-template-columns: 1fr; }
   .recruit { max-width: 520px; rotate: 0deg; }
   .faq__head { position: static; }
@@ -1266,6 +1298,10 @@ a.copy { padding-right: 18px; }
   .faq__a p { padding: 0 8px 22px 2px; }
   .social__handle { display: none; }
   .dchan__topic { display: none; }
+  .tips--all .tips__grid { grid-template-columns: 1fr; }
+  .bot-card__body { gap: 12px; padding: 0 14px 14px; }
+  .bot-card__avatar { width: 72px; height: 72px; margin-top: -32px; padding: 4px; }
+  .share__btn { padding: 9px 14px; }
   .dchan__msgs { padding: 12px 4px 2px; }
   .dmsg { grid-template-columns: 36px 1fr; gap: 10px; padding: 10px 8px; }
   .dmsg__av { width: 36px; height: 36px; font-size: 14px; }

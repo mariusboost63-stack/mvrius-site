@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conseils pour votre serveur Discord — Mvrius</title>
+  <meta name="description" content="Mes conseils pour structurer, animer et faire grandir un serveur Discord : accueil, salons, modération, événements, bots et créateurs de contenu.">
+  <meta name="theme-color" content="#07080c">
+  <link rel="canonical" href="https://mvriuus.fr/conseils/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="fr_FR">
+  <meta property="og:site_name" content="Mvrius">
+  <meta property="og:title" content="Conseils pour votre serveur Discord">
+  <meta property="og:description" content="Mes conseils pour structurer, animer et faire grandir un serveur Discord : accueil, salons, modération, événements, bots et créateurs de contenu.">
+  <meta property="og:url" content="https://mvriuus.fr/conseils/">
+  <meta property="og:image" content="https://mvriuus.fr/assets/img/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://mvriuus.fr/assets/img/og.jpg">
+
+  <link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../assets/img/apple-touch-icon.png">
+  <link rel="manifest" href="../site.webmanifest">
+  <meta name="apple-mobile-web-app-title" content="Mvrius">
+  <link rel="preload" href="../assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="../assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../assets/css/style.css?v=d0b559a4">
+
+  <script>
+    (function (d) {
+      d.classList.add('js');
+      if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) d.classList.add('reduced');
+      // Filet de sécurité : si le JS principal ne démarre pas, on affiche tout le contenu.
+      setTimeout(function () { if (!window.MV) d.classList.remove('js'); }, 4000);
+    })(document.documentElement);
+  </script>
+  <script src="../assets/js/main.js?v=d0b559a4" defer></script>
+</head>
+<body>
+  <!-- Page générée par tools/build.py à partir de tools/articles/ : modifier les textes là-bas -->
+  <!-- Sprite d'icônes (Lucide + Simple Icons) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+      <symbol id="i-arrow-up-right" viewBox="0 0 24 24"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></symbol>
+      <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></symbol>
+      <symbol id="i-message" viewBox="0 0 24 24"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/></symbol>
+      <symbol id="i-bot" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></symbol>
+      <symbol id="i-trending" viewBox="0 0 24 24"><path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/></symbol>
+      <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/></symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+      <symbol id="i-megaphone" viewBox="0 0 24 24"><path d="M11 6a13 13 0 0 0 8.4-2.8A1 1 0 0 1 21 4v12a1 1 0 0 1-1.6.8A13 13 0 0 0 11 14H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/><path d="M6 14a12 12 0 0 0 2.4 7.2 2 2 0 0 0 3.2-2.4A8 8 0 0 1 10 14"/><path d="M8 6v8"/></symbol>
+      <symbol id="i-rules" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></symbol>
+      <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+      <symbol id="i-quote" viewBox="0 0 24 24"><path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/><path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/></symbol>
+      <symbol id="i-hash" viewBox="0 0 24 24"><path d="M4 9h16"/><path d="M4 15h16"/><path d="M10 3 8 21"/><path d="m16 3-2 18"/></symbol>
+      <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/></symbol>
+      <symbol id="b-instagram" viewBox="0 0 24 24"><path d="M7.0301.084c-1.2768.0602-2.1487.264-2.911.5634-.7888.3075-1.4575.72-2.1228 1.3877-.6652.6677-1.075 1.3368-1.3802 2.127-.2954.7638-.4956 1.6365-.552 2.914-.0564 1.2775-.0689 1.6882-.0626 4.947.0062 3.2586.0206 3.6671.0825 4.9473.061 1.2765.264 2.1482.5635 2.9107.308.7889.72 1.4573 1.388 2.1228.6679.6655 1.3365 1.0743 2.1285 1.38.7632.295 1.6361.4961 2.9134.552 1.2773.056 1.6884.069 4.9462.0627 3.2578-.0062 3.668-.0207 4.9478-.0814 1.28-.0607 2.147-.2652 2.9098-.5633.7889-.3086 1.4578-.72 2.1228-1.3881.665-.6682 1.0745-1.3378 1.3795-2.1284.2957-.7632.4966-1.636.552-2.9124.056-1.2809.0692-1.6898.063-4.948-.0063-3.2583-.021-3.6668-.0817-4.9465-.0607-1.2797-.264-2.1487-.5633-2.9117-.3084-.7889-.72-1.4568-1.3876-2.1228C21.2982 1.33 20.628.9208 19.8378.6165 19.074.321 18.2017.1197 16.9244.0645 15.6471.0093 15.236-.005 11.977.0014 8.718.0076 8.31.0215 7.0301.0839m.1402 21.6932c-1.17-.0509-1.8053-.2453-2.2287-.408-.5606-.216-.96-.4771-1.3819-.895-.422-.4178-.6811-.8186-.9-1.378-.1644-.4234-.3624-1.058-.4171-2.228-.0595-1.2645-.072-1.6442-.079-4.848-.007-3.2037.0053-3.583.0607-4.848.05-1.169.2456-1.805.408-2.2282.216-.5613.4762-.96.895-1.3816.4188-.4217.8184-.6814 1.3783-.9003.423-.1651 1.0575-.3614 2.227-.4171 1.2655-.06 1.6447-.072 4.848-.079 3.2033-.007 3.5835.005 4.8495.0608 1.169.0508 1.8053.2445 2.228.408.5608.216.96.4754 1.3816.895.4217.4194.6816.8176.9005 1.3787.1653.4217.3617 1.056.4169 2.2263.0602 1.2655.0739 1.645.0796 4.848.0058 3.203-.0055 3.5834-.061 4.848-.051 1.17-.245 1.8055-.408 2.2294-.216.5604-.4763.96-.8954 1.3814-.419.4215-.8181.6811-1.3783.9-.4224.1649-1.0577.3617-2.2262.4174-1.2656.0595-1.6448.072-4.8493.079-3.2045.007-3.5825-.006-4.848-.0608M16.953 5.5864A1.44 1.44 0 1 0 18.39 4.144a1.44 1.44 0 0 0-1.437 1.4424M5.8385 12.012c.0067 3.4032 2.7706 6.1557 6.173 6.1493 3.4026-.0065 6.157-2.7701 6.1506-6.1733-.0065-3.4032-2.771-6.1565-6.174-6.1498-3.403.0067-6.156 2.771-6.1496 6.1738M8 12.0077a4 4 0 1 1 4.008 3.9921A3.9996 3.9996 0 0 1 8 12.0077"/></symbol>
+      <symbol id="b-discord" viewBox="0 0 24 24"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></symbol>
+      <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98"/><path d="m15.41 6.51-6.82 3.98"/></symbol>
+      <symbol id="b-x" viewBox="0 0 24 24"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></symbol>
+    </defs>
+  </svg>
+  <a class="skip" href="#main">Aller au contenu</a>
+
+  <div class="progress" aria-hidden="true"><span></span></div>
+  <div class="cursor" aria-hidden="true"><span class="cursor__ring"><span class="cursor__label"></span></span></div>
+
+  <!-- Navigation -->
+  <header class="nav" id="nav">
+    <div class="nav__inner">
+      <a href="../" class="brand" aria-label="Mvrius, retour en haut">
+        <span class="avatar-status"><span class="avatar avatar--sm"><span class="avatar__fallback">M</span><img src="../assets/img/profile-sm.jpg" alt="" width="36" height="36" onerror="this.remove()"></span><span class="status js-status" hidden></span></span>
+        <span class="brand__name">Mvrius</span>
+      </a>
+      <nav class="nav__links" aria-label="Navigation principale">
+        <a href="../#services" data-text="Services"><span>Services</span></a>
+        <a href="../#projets" data-text="Projets"><span>Projets</span></a>
+        <a href="../#avis" data-text="Avis"><span>Avis</span></a>
+        <a href="../#diagnostic" data-text="Diagnostic"><span>Diagnostic</span></a>
+        <a href="./" data-text="Conseils" aria-current="page"><span>Conseils</span></a>
+        <a href="../#reseaux" data-text="Réseaux"><span>Réseaux</span></a>
+        <a href="../#faq" data-text="FAQ"><span>FAQ</span></a>
+        <a href="../staff/" data-text="Rejoindre l'équipe"><span>Rejoindre l'équipe</span></a>
+        <span class="nav__indicator" aria-hidden="true"></span>
+      </nav>
+      <a class="lang" href="../en/" hreflang="en" lang="en" aria-label="English version">EN</a>
+      <a href="../#contact" class="btn btn--primary btn--sm magnetic nav__cta"><span>Contact</span></a>
+      <button class="burger" type="button" aria-expanded="false" aria-controls="menu" aria-label="Ouvrir le menu">
+        <span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <div class="menu" id="menu" aria-hidden="true">
+    <nav class="menu__links" aria-label="Menu mobile">
+      <a href="../#services"><small>01</small>Services</a>
+      <a href="../#projets"><small>02</small>Projets</a>
+      <a href="../#avis"><small>03</small>Avis</a>
+      <a href="../#diagnostic"><small>04</small>Diagnostic</a>
+      <a href="./" aria-current="page"><small>05</small>Conseils</a>
+      <a href="../#reseaux"><small>06</small>Réseaux</a>
+      <a href="../#faq"><small>07</small>FAQ</a>
+      <a href="../staff/"><small>08</small>Rejoindre l'équipe</a>
+      <a href="../#contact"><small>09</small>Contact</a>
+    </nav>
+    <p class="menu__foot">Disponible pour de nouvelles collaborations</p>
+  </div>
+
+  <main id="main">
+    <section class="page-hero page-hero--tips">
+      <div class="hero__bg" aria-hidden="true">
+        <div class="aurora"><span></span><span></span><span></span></div>
+        <div class="gridlines"></div>
+      </div>
+      <div class="container page-hero__inner">
+        <p class="eyebrow" data-reveal>Conseils</p>
+        <h1 class="page-hero__title" data-split>Mes conseils pour votre <em>serveur</em>.</h1>
+        <p class="section__lead" data-reveal>Des astuces concrètes, tirées de mon expérience, pour structurer, animer et faire grandir votre communauté Discord.</p>
+      </div>
+    </section>
+
+    <section class="section tips tips--all">
+      <div class="container">
+        <div class="tips__grid" data-stagger>
+          <a class="tip-card spotlight" href="bots-arvenis-discord/" data-reveal data-cursor="Lire">
+            <span class="tip-card__top"><span class="tip-card__icon"><svg class="ico"><use href="#i-bot"/></svg></span><span class="tip-card__num">01</span></span>
+            <span class="tip-card__tag">Outils · 4 min de lecture</span>
+            <span class="tip-card__title">Les bots Arvenis&nbsp;: gérer, protéger et animer son serveur Discord</span>
+            <span class="tip-card__excerpt">Manage, Écho, Warden et Hiboursier&nbsp;: à quoi sert chacun des bots que j'utilise sur mes serveurs.</span>
+            <span class="tip-card__more">Lire l'article <svg class="ico"><use href="#i-arrow-right"/></svg></span>
+          </a>
+          <a class="tip-card spotlight" href="organiser-evenement-discord/" data-reveal data-cursor="Lire">
+            <span class="tip-card__top"><span class="tip-card__icon"><svg class="ico"><use href="#i-sparkle"/></svg></span><span class="tip-card__num">02</span></span>
+            <span class="tip-card__tag">Animation · 4 min de lecture</span>
+            <span class="tip-card__title">Organiser un événement Discord qui marche</span>
+            <span class="tip-card__excerpt">Format, annonce, déroulé, suivi&nbsp;: la méthode pour qu'un événement donne envie de revenir.</span>
+            <span class="tip-card__more">Lire l'article <svg class="ico"><use href="#i-arrow-right"/></svg></span>
+          </a>
+          <a class="tip-card spotlight" href="discord-createurs-de-contenu/" data-reveal data-cursor="Lire">
+            <span class="tip-card__top"><span class="tip-card__icon"><svg class="ico"><use href="#i-trending"/></svg></span><span class="tip-card__num">03</span></span>
+            <span class="tip-card__tag">Créateurs · 5 min de lecture</span>
+            <span class="tip-card__title">Discord pour les créateurs de contenu&nbsp;: bien lancer sa communauté</span>
+            <span class="tip-card__excerpt">Pourquoi ouvrir un serveur, comment le lancer et le faire vivre sans y passer ses journées.</span>
+            <span class="tip-card__more">Lire l'article <svg class="ico"><use href="#i-arrow-right"/></svg></span>
+          </a>
+          <a class="tip-card spotlight" href="erreurs-serveur-discord/" data-reveal data-cursor="Lire">
+            <span class="tip-card__top"><span class="tip-card__icon"><svg class="ico"><use href="#i-users"/></svg></span><span class="tip-card__num">04</span></span>
+            <span class="tip-card__tag">Communauté · 4 min de lecture</span>
+            <span class="tip-card__title">5 erreurs qui font fuir les membres de votre serveur Discord</span>
+            <span class="tip-card__excerpt">Accueil absent, trop de salons, règlement flou… les pièges les plus courants et comment les éviter.</span>
+            <span class="tip-card__more">Lire l'article <svg class="ico"><use href="#i-arrow-right"/></svg></span>
+          </a>
+          <a class="tip-card spotlight" href="structurer-salons-discord/" data-reveal data-cursor="Lire">
+            <span class="tip-card__top"><span class="tip-card__icon"><svg class="ico"><use href="#i-hash"/></svg></span><span class="tip-card__num">05</span></span>
+            <span class="tip-card__tag">Organisation · 5 min de lecture</span>
+            <span class="tip-card__title">Comment bien structurer les salons de son serveur Discord</span>
+            <span class="tip-card__excerpt">Catégories, noms, permissions&nbsp;: la méthode pour qu'un nouveau membre s'y retrouve en quelques secondes.</span>
+            <span class="tip-card__more">Lire l'article <svg class="ico"><use href="#i-arrow-right"/></svg></span>
+          </a>
+          <a class="tip-card spotlight" href="recruter-equipe-moderation/" data-reveal data-cursor="Lire">
+            <span class="tip-card__top"><span class="tip-card__icon"><svg class="ico"><use href="#i-shield"/></svg></span><span class="tip-card__num">06</span></span>
+            <span class="tip-card__tag">Staff · 5 min de lecture</span>
+            <span class="tip-card__title">Recruter et former une équipe de modération</span>
+            <span class="tip-card__excerpt">Définir les rôles, choisir les bons profils et garder une équipe motivée sur la durée.</span>
+            <span class="tip-card__more">Lire l'article <svg class="ico"><use href="#i-arrow-right"/></svg></span>
+          </a>
+        </div>
+        <aside class="article__cta" data-reveal>
+          <p class="article__cta-title">Et votre serveur, où en est-il&nbsp;?</p>
+          <p>Faites le diagnostic express en une minute, ou parlez-moi directement de votre projet.</p>
+          <div class="article__cta-actions">
+            <a class="btn btn--primary magnetic" href="../#diagnostic"><span>Faire le diagnostic</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
+            <a class="btn btn--ghost magnetic" href="../#contact"><span>Demander un devis</span></a>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__grid">
+      <div class="footer__brand">
+        <a href="../" class="brand">
+          <span class="avatar-status"><span class="avatar avatar--sm"><span class="avatar__fallback">M</span><img src="../assets/img/profile-sm.jpg" alt="" width="36" height="36" loading="lazy" onerror="this.remove()"></span><span class="status js-status" hidden></span></span>
+          <span class="brand__name">Mvrius</span>
+        </a>
+        <p>Expert en gestion de communautés Discord. Disponible pour de nouvelles collaborations.</p>
+      </div>
+      <nav aria-label="Navigation du pied de page">
+        <p class="footer__title">Navigation</p>
+        <a href="../#services">Services</a>
+        <a href="../#projets">Projets</a>
+        <a href="../#avis">Avis</a>
+        <a href="../#diagnostic">Diagnostic</a>
+        <a href="./">Conseils</a>
+        <a href="../#faq">FAQ</a>
+      </nav>
+      <div>
+        <p class="footer__title">Social</p>
+        <a href="https://www.instagram.com/mvriuus_/" target="_blank" rel="noopener">Instagram</a>
+        <a href="https://discord.gg/arvenis" target="_blank" rel="noopener">Discord</a>
+        <a href="https://guns.lol/an" target="_blank" rel="noopener">Guns.lol</a>
+        <a href="../liens/">Tous mes liens</a>
+      </div>
+      <div>
+        <p class="footer__title">Contact</p>
+        <a href="mailto:contact@mvriuus.fr">contact@mvriuus.fr</a>
+        <a href="../staff/">Rejoindre l'équipe</a>
+        <a href="#main" class="footer__top">Retour en haut <svg class="ico"><use href="#i-arrow-up"/></svg></a>
+      </div>
+    </div>
+    <p class="footer__word" aria-hidden="true" data-stagger><span>M</span><span>V</span><span>R</span><span>I</span><span>U</span><span>S</span></p>
+    <div class="container footer__bottom">
+      <p>© <span class="js-year">2026</span> Mvrius. Tous droits réservés.</p>
+      <p>Conçu avec soin · Hébergé sur GitHub Pages</p>
+    </div>
+  </footer>
+</body>
+</html>

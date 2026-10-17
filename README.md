@@ -13,7 +13,8 @@ index.html              → toutes les sections du site (français)
 en/index.html           → version anglaise, générée par tools/build.py
 staff/index.html        → page « Rejoindre l'équipe » (candidatures, en français)
 liens/index.html        → page « Liens » à mettre dans les bios des réseaux sociaux
-conseils/<article>/      → articles « Conseils », générés depuis tools/articles/ (modifier le texte là-bas)
+conseils/                → liste et articles « Conseils », générés depuis tools/articles/ (modifier le texte là-bas)
+sitemap.xml, robots.txt  → pour Google, générés par tools/build.py
 404.html                → page « introuvable »
 site.webmanifest        → nom et icônes quand le site est ajouté à l'écran d'accueil
 assets/css/style.css    → styles et animations
@@ -29,6 +30,9 @@ assets/img/             → photo de profil, logos et visuels des projets, image
   les valeurs écrites dans `index.html` restent affichées.
 - **Formulaire de devis** : envoyé via [FormSubmit](https://formsubmit.co) vers
   `contact@mvriuus.fr`. La première demande déclenche un e-mail d'activation à valider.
+- **Bots Arvenis** : l'article des bots affiche les photos et bannières hébergées par Discord,
+  remises à jour depuis `api.arvenis.fr/profiles`. Si elles ne chargent pas, les logos de
+  `assets/img/bots/` prennent le relais.
 
 ## Avant chaque publication
 
@@ -37,8 +41,12 @@ python3 tools/build.py
 ```
 
 Ce script ajoute un numéro de version aux liens vers `style.css` et `main.js` (les
-navigateurs rechargent ainsi les fichiers modifiés), génère les articles « Conseils »
-à partir de `tools/articles/` puis régénère la version anglaise.
+navigateurs rechargent ainsi les fichiers modifiés), génère les pages « Conseils »
+à partir de `tools/articles/`, régénère la version anglaise, puis `sitemap.xml` et `robots.txt`.
+
+Pour ajouter un article : créer `tools/articles/<nom>.html` (même en-tête que les autres :
+titre, description, extrait, catégorie, durée, date, icône), ajouter `<nom>` en tête de la liste
+`ARTICLES` dans `tools/build.py`, puis lancer le script.
 
 ## Version anglaise
 

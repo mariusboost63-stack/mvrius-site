@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://mvriuus.fr/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/en/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/conseils/</loc>
+    <lastmod>2026-10-17</lastmod>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/conseils/bots-arvenis-discord/</loc>
+    <lastmod>2026-10-17</lastmod>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/conseils/organiser-evenement-discord/</loc>
+    <lastmod>2026-10-17</lastmod>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/conseils/discord-createurs-de-contenu/</loc>
+    <lastmod>2026-10-17</lastmod>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/conseils/erreurs-serveur-discord/</loc>
+    <lastmod>2026-10-17</lastmod>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/conseils/structurer-salons-discord/</loc>
+    <lastmod>2026-10-17</lastmod>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/conseils/recruter-equipe-moderation/</loc>
+    <lastmod>2026-10-17</lastmod>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/staff/</loc>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/liens/</loc>
+  </url>
+</urlset>
