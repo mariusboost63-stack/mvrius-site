@@ -412,7 +412,7 @@ em {
 .mock__channels { padding: 14px 10px; background: rgba(0, 0, 0, .12); border-right: 1px solid var(--line); overflow: hidden; }
 .mock__server { font-weight: 700; font-size: 13.5px; padding: 2px 8px 12px; margin: 0 -10px 10px; border-bottom: 1px solid var(--line); padding-left: 18px; white-space: nowrap; }
 .mock__cat { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); padding: 10px 8px 4px; }
-.ch { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 6px; color: var(--muted); white-space: nowrap; }
+.ch { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px; color: var(--muted); white-space: nowrap; font-size: 12.5px; }
 .ch svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; opacity: .6; flex: none; }
 .ch.is-active { background: rgba(255, 255, 255, .07); color: var(--text); }
 .mock__chat { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
@@ -420,7 +420,7 @@ em {
 .mock__head > span:first-child { display: flex; align-items: center; gap: 6px; }
 .mock__head svg { width: 16px; height: 16px; fill: none; stroke: var(--dim); stroke-width: 2; }
 .mock__online { display: flex; align-items: center; gap: 6px; font-weight: 500; font-size: 12px; color: var(--muted); }
-.mock__online i { width: 7px; height: 7px; border-radius: 50%; background: var(--online); }
+.mock__online svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; }
 .mock__online b { font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
 .mock__msgs { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 14px; padding: 14px 16px; overflow: hidden; }
 .mock__input { margin: 0 14px 14px; padding: 11px 14px; border-radius: 10px; background: rgba(255, 255, 255, .05); color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -677,30 +677,6 @@ em {
   will-change: transform;
 }
 .project:hover .project__shot { top: 11%; transform: translate3d(-50%, var(--py, 0px), 0) rotate(0) scale(1.03); }
-.project__cover--server { display: grid; place-items: center; }
-.srv-card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.srv-card__icon {
-  position: relative;
-  width: 104px; height: 104px; border-radius: 32px;
-  display: grid; place-items: center;
-  font-family: var(--font-display); font-weight: 800; font-size: 44px; color: #fff;
-  background: linear-gradient(135deg, var(--c1), var(--c2));
-  box-shadow: 0 30px 60px -20px color-mix(in srgb, var(--c2) 70%, transparent);
-  transition: border-radius .6s var(--ease), transform .8s var(--ease);
-}
-.srv-card__icon::before {
-  content: ""; position: absolute; inset: -8px; border-radius: 38px;
-  background: conic-gradient(from var(--angle), transparent 0 60%, rgba(255, 255, 255, .8) 80%, transparent 95%);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-  padding: 1.5px;
-  animation: angle 5s linear infinite;
-  transition: border-radius .6s var(--ease);
-}
-.project:hover .srv-card__icon { border-radius: 50%; transform: scale(1.06) rotate(-4deg); }
-.project:hover .srv-card__icon::before { border-radius: 50%; }
-.srv-card__name { font-family: var(--font-display); font-weight: 700; font-size: 1.35rem; letter-spacing: -.02em; }
 .srv-card__role {
   display: inline-flex; align-items: center; gap: 7px;
   padding: 5px 12px; border-radius: 999px;
@@ -709,6 +685,27 @@ em {
   font-size: 12.5px; font-weight: 600;
 }
 .srv-card__role i { width: 9px; height: 9px; border-radius: 50%; background: var(--c1); box-shadow: 0 0 10px var(--c1); }
+
+.project__badge {
+  position: absolute; top: 18px; left: 18px; z-index: 2;
+  width: 56px; height: 56px; border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, .2);
+  box-shadow: 0 16px 30px -10px rgba(0, 0, 0, .7);
+  transition: transform .6s var(--ease);
+}
+.project:hover .project__badge { transform: scale(1.08) rotate(-6deg); }
+.project__bg {
+  position: absolute; inset: -40px; width: calc(100% + 80px); height: calc(100% + 80px);
+  object-fit: cover;
+  filter: blur(22px) saturate(1.3) brightness(.5);
+}
+.profile-card { top: 12%; overflow: hidden; background: #111214; }
+.project:hover .profile-card { top: 8%; }
+.profile-card__banner { display: block; width: 100%; height: auto; aspect-ratio: 300 / 93; object-fit: cover; }
+.profile-card__row { margin-top: -40px; padding: 0 20px 20px; }
+.profile-card__avatar { position: relative; width: 80px; height: 80px; border-radius: 50%; border: 5px solid #111214; background: #111214; }
+.profile-card__info { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 10px; }
+.profile-card__info strong { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; letter-spacing: -.02em; }
 .project__body { position: relative; padding: 28px 30px 32px; border-top: 1px solid var(--line); }
 .project__meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
 .project__meta span { padding: 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 500; color: var(--muted); border: 1px solid var(--line-2); }
@@ -889,6 +886,10 @@ em {
   .steps { grid-template-columns: 1fr; }
   .project-cta__btn { width: 52px; height: 52px; font-size: 22px; }
   .project__body { padding: 24px 22px 26px; }
+  .project__cover { aspect-ratio: 4 / 3; }
+  .profile-card__avatar { width: 68px; height: 68px; }
+  .profile-card__row { margin-top: -34px; padding: 0 16px 16px; }
+  .project__badge { width: 46px; height: 46px; top: 14px; left: 14px; }
   .social__handle { display: none; }
   .social { grid-template-columns: auto 1fr; }
   .social__arrow { display: none; }
