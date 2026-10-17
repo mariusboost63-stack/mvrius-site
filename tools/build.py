@@ -6,7 +6,9 @@ Usage : python3 tools/build.py
 1. Ajoute aux liens vers style.css et main.js un numéro de version (?v=…) calculé
    à partir de leur contenu : les navigateurs rechargent ainsi les fichiers à
    chaque mise à jour au lieu de garder une ancienne version en mémoire.
-2. Génère la version anglaise (en/index.html) à partir de index.html. Chaque texte
+2. Génère les pages « Conseils » (conseils/<article>/index.html) à partir des textes
+   de tools/articles/, avec la navigation et le pied de page de l'accueil.
+3. Génère la version anglaise (en/index.html) à partir de index.html. Chaque texte
    français de la table doit exister dans index.html : si une phrase a été modifiée
    côté français, le script s'arrête et indique laquelle.
 """
@@ -20,6 +22,10 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "index.html"
 OUT = ROOT / "en" / "index.html"
 STAMPED = ["index.html", "staff/index.html", "liens/index.html", "404.html"]
+
+# Articles « Conseils », dans l'ordre d'affichage (textes dans tools/articles/<nom>.html)
+ARTICLES = ["erreurs-serveur-discord", "structurer-salons-discord", "recruter-equipe-moderation"]
+SECTIONS = ("services", "projets", "avis", "diagnostic", "conseils", "reseaux", "faq", "contact")
 
 # (texte français, texte anglais, nombre d'occurrences attendu)
 T = [
@@ -211,6 +217,92 @@ T = [
     ('<p>Je vous réponds au plus vite à l\'adresse indiquée.</p>', '<p>I will get back to you as soon as possible at the address you provided.</p>', 1),
     ('<span>Ou directement&nbsp;:</span>', '<span>Or directly:</span>', 1),
 
+    # --- Écran d'intro : astuces ---
+    ('<small>Le savais-tu&nbsp;?</small>', '<small>Did you know?</small>', 1),
+    ("<li>Un nouveau membre décide en quelques secondes s'il reste sur un serveur.</li>", '<li>A new member decides within seconds whether to stay on a server.</li>', 1),
+    ("<li>Moins de salons, c'est souvent plus de messages.</li>", '<li>Fewer channels often means more messages.</li>', 1),
+    ('<li>Un rendez-vous régulier donne aux membres une raison de revenir.</li>', '<li>A regular event gives members a reason to come back.</li>', 1),
+    ('<li>Les rôles servent aussi à guider les nouveaux venus.</li>', '<li>Roles also help guide newcomers.</li>', 1),
+    ("<li>Un staff bien formé vaut mieux qu'un grand staff.</li>", '<li>A well-trained staff beats a big staff.</li>', 1),
+    ("<li>Un message d'accueil personnalisé change la première impression.</li>", '<li>A personal welcome message changes the first impression.</li>', 1),
+    ('<li>Un règlement court est un règlement lu.</li>', '<li>Short rules are rules that get read.</li>', 1),
+
+    # --- Diagnostic express ---
+    ('<p class="eyebrow" data-reveal>Diagnostic express</p>', '<p class="eyebrow" data-reveal>Quick check-up</p>', 1),
+    ('Votre serveur est-il prêt à <em>grandir</em>&nbsp;?', 'Is your server ready to <em>grow</em>?', 1),
+    ('6 questions, une minute&nbsp;: obtenez un score sur 100 et des conseils personnalisés pour votre serveur.',
+     '6 questions, one minute: get a score out of 100 and personalised tips for your server.', 1),
+    ('<use href="#i-arrow-right"/></svg>Retour</button>', '<use href="#i-arrow-right"/></svg>Back</button>', 1),
+    ('data-label="Règlement" data-tip="Affichez un règlement court et clair, et faites-le accepter dès l\'arrivée (écran d\'accueil ou rôle à valider)."',
+     'data-label="Rules" data-tip="Display short, clear rules and have members accept them on arrival (welcome screen or role to confirm)."', 1),
+    ('<legend>Votre serveur a-t-il un règlement clair et visible&nbsp;?</legend>', '<legend>Does your server have clear, visible rules?</legend>', 1),
+    ("<span>Oui, affiché et accepté dès l'arrivée</span>", '<span>Yes, shown and accepted on arrival</span>', 1),
+    ('<span>Oui, mais peu de membres le lisent</span>', '<span>Yes, but few members read them</span>', 1),
+    ('<span>Non, pas vraiment</span>', '<span>Not really</span>', 1),
+    ('data-label="Rôles" data-tip="Faites le tri dans vos rôles : un rôle = un usage, avec des permissions au plus juste."',
+     'data-label="Roles" data-tip="Clean up your roles: one role = one purpose, with only the permissions it needs."', 1),
+    ('<legend>Vos rôles et permissions sont-ils bien organisés&nbsp;?</legend>', '<legend>Are your roles and permissions well organised?</legend>', 1),
+    ('<span>Oui, chaque rôle a un usage précis</span>', '<span>Yes, every role has a clear purpose</span>', 1),
+    ('<span>À peu près, il y a des doublons</span>', '<span>More or less, there are duplicates</span>', 1),
+    ("<span>Pas du tout, c'est le flou</span>", "<span>Not at all, it's a mess</span>", 1),
+    ('data-label="Salons" data-tip="Regroupez vos salons par catégories et supprimez ceux qui ne servent plus : un nouveau doit s\'y retrouver en quelques secondes."',
+     'data-label="Channels" data-tip="Group your channels into categories and remove unused ones: a newcomer should find their way in seconds."', 1),
+    ("<legend>Un nouveau membre s'y retrouve-t-il facilement dans vos salons&nbsp;?</legend>", '<legend>Can a new member easily find their way around your channels?</legend>', 1),
+    ('<span>Oui, tout est rangé par catégories</span>', '<span>Yes, everything is sorted into categories</span>', 1),
+    ('<span>Il y a un peu trop de salons</span>', '<span>There are a few too many channels</span>', 1),
+    ("<span>Non, on s'y perd</span>", "<span>No, it's easy to get lost</span>", 1),
+    ('data-label="Bots" data-tip="Automatisez l\'accueil, la modération et les tickets avec des bots bien configurés."',
+     'data-label="Bots" data-tip="Automate welcomes, moderation and tickets with well-configured bots."', 1),
+    ('<legend>Utilisez-vous des bots pour automatiser votre serveur&nbsp;?</legend>', '<legend>Do you use bots to automate your server?</legend>', 1),
+    ('<span>Oui, bien configurés (accueil, modération, tickets)</span>', '<span>Yes, well configured (welcome, moderation, tickets)</span>', 1),
+    ('<span>Quelques-uns, mais mal réglés</span>', '<span>A few, but poorly set up</span>', 1),
+    ('<span>Aucun</span>', '<span>None</span>', 1),
+    ('data-label="Modération" data-tip="Constituez une petite équipe de modération formée, avec des règles d\'intervention communes."',
+     'data-label="Moderation" data-tip="Build a small, trained moderation team with shared rules of intervention."', 1),
+    ('<legend>Avez-vous une équipe de modération active&nbsp;?</legend>', '<legend>Do you have an active moderation team?</legend>', 1),
+    ('<span>Oui, organisée et formée</span>', '<span>Yes, organised and trained</span>', 1),
+    ('<span>Une ou deux personnes, quand elles peuvent</span>', '<span>One or two people, when they can</span>', 1),
+    ('<span>Personne</span>', '<span>No one</span>', 1),
+    ('data-label="Animation" data-tip="Créez des rendez-vous réguliers (événements, concours, débats) pour donner aux membres une raison de revenir."',
+     'data-label="Engagement" data-tip="Create regular events (games, contests, debates) to give members a reason to come back."', 1),
+    ('<legend>Organisez-vous des événements ou des rendez-vous&nbsp;?</legend>', '<legend>Do you run events or regular meetups?</legend>', 1),
+    ('<span>Oui, régulièrement</span>', '<span>Yes, regularly</span>', 1),
+    ('<span>De temps en temps</span>', '<span>From time to time</span>', 1),
+    ('<span>Jamais</span>', '<span>Never</span>', 1),
+    ('<span>Améliorer mon serveur</span>', '<span>Improve my server</span>', 1),
+    ('<span>Recommencer</span>', '<span>Start over</span>', 1),
+    ('data-title="Serveur solide 💪" data-text="Votre base est saine. Pour aller plus loin, misez sur la croissance, les événements et la fidélisation."',
+     'data-title="Solid server 💪" data-text="Your foundations are healthy. To go further, focus on growth, events and retention."', 1),
+    ('data-title="Bonne base, à optimiser" data-text="L\'essentiel est là, mais quelques réglages feraient vraiment la différence pour vos membres."',
+     'data-title="Good base, room to improve" data-text="The essentials are there, but a few tweaks would make a real difference for your members."', 1),
+    ('data-title="Une restructuration s\'impose" data-text="Votre serveur a du potentiel, mais il manque des fondations pour retenir et faire grandir votre communauté."',
+     'data-title="Time for a restructure" data-text="Your server has potential, but it lacks the foundations to retain and grow your community."', 1),
+    ('Continuez à faire évoluer votre serveur avec vos membres : sondages, nouveautés et partenariats.',
+     'Keep evolving your server with your members: polls, new features and partnerships.', 1),
+
+    # --- Conseils (articles en français) ---
+    ('<p class="eyebrow" data-reveal>Conseils</p>', '<p class="eyebrow" data-reveal>Tips</p>', 1),
+    ('Mes conseils pour votre <em>serveur</em>.', 'Tips for your <em>server</em>.', 1),
+    ('Des astuces concrètes, tirées de mon expérience, pour faire grandir votre communauté.',
+     'Practical advice from my experience to help your community grow. Articles in French.', 1),
+    ('href="conseils/', 'hreflang="fr" href="../conseils/', 3),
+    ('data-cursor="Lire"', 'data-cursor="Read"', 3),
+    ('Communauté · 4 min de lecture', 'Community · 4 min read', 1),
+    ('Organisation · 5 min de lecture', 'Organisation · 5 min read', 1),
+    ('Staff · 5 min de lecture', 'Staff · 5 min read', 1),
+    ('5 erreurs qui font fuir les membres de votre serveur Discord', '5 mistakes that drive members away from your Discord server', 1),
+    ('Accueil absent, trop de salons, règlement flou… les pièges les plus courants et comment les éviter.',
+     'No welcome, too many channels, vague rules… the most common pitfalls and how to avoid them.', 1),
+    ('Comment bien structurer les salons de son serveur Discord', "How to structure your Discord server's channels", 1),
+    ("Catégories, noms, permissions&nbsp;: la méthode pour qu'un nouveau membre s'y retrouve en quelques secondes.",
+     'Categories, names, permissions: the method that helps new members find their way in seconds.', 1),
+    ('Recruter et former une équipe de modération', 'Recruiting and training a moderation team', 1),
+    ('Définir les rôles, choisir les bons profils et garder une équipe motivée sur la durée.',
+     'Defining roles, choosing the right people and keeping a team motivated over time.', 1),
+    ("Lire l'article <svg", 'Read the article <svg', 3),
+    ('<a href="#diagnostic">Diagnostic</a>', '<a href="#diagnostic">Check-up</a>', 1),
+    ('<a href="#conseils">Conseils</a>', '<a href="#conseils">Tips</a>', 1),
+
     # --- Pied de page ---
     ('aria-label="Navigation du pied de page"', 'aria-label="Footer navigation"', 1),
     ('<a href="#projets">Projets</a>', '<a href="#projets">Projects</a>', 1),
@@ -270,10 +362,150 @@ def stamp():
             sys.exit(f"Aucun lien style.css / main.js dans {page}")
         path.write_text(html, encoding="utf-8")
     print(f"Version des fichiers : {version}")
+    return version
+
+
+def page_parts(home, prefix):
+    """Sprite d'icônes, navigation et pied de page de l'accueil, liens adaptés à une page plus bas."""
+    sprite = re.search(r"  <!-- Sprite d'icônes.*?</svg>\n", home, re.S).group(0)
+    nav = re.search(r'  <a class="skip".*?</div>\n\n  <main id="main">', home, re.S).group(0)
+    nav = re.sub(r"  <!-- Écran d'intro -->.*?\n  </div>\n\n", "", nav, count=1, flags=re.S)
+    nav = nav.replace('\n\n  <main id="main">', "\n")
+    footer = re.search(r'  <footer class="footer">.*?</footer>\n', home, re.S).group(0)
+
+    def fix(block):
+        block = block.replace('href="#top" class="footer__top"', 'href="#main" class="footer__top"')
+        block = block.replace('href="#top"', f'href="{prefix}"')
+        block = re.sub(r'href="#(' + "|".join(SECTIONS) + r')"', rf'href="{prefix}#\1"', block)
+        return re.sub(r'(href|src)="(assets/|staff/|liens/|en/)', rf'\1="{prefix}\2', block)
+
+    return sprite, fix(nav), fix(footer)
+
+
+def read_article(slug):
+    raw = (ROOT / "tools" / "articles" / f"{slug}.html").read_text(encoding="utf-8")
+    meta = json.loads(re.match(r"<!--(.*?)-->", raw, re.S).group(1))
+    body = raw.split("-->", 1)[1].strip()
+    return meta, body
+
+
+def build_articles(version):
+    home = SRC.read_text(encoding="utf-8")
+    sprite, nav, footer = page_parts(home, "../../")
+    data = {slug: read_article(slug) for slug in ARTICLES}
+    for slug, (meta, body) in data.items():
+        url = f"https://mvriuus.fr/conseils/{slug}/"
+        article_ld = {
+            "@context": "https://schema.org", "@type": "Article",
+            "headline": meta["title"], "description": meta["description"], "inLanguage": "fr",
+            "datePublished": meta["date"], "dateModified": meta["date"],
+            "image": "https://mvriuus.fr/assets/img/og.jpg", "mainEntityOfPage": url,
+            "author": {"@type": "Person", "name": "Mvrius", "url": "https://mvriuus.fr/"},
+            "publisher": {"@type": "Person", "name": "Mvrius", "url": "https://mvriuus.fr/"},
+        }
+        others = "\n".join(f'''          <a class="more-card spotlight" href="../{other}/" data-reveal data-cursor="Lire">
+            <span class="tip-card__tag">{m["tag"]} · {m["read"]} de lecture</span>
+            <span class="more-card__title">{m["title"]}</span>
+            <span class="tip-card__more">Lire l'article <svg class="ico"><use href="#i-arrow-right"/></svg></span>
+          </a>''' for other, (m, _) in data.items() if other != slug)
+        page = f'''<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{meta["title"]} — Mvrius</title>
+  <meta name="description" content="{meta["description"]}">
+  <meta name="theme-color" content="#07080c">
+  <link rel="canonical" href="{url}">
+
+  <meta property="og:type" content="article">
+  <meta property="og:locale" content="fr_FR">
+  <meta property="og:site_name" content="Mvrius">
+  <meta property="og:title" content="{meta["title"]}">
+  <meta property="og:description" content="{meta["description"]}">
+  <meta property="og:url" content="{url}">
+  <meta property="og:image" content="https://mvriuus.fr/assets/img/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://mvriuus.fr/assets/img/og.jpg">
+
+  <link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../../assets/img/apple-touch-icon.png">
+  <link rel="manifest" href="../../site.webmanifest">
+  <meta name="apple-mobile-web-app-title" content="Mvrius">
+  <link rel="preload" href="../../assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="../../assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../../assets/css/style.css?v={version}">
+
+  <script>
+    (function (d) {{
+      d.classList.add('js');
+      if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) d.classList.add('reduced');
+      // Filet de sécurité : si le JS principal ne démarre pas, on affiche tout le contenu.
+      setTimeout(function () {{ if (!window.MV) d.classList.remove('js'); }}, 4000);
+    }})(document.documentElement);
+  </script>
+  <script src="../../assets/js/main.js?v={version}" defer></script>
+  {ld_block(article_ld)}
+</head>
+<body>
+  <!-- Page générée par tools/build.py à partir de tools/articles/{slug}.html : modifier le texte là-bas -->
+{sprite}{nav}
+  <main id="main">
+    <article class="article">
+      <header class="article__hero">
+        <div class="hero__bg" aria-hidden="true">
+          <div class="aurora"><span></span><span></span><span></span></div>
+          <div class="gridlines"></div>
+        </div>
+        <div class="container article__head">
+          <a class="article__back" href="../../#conseils"><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg>Tous les conseils</a>
+          <p class="eyebrow" data-reveal>{meta["tag"]}</p>
+          <h1 class="article__title" data-split>{meta["title"]}</h1>
+          <p class="article__meta" data-reveal>
+            <span class="avatar-status"><span class="avatar avatar--sm"><span class="avatar__fallback">M</span><img src="../../assets/img/profile-sm.jpg" alt="" width="36" height="36" onerror="this.remove()"></span><span class="status js-status" hidden></span></span>
+            <span>Par <b>Mvrius</b> · {meta["read"]} de lecture</span>
+          </p>
+        </div>
+      </header>
+
+      <div class="container article__body">
+        <div class="prose" data-reveal>
+{body}
+        </div>
+
+        <aside class="article__cta" data-reveal>
+          <p class="article__cta-title">Besoin d'un coup de main pour votre serveur&nbsp;?</p>
+          <p>Je m'occupe de la structure, de la modération et de l'animation de votre communauté.</p>
+          <div class="article__cta-actions">
+            <a class="btn btn--primary magnetic" href="../../#contact"><span>Demander un devis</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
+            <a class="btn btn--ghost magnetic" href="../../#diagnostic"><span>Faire le diagnostic</span></a>
+          </div>
+        </aside>
+
+        <nav class="article__more" aria-label="Autres conseils">
+          <p class="eyebrow">À lire aussi</p>
+          <div class="more-grid" data-stagger>
+{others}
+          </div>
+        </nav>
+      </div>
+    </article>
+  </main>
+
+{footer}</body>
+</html>
+'''
+        out = ROOT / "conseils" / slug / "index.html"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(page, encoding="utf-8")
+    print(f"Conseils : {len(data)} articles")
 
 
 def main():
-    stamp()
+    version = stamp()
+    build_articles(version)
     html = SRC.read_text(encoding="utf-8")
 
     # Données structurées en anglais (remplacées d'abord : elles reprennent les textes de la FAQ)

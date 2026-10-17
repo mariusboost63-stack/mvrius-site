@@ -30,7 +30,7 @@
   <meta name="apple-mobile-web-app-title" content="Mvrius">
   <link rel="preload" href="assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="assets/css/style.css?v=96b79e8d">
+  <link rel="stylesheet" href="assets/css/style.css?v=bfd67c52">
 
   <script>
     (function (d) {
@@ -41,7 +41,7 @@
       setTimeout(function () { if (!window.MV) d.classList.remove('js'); }, 4000);
     })(document.documentElement);
   </script>
-  <script src="assets/js/main.js?v=96b79e8d" defer></script>
+  <script src="assets/js/main.js?v=bfd67c52" defer></script>
 
   <script type="application/ld+json">
   {
@@ -180,6 +180,16 @@
     <div class="loader__word"><span>M</span><span>v</span><span>r</span><span>i</span><span>u</span><span>s</span></div>
     <div class="loader__meta"><span>Community Manager</span><span class="loader__count">00</span></div>
     <div class="loader__bar"><span></span></div>
+    <p class="loader__tip"><small>Le savais-tu&nbsp;?</small><span class="js-loader-tip"></span></p>
+    <ul class="loader__tips" hidden>
+      <li>Un nouveau membre décide en quelques secondes s'il reste sur un serveur.</li>
+      <li>Moins de salons, c'est souvent plus de messages.</li>
+      <li>Un rendez-vous régulier donne aux membres une raison de revenir.</li>
+      <li>Les rôles servent aussi à guider les nouveaux venus.</li>
+      <li>Un staff bien formé vaut mieux qu'un grand staff.</li>
+      <li>Un message d'accueil personnalisé change la première impression.</li>
+      <li>Un règlement court est un règlement lu.</li>
+    </ul>
   </div>
 
   <div class="progress" aria-hidden="true"><span></span></div>
@@ -527,6 +537,120 @@
       </div>
     </section>
 
+    <!-- DIAGNOSTIC -->
+    <section class="section diag" id="diagnostic">
+      <div class="container diag__grid">
+        <header class="diag__head">
+          <p class="eyebrow" data-reveal>Diagnostic express</p>
+          <h2 class="title" data-split>Votre serveur est-il prêt à <em>grandir</em>&nbsp;?</h2>
+          <p class="section__lead" data-reveal>6 questions, une minute&nbsp;: obtenez un score sur 100 et des conseils personnalisés pour votre serveur.</p>
+        </header>
+
+        <div class="diag__card js-diag" data-reveal>
+          <div class="diag__top">
+            <span class="diag__step js-diag-step">Question 1 / 6</span>
+            <button class="diag__back js-diag-back" type="button" hidden><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg>Retour</button>
+          </div>
+          <div class="diag__bar" aria-hidden="true"><span class="js-diag-bar"></span></div>
+          <div class="diag__stage" aria-live="polite">
+            <fieldset class="diag__q is-active" data-label="Règlement" data-tip="Affichez un règlement court et clair, et faites-le accepter dès l'arrivée (écran d'accueil ou rôle à valider).">
+              <legend>Votre serveur a-t-il un règlement clair et visible&nbsp;?</legend>
+              <button class="diag__a" type="button" data-score="2"><span class="diag__key">A</span><span>Oui, affiché et accepté dès l'arrivée</span></button>
+              <button class="diag__a" type="button" data-score="1"><span class="diag__key">B</span><span>Oui, mais peu de membres le lisent</span></button>
+              <button class="diag__a" type="button" data-score="0"><span class="diag__key">C</span><span>Non, pas vraiment</span></button>
+            </fieldset>
+            <fieldset class="diag__q" data-label="Rôles" data-tip="Faites le tri dans vos rôles : un rôle = un usage, avec des permissions au plus juste.">
+              <legend>Vos rôles et permissions sont-ils bien organisés&nbsp;?</legend>
+              <button class="diag__a" type="button" data-score="2"><span class="diag__key">A</span><span>Oui, chaque rôle a un usage précis</span></button>
+              <button class="diag__a" type="button" data-score="1"><span class="diag__key">B</span><span>À peu près, il y a des doublons</span></button>
+              <button class="diag__a" type="button" data-score="0"><span class="diag__key">C</span><span>Pas du tout, c'est le flou</span></button>
+            </fieldset>
+            <fieldset class="diag__q" data-label="Salons" data-tip="Regroupez vos salons par catégories et supprimez ceux qui ne servent plus : un nouveau doit s'y retrouver en quelques secondes.">
+              <legend>Un nouveau membre s'y retrouve-t-il facilement dans vos salons&nbsp;?</legend>
+              <button class="diag__a" type="button" data-score="2"><span class="diag__key">A</span><span>Oui, tout est rangé par catégories</span></button>
+              <button class="diag__a" type="button" data-score="1"><span class="diag__key">B</span><span>Il y a un peu trop de salons</span></button>
+              <button class="diag__a" type="button" data-score="0"><span class="diag__key">C</span><span>Non, on s'y perd</span></button>
+            </fieldset>
+            <fieldset class="diag__q" data-label="Bots" data-tip="Automatisez l'accueil, la modération et les tickets avec des bots bien configurés.">
+              <legend>Utilisez-vous des bots pour automatiser votre serveur&nbsp;?</legend>
+              <button class="diag__a" type="button" data-score="2"><span class="diag__key">A</span><span>Oui, bien configurés (accueil, modération, tickets)</span></button>
+              <button class="diag__a" type="button" data-score="1"><span class="diag__key">B</span><span>Quelques-uns, mais mal réglés</span></button>
+              <button class="diag__a" type="button" data-score="0"><span class="diag__key">C</span><span>Aucun</span></button>
+            </fieldset>
+            <fieldset class="diag__q" data-label="Modération" data-tip="Constituez une petite équipe de modération formée, avec des règles d'intervention communes.">
+              <legend>Avez-vous une équipe de modération active&nbsp;?</legend>
+              <button class="diag__a" type="button" data-score="2"><span class="diag__key">A</span><span>Oui, organisée et formée</span></button>
+              <button class="diag__a" type="button" data-score="1"><span class="diag__key">B</span><span>Une ou deux personnes, quand elles peuvent</span></button>
+              <button class="diag__a" type="button" data-score="0"><span class="diag__key">C</span><span>Personne</span></button>
+            </fieldset>
+            <fieldset class="diag__q" data-label="Animation" data-tip="Créez des rendez-vous réguliers (événements, concours, débats) pour donner aux membres une raison de revenir.">
+              <legend>Organisez-vous des événements ou des rendez-vous&nbsp;?</legend>
+              <button class="diag__a" type="button" data-score="2"><span class="diag__key">A</span><span>Oui, régulièrement</span></button>
+              <button class="diag__a" type="button" data-score="1"><span class="diag__key">B</span><span>De temps en temps</span></button>
+              <button class="diag__a" type="button" data-score="0"><span class="diag__key">C</span><span>Jamais</span></button>
+            </fieldset>
+            <div class="diag__result js-diag-result" hidden>
+              <div class="diag__gauge" aria-hidden="true">
+                <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52"/><circle class="diag__ring js-diag-ring" cx="60" cy="60" r="52"/></svg>
+                <p><b class="js-diag-score">0</b><small>/100</small></p>
+              </div>
+              <div class="diag__verdict">
+                <p class="diag__verdict-title js-diag-title"></p>
+                <p class="diag__verdict-text js-diag-text"></p>
+                <ul class="diag__tips js-diag-tips"></ul>
+                <div class="diag__actions">
+                  <a class="btn btn--primary magnetic js-diag-cta" href="#contact"><span>Améliorer mon serveur</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
+                  <button class="btn btn--ghost js-diag-restart" type="button"><span>Recommencer</span></button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <ul class="diag__verdicts" hidden>
+            <li data-min="80" data-title="Serveur solide 💪" data-text="Votre base est saine. Pour aller plus loin, misez sur la croissance, les événements et la fidélisation."></li>
+            <li data-min="50" data-title="Bonne base, à optimiser" data-text="L'essentiel est là, mais quelques réglages feraient vraiment la différence pour vos membres."></li>
+            <li data-min="0" data-title="Une restructuration s'impose" data-text="Votre serveur a du potentiel, mais il manque des fondations pour retenir et faire grandir votre communauté."></li>
+          </ul>
+          <p class="diag__perfect" hidden>Continuez à faire évoluer votre serveur avec vos membres : sondages, nouveautés et partenariats.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONSEILS -->
+    <section class="section tips" id="conseils">
+      <div class="container">
+        <header class="section__head section__head--row">
+          <div>
+            <p class="eyebrow" data-reveal>Conseils</p>
+            <h2 class="title" data-split>Mes conseils pour votre <em>serveur</em>.</h2>
+          </div>
+          <p class="section__lead" data-reveal>Des astuces concrètes, tirées de mon expérience, pour faire grandir votre communauté.</p>
+        </header>
+        <div class="tips__grid" data-stagger>
+          <a class="tip-card spotlight" href="conseils/erreurs-serveur-discord/" data-reveal data-cursor="Lire">
+            <span class="tip-card__top"><span class="tip-card__icon"><svg class="ico"><use href="#i-users"/></svg></span><span class="tip-card__num">01</span></span>
+            <span class="tip-card__tag">Communauté · 4 min de lecture</span>
+            <span class="tip-card__title">5 erreurs qui font fuir les membres de votre serveur Discord</span>
+            <span class="tip-card__excerpt">Accueil absent, trop de salons, règlement flou… les pièges les plus courants et comment les éviter.</span>
+            <span class="tip-card__more">Lire l'article <svg class="ico"><use href="#i-arrow-right"/></svg></span>
+          </a>
+          <a class="tip-card spotlight" href="conseils/structurer-salons-discord/" data-reveal data-cursor="Lire">
+            <span class="tip-card__top"><span class="tip-card__icon"><svg class="ico"><use href="#i-hash"/></svg></span><span class="tip-card__num">02</span></span>
+            <span class="tip-card__tag">Organisation · 5 min de lecture</span>
+            <span class="tip-card__title">Comment bien structurer les salons de son serveur Discord</span>
+            <span class="tip-card__excerpt">Catégories, noms, permissions&nbsp;: la méthode pour qu'un nouveau membre s'y retrouve en quelques secondes.</span>
+            <span class="tip-card__more">Lire l'article <svg class="ico"><use href="#i-arrow-right"/></svg></span>
+          </a>
+          <a class="tip-card spotlight" href="conseils/recruter-equipe-moderation/" data-reveal data-cursor="Lire">
+            <span class="tip-card__top"><span class="tip-card__icon"><svg class="ico"><use href="#i-shield"/></svg></span><span class="tip-card__num">03</span></span>
+            <span class="tip-card__tag">Staff · 5 min de lecture</span>
+            <span class="tip-card__title">Recruter et former une équipe de modération</span>
+            <span class="tip-card__excerpt">Définir les rôles, choisir les bons profils et garder une équipe motivée sur la durée.</span>
+            <span class="tip-card__more">Lire l'article <svg class="ico"><use href="#i-arrow-right"/></svg></span>
+          </a>
+        </div>
+      </div>
+    </section>
+
     <!-- RÉSEAUX -->
     <section class="section socials" id="reseaux">
       <div class="container">
@@ -794,6 +918,8 @@
         <a href="#services">Services</a>
         <a href="#projets">Projets</a>
         <a href="#avis">Avis</a>
+        <a href="#diagnostic">Diagnostic</a>
+        <a href="#conseils">Conseils</a>
         <a href="#faq">FAQ</a>
       </nav>
       <div>

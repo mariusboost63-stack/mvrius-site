@@ -13,6 +13,7 @@ index.html              → toutes les sections du site (français)
 en/index.html           → version anglaise, générée par tools/build.py
 staff/index.html        → page « Rejoindre l'équipe » (candidatures, en français)
 liens/index.html        → page « Liens » à mettre dans les bios des réseaux sociaux
+conseils/<article>/      → articles « Conseils », générés depuis tools/articles/ (modifier le texte là-bas)
 404.html                → page « introuvable »
 site.webmanifest        → nom et icônes quand le site est ajouté à l'écran d'accueil
 assets/css/style.css    → styles et animations
@@ -36,7 +37,8 @@ python3 tools/build.py
 ```
 
 Ce script ajoute un numéro de version aux liens vers `style.css` et `main.js` (les
-navigateurs rechargent ainsi les fichiers modifiés) puis régénère la version anglaise.
+navigateurs rechargent ainsi les fichiers modifiés), génère les articles « Conseils »
+à partir de `tools/articles/` puis régénère la version anglaise.
 
 ## Version anglaise
 

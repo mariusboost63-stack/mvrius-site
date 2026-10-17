@@ -65,8 +65,11 @@
   if (loader && getComputedStyle(loader).display !== 'none') {
     const count = $('.loader__count');
     const bar = $('.loader__bar span');
+    const tips = $$('.loader__tips li');
+    const tipEl = $('.js-loader-tip');
+    if (tips.length && tipEl) tipEl.textContent = tips[Math.floor(Math.random() * tips.length)].textContent;
     const t0 = performance.now();
-    const DURATION = 1300;
+    const DURATION = tips.length ? 1900 : 1300;
     const tick = now => {
       const p = clamp((now - t0) / DURATION, 0, 1);
       const e = easeInOut(p);
@@ -102,7 +105,7 @@
         e.target.classList.add('is-in');
         io.unobserve(e.target);
       });
-    }, { rootMargin: '0px 0px -10% 0px', threshold: 0.12 });
+    }, { rootMargin: '0px 0px -12% 0px', threshold: 0 }); // fiable même pour les blocs très hauts
     revealTargets.forEach(el => io.observe(el));
   }
   // Une fois apparu, on retire le délai pour que les survols restent vifs
@@ -119,12 +122,18 @@
       copied: 'Adresse copiée !', sending: 'Envoi en cours…',
       invalid: 'Merci de compléter les champs en rouge.', failed: "L'envoi n'a pas fonctionné. Écrivez-moi directement à",
       menuOpen: 'Ouvrir le menu', menuClose: 'Fermer le menu',
+      diagDone: 'Résultat', colon: '\u00a0: ',
+      diagMessage: (score, weak) => `Bonjour, j'ai fait le diagnostic express : ${score}/100.`
+        + (weak.length ? ` Points à améliorer : ${weak.join(', ')}.` : '') + ' J\'aimerais en discuter avec vous.',
     },
     en: {
       locale: 'en-US', typing: 'is typing…', today: 'Today at',
       copied: 'Address copied!', sending: 'Sending…',
       invalid: 'Please fill in the fields in red.', failed: "Sending didn't work. Email me directly at",
       menuOpen: 'Open menu', menuClose: 'Close menu',
+      diagDone: 'Result', colon: ': ',
+      diagMessage: (score, weak) => `Hi, I took the quick check-up: ${score}/100.`
+        + (weak.length ? ` Areas to improve: ${weak.join(', ')}.` : '') + ' I would like to discuss it with you.',
     },
   }[LANG];
   const fmt = n => n.toLocaleString(T.locale);
@@ -285,6 +294,108 @@
         }
       });
     }
+  }
+
+  /* ---------- Diagnostic express ---------- */
+  const diag = $('.js-diag');
+  if (diag) {
+    const qs = $$('.diag__q', diag);
+    const result = $('.js-diag-result', diag);
+    const panels = [...qs, result];
+    const stepEl = $('.js-diag-step', diag);
+    const bar = $('.js-diag-bar', diag);
+    const back = $('.js-diag-back', diag);
+    const ring = $('.js-diag-ring', diag);
+    const answers = new Array(qs.length).fill(0);
+    let cur = 0;
+    let summary = null;
+
+    const go = (n, dir = 1) => {
+      const from = panels[cur];
+      const to = panels[n];
+      from.style.setProperty('--from', `${-40 * dir}px`);
+      from.classList.remove('is-active');
+      to.hidden = false;
+      to.style.setProperty('--from', `${40 * dir}px`);
+      void to.offsetWidth; // point de départ de l'animation
+      to.classList.add('is-active');
+      cur = n;
+      const done = n === qs.length;
+      stepEl.textContent = done ? T.diagDone : `Question ${n + 1} / ${qs.length}`;
+      bar.style.width = `${(done ? 1 : n / qs.length) * 100}%`;
+      back.hidden = n === 0 || done;
+      if (!done && diag.contains(document.activeElement)) $('.diag__a', to).focus({ preventScroll: true });
+    };
+
+    const showResult = () => {
+      const score = Math.round(answers.reduce((a, b) => a + b, 0) / (qs.length * 2) * 100);
+      const verdict = $$('.diag__verdicts li', diag).find(li => score >= +li.dataset.min);
+      $('.js-diag-title', diag).textContent = verdict.dataset.title;
+      $('.js-diag-text', diag).textContent = verdict.dataset.text;
+      // Les 3 points les plus faibles deviennent des conseils
+      const weak = qs.map((q, i) => ({ q, s: answers[i] })).filter(x => x.s < 2).sort((a, b) => a.s - b.s).slice(0, 3);
+      const list = $('.js-diag-tips', diag);
+      list.innerHTML = '';
+      const items = weak.length ? weak.map(x => [x.q.dataset.label, x.q.dataset.tip]) : [[null, $('.diag__perfect', diag).textContent]];
+      items.forEach(([label, tip]) => {
+        const li = document.createElement('li');
+        if (label) {
+          const b = document.createElement('b');
+          b.textContent = label + T.colon;
+          li.append(b);
+        }
+        li.append(tip);
+        list.append(li);
+      });
+      go(qs.length);
+      ring.style.stroke = score >= 80 ? 'var(--online)' : score >= 50 ? '#f0b232' : '#ff6b6b';
+      requestAnimationFrame(() => { ring.style.strokeDashoffset = 327 * (1 - score / 100); });
+      animateNumber($('.js-diag-score', diag), score);
+      summary = { score, weak: weak.map(x => x.q.dataset.label) };
+    };
+
+    qs.forEach((q, i) => {
+      $$('.diag__a', q).forEach(btn => btn.addEventListener('click', () => {
+        answers[i] = +btn.dataset.score;
+        $$('.diag__a', q).forEach(b => b.classList.toggle('is-picked', b === btn));
+        setTimeout(() => (i < qs.length - 1 ? go(i + 1) : showResult()), reduced ? 0 : 280);
+      }));
+    });
+    // Raccourcis clavier A / B / C
+    diag.addEventListener('keydown', e => {
+      const idx = 'abc'.indexOf(e.key.toLowerCase());
+      if (idx < 0 || cur >= qs.length || e.target.matches('input, textarea')) return;
+      $$('.diag__a', qs[cur])[idx]?.click();
+    });
+    back.addEventListener('click', () => go(cur - 1, -1));
+    $('.js-diag-restart', diag).addEventListener('click', () => {
+      answers.fill(0);
+      $$('.diag__a', diag).forEach(b => b.classList.remove('is-picked'));
+      ring.style.strokeDashoffset = 327;
+      summary = null;
+      go(0, -1);
+    });
+
+    // « Améliorer mon serveur » : le formulaire de devis est pré-rempli avec le résultat
+    $('.js-diag-cta', diag).addEventListener('click', () => {
+      const form = $('#contact .js-quote');
+      if (!form || !summary) return;
+      let hidden = form.elements.Diagnostic;
+      if (!hidden) {
+        hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'Diagnostic';
+        form.prepend(hidden);
+      }
+      hidden.value = `${summary.score}/100` + (summary.weak.length ? ` — à améliorer : ${summary.weak.join(', ')}` : '');
+      if (!$('input[name="Projet"]:checked', form)) {
+        const value = summary.score < 50 ? 'Restructuration' : 'Gestion & modération';
+        const chip = $$('input[name="Projet"]', form).find(r => r.value === value);
+        if (chip) chip.checked = true;
+      }
+      const msg = form.elements.Message;
+      if (msg && !msg.value.trim()) msg.value = T.diagMessage(summary.score, summary.weak);
+    });
   }
 
   /* ---------- Statut Discord (heure de Paris) ---------- */

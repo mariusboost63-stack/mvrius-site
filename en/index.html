@@ -31,7 +31,7 @@
   <meta name="apple-mobile-web-app-title" content="Mvrius">
   <link rel="preload" href="../assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="../assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="../assets/css/style.css?v=96b79e8d">
+  <link rel="stylesheet" href="../assets/css/style.css?v=bfd67c52">
 
   <script>
     (function (d) {
@@ -42,7 +42,7 @@
       setTimeout(function () { if (!window.MV) d.classList.remove('js'); }, 4000);
     })(document.documentElement);
   </script>
-  <script src="../assets/js/main.js?v=96b79e8d" defer></script>
+  <script src="../assets/js/main.js?v=bfd67c52" defer></script>
 
   <script type="application/ld+json">
   {
@@ -189,6 +189,16 @@
     <div class="loader__word"><span>M</span><span>v</span><span>r</span><span>i</span><span>u</span><span>s</span></div>
     <div class="loader__meta"><span>Community Manager</span><span class="loader__count">00</span></div>
     <div class="loader__bar"><span></span></div>
+    <p class="loader__tip"><small>Did you know?</small><span class="js-loader-tip"></span></p>
+    <ul class="loader__tips" hidden>
+      <li>A new member decides within seconds whether to stay on a server.</li>
+      <li>Fewer channels often means more messages.</li>
+      <li>A regular event gives members a reason to come back.</li>
+      <li>Roles also help guide newcomers.</li>
+      <li>A well-trained staff beats a big staff.</li>
+      <li>A personal welcome message changes the first impression.</li>
+      <li>Short rules are rules that get read.</li>
+    </ul>
   </div>
 
   <div class="progress" aria-hidden="true"><span></span></div>
@@ -537,6 +547,120 @@
       </div>
     </section>
 
+    <!-- DIAGNOSTIC -->
+    <section class="section diag" id="diagnostic">
+      <div class="container diag__grid">
+        <header class="diag__head">
+          <p class="eyebrow" data-reveal>Quick check-up</p>
+          <h2 class="title" data-split>Is your server ready to <em>grow</em>?</h2>
+          <p class="section__lead" data-reveal>6 questions, one minute: get a score out of 100 and personalised tips for your server.</p>
+        </header>
+
+        <div class="diag__card js-diag" data-reveal>
+          <div class="diag__top">
+            <span class="diag__step js-diag-step">Question 1 / 6</span>
+            <button class="diag__back js-diag-back" type="button" hidden><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg>Back</button>
+          </div>
+          <div class="diag__bar" aria-hidden="true"><span class="js-diag-bar"></span></div>
+          <div class="diag__stage" aria-live="polite">
+            <fieldset class="diag__q is-active" data-label="Rules" data-tip="Display short, clear rules and have members accept them on arrival (welcome screen or role to confirm).">
+              <legend>Does your server have clear, visible rules?</legend>
+              <button class="diag__a" type="button" data-score="2"><span class="diag__key">A</span><span>Yes, shown and accepted on arrival</span></button>
+              <button class="diag__a" type="button" data-score="1"><span class="diag__key">B</span><span>Yes, but few members read them</span></button>
+              <button class="diag__a" type="button" data-score="0"><span class="diag__key">C</span><span>Not really</span></button>
+            </fieldset>
+            <fieldset class="diag__q" data-label="Roles" data-tip="Clean up your roles: one role = one purpose, with only the permissions it needs.">
+              <legend>Are your roles and permissions well organised?</legend>
+              <button class="diag__a" type="button" data-score="2"><span class="diag__key">A</span><span>Yes, every role has a clear purpose</span></button>
+              <button class="diag__a" type="button" data-score="1"><span class="diag__key">B</span><span>More or less, there are duplicates</span></button>
+              <button class="diag__a" type="button" data-score="0"><span class="diag__key">C</span><span>Not at all, it's a mess</span></button>
+            </fieldset>
+            <fieldset class="diag__q" data-label="Channels" data-tip="Group your channels into categories and remove unused ones: a newcomer should find their way in seconds.">
+              <legend>Can a new member easily find their way around your channels?</legend>
+              <button class="diag__a" type="button" data-score="2"><span class="diag__key">A</span><span>Yes, everything is sorted into categories</span></button>
+              <button class="diag__a" type="button" data-score="1"><span class="diag__key">B</span><span>There are a few too many channels</span></button>
+              <button class="diag__a" type="button" data-score="0"><span class="diag__key">C</span><span>No, it's easy to get lost</span></button>
+            </fieldset>
+            <fieldset class="diag__q" data-label="Bots" data-tip="Automate welcomes, moderation and tickets with well-configured bots.">
+              <legend>Do you use bots to automate your server?</legend>
+              <button class="diag__a" type="button" data-score="2"><span class="diag__key">A</span><span>Yes, well configured (welcome, moderation, tickets)</span></button>
+              <button class="diag__a" type="button" data-score="1"><span class="diag__key">B</span><span>A few, but poorly set up</span></button>
+              <button class="diag__a" type="button" data-score="0"><span class="diag__key">C</span><span>None</span></button>
+            </fieldset>
+            <fieldset class="diag__q" data-label="Moderation" data-tip="Build a small, trained moderation team with shared rules of intervention.">
+              <legend>Do you have an active moderation team?</legend>
+              <button class="diag__a" type="button" data-score="2"><span class="diag__key">A</span><span>Yes, organised and trained</span></button>
+              <button class="diag__a" type="button" data-score="1"><span class="diag__key">B</span><span>One or two people, when they can</span></button>
+              <button class="diag__a" type="button" data-score="0"><span class="diag__key">C</span><span>No one</span></button>
+            </fieldset>
+            <fieldset class="diag__q" data-label="Engagement" data-tip="Create regular events (games, contests, debates) to give members a reason to come back.">
+              <legend>Do you run events or regular meetups?</legend>
+              <button class="diag__a" type="button" data-score="2"><span class="diag__key">A</span><span>Yes, regularly</span></button>
+              <button class="diag__a" type="button" data-score="1"><span class="diag__key">B</span><span>From time to time</span></button>
+              <button class="diag__a" type="button" data-score="0"><span class="diag__key">C</span><span>Never</span></button>
+            </fieldset>
+            <div class="diag__result js-diag-result" hidden>
+              <div class="diag__gauge" aria-hidden="true">
+                <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52"/><circle class="diag__ring js-diag-ring" cx="60" cy="60" r="52"/></svg>
+                <p><b class="js-diag-score">0</b><small>/100</small></p>
+              </div>
+              <div class="diag__verdict">
+                <p class="diag__verdict-title js-diag-title"></p>
+                <p class="diag__verdict-text js-diag-text"></p>
+                <ul class="diag__tips js-diag-tips"></ul>
+                <div class="diag__actions">
+                  <a class="btn btn--primary magnetic js-diag-cta" href="#contact"><span>Improve my server</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
+                  <button class="btn btn--ghost js-diag-restart" type="button"><span>Start over</span></button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <ul class="diag__verdicts" hidden>
+            <li data-min="80" data-title="Solid server 💪" data-text="Your foundations are healthy. To go further, focus on growth, events and retention."></li>
+            <li data-min="50" data-title="Good base, room to improve" data-text="The essentials are there, but a few tweaks would make a real difference for your members."></li>
+            <li data-min="0" data-title="Time for a restructure" data-text="Your server has potential, but it lacks the foundations to retain and grow your community."></li>
+          </ul>
+          <p class="diag__perfect" hidden>Keep evolving your server with your members: polls, new features and partnerships.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONSEILS -->
+    <section class="section tips" id="conseils">
+      <div class="container">
+        <header class="section__head section__head--row">
+          <div>
+            <p class="eyebrow" data-reveal>Tips</p>
+            <h2 class="title" data-split>Tips for your <em>server</em>.</h2>
+          </div>
+          <p class="section__lead" data-reveal>Practical advice from my experience to help your community grow. Articles in French.</p>
+        </header>
+        <div class="tips__grid" data-stagger>
+          <a class="tip-card spotlight" hreflang="fr" href="../conseils/erreurs-serveur-discord/" data-reveal data-cursor="Read">
+            <span class="tip-card__top"><span class="tip-card__icon"><svg class="ico"><use href="#i-users"/></svg></span><span class="tip-card__num">01</span></span>
+            <span class="tip-card__tag">Community · 4 min read</span>
+            <span class="tip-card__title">5 mistakes that drive members away from your Discord server</span>
+            <span class="tip-card__excerpt">No welcome, too many channels, vague rules… the most common pitfalls and how to avoid them.</span>
+            <span class="tip-card__more">Read the article <svg class="ico"><use href="#i-arrow-right"/></svg></span>
+          </a>
+          <a class="tip-card spotlight" hreflang="fr" href="../conseils/structurer-salons-discord/" data-reveal data-cursor="Read">
+            <span class="tip-card__top"><span class="tip-card__icon"><svg class="ico"><use href="#i-hash"/></svg></span><span class="tip-card__num">02</span></span>
+            <span class="tip-card__tag">Organisation · 5 min read</span>
+            <span class="tip-card__title">How to structure your Discord server's channels</span>
+            <span class="tip-card__excerpt">Categories, names, permissions: the method that helps new members find their way in seconds.</span>
+            <span class="tip-card__more">Read the article <svg class="ico"><use href="#i-arrow-right"/></svg></span>
+          </a>
+          <a class="tip-card spotlight" hreflang="fr" href="../conseils/recruter-equipe-moderation/" data-reveal data-cursor="Read">
+            <span class="tip-card__top"><span class="tip-card__icon"><svg class="ico"><use href="#i-shield"/></svg></span><span class="tip-card__num">03</span></span>
+            <span class="tip-card__tag">Staff · 5 min read</span>
+            <span class="tip-card__title">Recruiting and training a moderation team</span>
+            <span class="tip-card__excerpt">Defining roles, choosing the right people and keeping a team motivated over time.</span>
+            <span class="tip-card__more">Read the article <svg class="ico"><use href="#i-arrow-right"/></svg></span>
+          </a>
+        </div>
+      </div>
+    </section>
+
     <!-- RÉSEAUX -->
     <section class="section socials" id="reseaux">
       <div class="container">
@@ -804,6 +928,8 @@
         <a href="#services">Services</a>
         <a href="#projets">Projects</a>
         <a href="#avis">Reviews</a>
+        <a href="#diagnostic">Check-up</a>
+        <a href="#conseils">Tips</a>
         <a href="#faq">FAQ</a>
       </nav>
       <div>
