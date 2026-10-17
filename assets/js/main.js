@@ -110,12 +110,6 @@
     if (e.propertyName === 'transform' && e.target.matches?.('[data-reveal].is-in')) e.target.classList.add('revealed');
   });
 
-  /* ---------- Méthode : ligne de progression ---------- */
-  const stepsEl = $('.js-steps');
-  const rail = stepsEl && $('.steps__rail', stepsEl);
-  const steps = stepsEl ? $$('.step', stepsEl) : [];
-  if (reduced) steps.forEach(s => s.classList.add('is-lit'));
-
   const pad2 = n => String(n).padStart(2, '0');
   const fmt = n => n.toLocaleString('fr-FR');
 
@@ -487,9 +481,6 @@
   function onScroll(y, vh) {
     // Lectures
     const docH = document.documentElement.scrollHeight - vh;
-    const stepsRect = stepsEl && !reduced ? stepsEl.getBoundingClientRect() : null;
-    const railVisible = rail && rail.offsetParent !== null;
-    const stepTops = !railVisible && !reduced ? steps.map(s => s.getBoundingClientRect().top) : null;
     const probe = vh * .4;
     let current = null;
     navSections.forEach((sec, i) => {
@@ -506,17 +497,6 @@
       navY = y;
     }
     setActive(current);
-
-    if (stepsRect) {
-      if (railVisible) {
-        const p = clamp((vh * .78 - stepsRect.top) / (vh * .45), 0, 1);
-        rail.style.setProperty('--p', p);
-        steps.forEach((s, i) => s.classList.toggle('is-lit', p >= i / (steps.length - 1) - .001 && p > 0));
-      } else {
-        steps.forEach((s, i) => s.classList.toggle('is-lit', stepTops[i] < vh * .78));
-      }
-    }
-
   }
 
   function frame(t) {

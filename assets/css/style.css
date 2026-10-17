@@ -550,26 +550,6 @@ em {
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 24px; }
 .tags li { padding: 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 500; color: var(--muted); background: rgba(255, 255, 255, .05); border: 1px solid var(--line); }
 
-/* ---------- Méthode ---------- */
-.steps { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
-.steps__rail { position: absolute; top: 27px; left: 28px; right: 28px; height: 1px; background: var(--line-2); }
-.steps__rail span { position: absolute; inset: 0; background: var(--grad); transform-origin: left; transform: scaleX(var(--p, 0)); }
-.step { position: relative; }
-.step__dot {
-  position: relative; z-index: 1;
-  width: 56px; height: 56px; border-radius: 50%;
-  display: grid; place-items: center;
-  background: var(--bg); border: 1px solid var(--line-2);
-  color: var(--dim); font-size: 20px;
-  transition: color .5s, border-color .5s, box-shadow .5s, background-color .5s;
-}
-.step.is-lit .step__dot { color: #0a0b12; background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 6px rgba(139, 155, 255, .15), 0 0 40px rgba(139, 155, 255, .5); }
-.step__num { margin-top: 28px; font-family: var(--font-display); font-weight: 600; font-size: 14px; color: var(--accent); }
-.step h3 { margin-top: 8px; font-family: var(--font-display); font-weight: 650; font-size: 1.4rem; letter-spacing: -.02em; }
-.step p:last-child { margin-top: 10px; color: var(--muted); font-size: 15px; }
-.js .step { opacity: .35; transition: opacity .6s; }
-.js .step.is-lit { opacity: 1; }
-
 /* ---------- Projets (liste interactive) ---------- */
 .live-note { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: var(--muted); }
 .live-note i, .prow__live i { width: 8px; height: 8px; border-radius: 50%; background: var(--online); box-shadow: 0 0 0 0 rgba(61, 220, 132, .6); animation: live 2s ease-out infinite; flex: none; }
@@ -991,8 +971,6 @@ a.copy { padding-right: 18px; }
   .hero__inner { grid-template-columns: 1fr; }
   .hero__visual { max-width: 560px; }
   .mock { --rx: 0deg; --ry: 0deg; height: 380px; grid-template-columns: 52px 150px 1fr; }
-  .steps { grid-template-columns: 1fr 1fr; row-gap: 56px; }
-  .steps__rail { display: none; }
   .footer__grid { grid-template-columns: 1fr 1fr; }
   .footer__brand { grid-column: 1 / -1; }
   .faq__grid { grid-template-columns: 1fr; }
@@ -1007,7 +985,6 @@ a.copy { padding-right: 18px; }
   .chip--c { display: none; }
   .scroll-cue { display: none; }
   .cards { grid-template-columns: 1fr; }
-  .steps { grid-template-columns: 1fr; }
   .project-cta__btn { width: 52px; height: 52px; font-size: 22px; }
   .faq__q { grid-template-columns: 1fr 36px; padding: 20px 2px; }
   .faq__num { display: none; }
