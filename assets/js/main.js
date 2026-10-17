@@ -155,32 +155,27 @@
   const steps = stepsEl ? $$('.step', stepsEl) : [];
   if (reduced) steps.forEach(s => s.classList.add('is-lit'));
 
-  /* ---------- Projets : défilement horizontal épinglé ---------- */
-  const projects = $('#projets');
-  const track = $('.js-track');
-  const viewport = $('.projects__viewport');
-  const projIndex = $('.js-proj-index');
-  const projCards = track ? $$('.project', track) : [];
+  /* ---------- Projets : légère profondeur au scroll ---------- */
+  const parallaxShots = reduced ? [] : $$('.js-parallax');
   const pad2 = n => String(n).padStart(2, '0');
-  let pin = { on: false, top: 0, dist: 0 };
-  if (projCards.length) $('.js-proj-total').textContent = pad2(projCards.length);
 
-  function setupPin() {
-    if (!projects) return;
-    const should = !reduced && wide.matches && innerHeight >= 700;
-    projects.classList.toggle('is-pinned', should);
-    track.style.transform = '';
-    if (!should) { projects.style.height = ''; pin = { on: false }; return; }
-    const dist = Math.max(0, track.scrollWidth - viewport.clientWidth);
-    projects.style.height = innerHeight + dist + 'px';
-    pin = { on: true, dist, top: projects.getBoundingClientRect().top + scrollY };
-  }
-  viewport?.addEventListener('scroll', () => {
-    if (pin.on) return;
-    const max = viewport.scrollWidth - viewport.clientWidth;
-    const p = max > 0 ? viewport.scrollLeft / max : 0;
-    projIndex.textContent = pad2(Math.round(p * (projCards.length - 1)) + 1);
-  }, { passive: true });
+  /* ---------- Copier l'adresse e-mail ---------- */
+  $$('.js-copy').forEach(btn => {
+    const status = $('.copy__status', btn);
+    let t;
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(btn.dataset.copy);
+        status.textContent = 'Adresse copiée !';
+      } catch (e) {
+        window.location.href = 'mailto:' + btn.dataset.copy;
+        return;
+      }
+      btn.classList.add('is-copied');
+      clearTimeout(t);
+      t = setTimeout(() => { btn.classList.remove('is-copied'); status.textContent = ''; }, 2200);
+    });
+  });
 
   /* ---------- Bandeau défilant ---------- */
   const marquee = $('.js-marquee');
@@ -365,6 +360,7 @@
     const railVisible = rail && rail.offsetParent !== null;
     const stepTops = !railVisible && !reduced ? steps.map(s => s.getBoundingClientRect().top) : null;
     const probe = vh * .4;
+    const shotRects = parallaxShots.map(img => img.parentElement.getBoundingClientRect());
     let current = null;
     navSections.forEach((sec, i) => {
       if (!sec) return;
@@ -397,11 +393,12 @@
       }
     }
 
-    if (pin.on) {
-      const p = clamp((y - pin.top) / (pin.dist || 1), 0, 1);
-      track.style.transform = `translate3d(${-p * pin.dist}px, 0, 0)`;
-      projIndex.textContent = pad2(Math.round(p * (projCards.length - 1)) + 1);
-    }
+    parallaxShots.forEach((img, i) => {
+      const r = shotRects[i];
+      if (r.bottom < 0 || r.top > vh) return;
+      const offset = (r.top + r.height / 2 - vh / 2) / vh;
+      img.style.setProperty('--py', `${(offset * 36).toFixed(1)}px`);
+    });
   }
 
   function frame(t) {
@@ -451,7 +448,7 @@
   }
 
   /* ---------- Initialisation & redimensionnement ---------- */
-  const relayout = () => { setupPin(); mq.measure?.(); activeLink = undefined; dirty = true; };
+  const relayout = () => { mq.measure?.(); activeLink = undefined; dirty = true; };
   let rT;
   addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(relayout, 150); });
   addEventListener('load', relayout);
@@ -461,6 +458,5 @@
   });
 
   $('.js-year').textContent = new Date().getFullYear();
-  setupPin();
   requestAnimationFrame(frame);
 })();
