@@ -19,7 +19,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "index.html"
 OUT = ROOT / "en" / "index.html"
-STAMPED = ["index.html", "staff/index.html", "404.html"]
+STAMPED = ["index.html", "staff/index.html", "liens/index.html", "404.html"]
 
 # (texte français, texte anglais, nombre d'occurrences attendu)
 T = [
@@ -215,7 +215,8 @@ T = [
     ('aria-label="Navigation du pied de page"', 'aria-label="Footer navigation"', 1),
     ('<a href="#projets">Projets</a>', '<a href="#projets">Projects</a>', 1),
     ('<a href="#avis">Avis</a>', '<a href="#avis">Reviews</a>', 1),
-    ('<a href="staff/">Rejoindre mon staff</a>', '<a href="../staff/" hreflang="fr">Join my staff (FR)</a>', 1),
+    ('<a href="liens/">Tous mes liens</a>', '<a href="../liens/" hreflang="fr">All my links</a>', 1),
+    ('<a href="staff/">Rejoindre l\'équipe</a>\n', '<a href="../staff/" hreflang="fr">Join the team (FR)</a>\n', 1),
     ('Retour en haut <svg', 'Back to top <svg', 1),
     ('Mvrius. Tous droits réservés.', 'Mvrius. All rights reserved.', 1),
     ('Conçu avec soin · Hébergé sur GitHub Pages', 'Crafted with care · Hosted on GitHub Pages', 1),

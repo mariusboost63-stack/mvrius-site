@@ -287,6 +287,28 @@
     }
   }
 
+  /* ---------- Statut Discord (heure de Paris) ---------- */
+  const statusEls = $$('.js-status');
+  if (statusEls.length) {
+    const LABELS = {
+      fr: { online: 'En ligne', idle: 'Inactif', offline: 'Hors ligne' },
+      en: { online: 'Online', idle: 'Idle', offline: 'Offline' },
+    }[LANG];
+    const parisHour = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: 'numeric', hourCycle: 'h23' });
+    const update = () => {
+      const h = +parisHour.formatToParts(new Date()).find(part => part.type === 'hour').value;
+      // En ligne de 8 h à 19 h, inactif de 19 h à 1 h, hors ligne de 1 h à 8 h
+      const state = h >= 8 && h < 19 ? 'online' : h >= 19 || h < 1 ? 'idle' : 'offline';
+      statusEls.forEach(el => {
+        el.hidden = false;
+        el.dataset.state = state;
+        el.title = LABELS[state];
+      });
+    };
+    update();
+    setInterval(update, 60 * 1000);
+  }
+
   /* ---------- Annonce de recrutement ---------- */
   const reacts = $$('.js-react');
   if (reacts.length) {
@@ -365,9 +387,12 @@
     menu.setAttribute('aria-hidden', String(!open));
     if (open) nav.classList.remove('is-hidden');
   };
-  burger.addEventListener('click', () => toggleMenu(!root.classList.contains('menu-open')));
-  $$('a', menu).forEach(a => a.addEventListener('click', () => toggleMenu(false)));
-  addEventListener('keydown', e => { if (e.key === 'Escape') toggleMenu(false); });
+  // Les pages sans menu (page « Liens ») n'ont ni burger ni navigation
+  if (burger && menu) {
+    burger.addEventListener('click', () => toggleMenu(!root.classList.contains('menu-open')));
+    $$('a', menu).forEach(a => a.addEventListener('click', () => toggleMenu(false)));
+    addEventListener('keydown', e => { if (e.key === 'Escape') toggleMenu(false); });
+  }
 
   /* ---------- Effets au pointeur ---------- */
   const hero = $('.hero');
@@ -377,7 +402,7 @@
   const cursorLabel = $('.cursor__label');
   const ptr = { x: -200, y: -200, rx: -200, ry: -200, hx: 0, hy: 0, cx: 0, cy: 0 };
 
-  if (finePointer && !reduced) {
+  if (finePointer && !reduced && cursor) {
     root.classList.add('has-cursor');
     addEventListener('pointermove', e => { ptr.x = e.clientX; ptr.y = e.clientY; }, { passive: true });
     document.addEventListener('pointerover', e => {
@@ -519,11 +544,13 @@
     });
 
     // Écritures
-    progressBar.style.transform = `scaleX(${docH > 0 ? y / docH : 0})`;
-    nav.classList.toggle('is-scrolled', y > 30);
-    if (Math.abs(y - navY) > 8) {
-      nav.classList.toggle('is-hidden', y > navY && y > 500 && !root.classList.contains('menu-open'));
-      navY = y;
+    if (progressBar) progressBar.style.transform = `scaleX(${docH > 0 ? y / docH : 0})`;
+    if (nav) {
+      nav.classList.toggle('is-scrolled', y > 30);
+      if (Math.abs(y - navY) > 8) {
+        nav.classList.toggle('is-hidden', y > navY && y > 500 && !root.classList.contains('menu-open'));
+        navY = y;
+      }
     }
     setActive(current);
   }
@@ -552,7 +579,7 @@
       marquee.style.transform = `translate3d(${mq.x}px, 0, 0)`;
     }
 
-    if (finePointer && !reduced) {
+    if (finePointer && !reduced && cursor) {
       ptr.rx = lerp(ptr.rx, ptr.x, .2);
       ptr.ry = lerp(ptr.ry, ptr.y, .2);
       cursor.style.transform = `translate3d(${ptr.rx}px, ${ptr.ry}px, 0)`;

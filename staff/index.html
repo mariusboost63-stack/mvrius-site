@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Rejoindre l'équipe — Mvrius</title>
-  <meta name="description" content="Candidature staff : modération, animation et support pour Le Café Français, Arvenis et les communautés de Nico Là et Byilhan.">
+  <meta name="description" content="Rejoins l'équipe de Mvrius : modération, animation, support. Présente-toi pour être contacté selon les besoins de mes projets.">
   <meta name="theme-color" content="#07080c">
   <link rel="canonical" href="https://mvriuus.fr/staff/">
 
@@ -12,7 +12,7 @@
   <meta property="og:locale" content="fr_FR">
   <meta property="og:site_name" content="Mvrius">
   <meta property="og:title" content="Rejoindre l'équipe — Mvrius">
-  <meta property="og:description" content="Modération, animation, support : postule pour rejoindre les équipes du Café Français, d'Arvenis, de Nico Là et de Byilhan.">
+  <meta property="og:description" content="Modération, animation, support : présente-toi pour rejoindre mon équipe sur mes prochains projets.">
   <meta property="og:url" content="https://mvriuus.fr/staff/">
   <meta property="og:image" content="https://mvriuus.fr/assets/img/og.jpg">
   <meta property="og:image:width" content="1200">
@@ -26,7 +26,7 @@
   <meta name="apple-mobile-web-app-title" content="Mvrius">
   <link rel="preload" href="../assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="../assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="../assets/css/style.css?v=2286defa">
+  <link rel="stylesheet" href="../assets/css/style.css?v=96b79e8d">
 
   <script>
     (function (d) {
@@ -36,7 +36,7 @@
       setTimeout(function () { if (!window.MV) d.classList.remove('js'); }, 4000);
     })(document.documentElement);
   </script>
-  <script src="../assets/js/main.js?v=2286defa" defer></script>
+  <script src="../assets/js/main.js?v=96b79e8d" defer></script>
 </head>
 <body>
   <!-- Sprite d'icônes (Lucide + Simple Icons) -->
@@ -75,7 +75,7 @@
   <header class="nav" id="nav">
     <div class="nav__inner">
       <a href="../" class="brand" aria-label="Mvrius, retour à l'accueil">
-        <span class="avatar avatar--sm"><span class="avatar__fallback">M</span><img src="../assets/img/profile-sm.jpg" alt="" width="36" height="36" onerror="this.remove()"></span>
+        <span class="avatar-status"><span class="avatar avatar--sm"><span class="avatar__fallback">M</span><img src="../assets/img/profile-sm.jpg" alt="" width="36" height="36" onerror="this.remove()"></span><span class="status js-status" hidden></span></span>
         <span class="brand__name">Mvrius</span>
       </a>
       <nav class="nav__links" aria-label="Navigation principale">
@@ -120,27 +120,21 @@
         <div>
           <p class="eyebrow" data-reveal>Recrutement</p>
           <h1 class="page-hero__title" data-split>Rejoins <em>l'équipe</em>.</h1>
-          <p class="section__lead" data-reveal>Je recrute régulièrement pour les communautés que je gère&nbsp;: Le Café Français, Arvenis et les serveurs de Nico Là et Byilhan. Tu veux faire partie de l'aventure&nbsp;? Présente-toi ci-dessous.</p>
+          <p class="section__lead" data-reveal>Je garde sous le coude des personnes motivées pour renforcer mes projets quand le besoin se présente. Tu veux faire partie de l'équipe&nbsp;? Présente-toi ci-dessous&nbsp;: je reviens vers toi dès qu'une mission correspond à ton profil.</p>
           <div class="page-hero__cta" data-reveal>
             <a class="btn btn--primary magnetic" href="#candidature"><span>Postuler maintenant</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
           </div>
-          <ul class="staff-servers" data-stagger>
-            <li data-reveal><img src="../assets/img/projets/cafe-logo.webp" alt="" width="40" height="40">Le Café Français</li>
-            <li data-reveal><img src="../assets/img/projets/arvenis-logo.webp" alt="" width="40" height="40">Arvenis</li>
-            <li data-reveal><img src="../assets/img/projets/nico-pdp.webp" alt="" width="40" height="40">Nico Là</li>
-            <li data-reveal><img src="../assets/img/projets/byilhan-pdp.webp" alt="" width="40" height="40">Byilhan</li>
-          </ul>
         </div>
 
         <div class="recruit" data-reveal aria-hidden="true">
-          <div class="recruit__head"><svg><use href="#i-megaphone"/></svg>🧛 | recrutements</div>
+          <div class="recruit__head"><svg><use href="#i-megaphone"/></svg>📢 | recrutements</div>
           <div class="recruit__msg">
             <span class="msg__av msg__av--me">M</span>
             <div>
               <p class="msg__name">Mvrius <span class="msg__tag msg__tag--mod">GÉRANT</span><time>Aujourd'hui</time></p>
               <div class="recruit__embed">
                 <strong>📢 Les recrutements sont ouverts&nbsp;!</strong>
-                <span>On cherche de nouvelles personnes motivées pour renforcer les équipes.</span>
+                <span>Je cherche des personnes motivées pour renforcer mon équipe sur mes prochains projets.</span>
                 <div class="recruit__roles"><span>🛡️ Modération</span><span>🎉 Animation</span><span>💬 Support</span></div>
                 <span class="recruit__btn">Postuler</span>
               </div>
@@ -215,16 +209,6 @@
                 <label class="chip-opt"><input type="radio" name="Poste" value="Autre" required><span>Autre</span></label>
               </div>
             </fieldset>
-            <fieldset class="quote__group">
-              <legend>Serveur souhaité</legend>
-              <div class="chips">
-                <label class="chip-opt"><input type="radio" name="Serveur" value="Le Café Français"><span>Le Café Français</span></label>
-                <label class="chip-opt"><input type="radio" name="Serveur" value="Arvenis"><span>Arvenis</span></label>
-                <label class="chip-opt"><input type="radio" name="Serveur" value="Nico Là"><span>Nico Là</span></label>
-                <label class="chip-opt"><input type="radio" name="Serveur" value="Byilhan"><span>Byilhan</span></label>
-                <label class="chip-opt"><input type="radio" name="Serveur" value="Peu importe"><span>Peu importe</span></label>
-              </div>
-            </fieldset>
 
             <div class="quote__grid">
               <label class="field"><input name="Discord" type="text" required placeholder=" " autocomplete="off"><span>Pseudo Discord</span></label>
@@ -252,7 +236,7 @@
           <div class="quote__done" hidden>
             <svg class="quote__check" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24"/><path d="m15 27 7 7 15-15"/></svg>
             <p class="quote__done-title">Merci, ta candidature est bien partie&nbsp;!</p>
-            <p>Je reviens vers toi sur Discord ou par e-mail.</p>
+            <p>Je reviens vers toi sur Discord ou par e-mail dès qu'une mission correspond à ton profil.</p>
           </div>
         </form>
       </div>
@@ -263,7 +247,7 @@
     <div class="container footer__grid">
       <div class="footer__brand">
         <a href="../" class="brand">
-          <span class="avatar avatar--sm"><span class="avatar__fallback">M</span><img src="../assets/img/profile-sm.jpg" alt="" width="36" height="36" loading="lazy" onerror="this.remove()"></span>
+          <span class="avatar-status"><span class="avatar avatar--sm"><span class="avatar__fallback">M</span><img src="../assets/img/profile-sm.jpg" alt="" width="36" height="36" loading="lazy" onerror="this.remove()"></span><span class="status js-status" hidden></span></span>
           <span class="brand__name">Mvrius</span>
         </a>
         <p>Expert en gestion de communautés Discord. Disponible pour de nouvelles collaborations.</p>
@@ -280,11 +264,12 @@
         <a href="https://www.instagram.com/mvriuus_/" target="_blank" rel="noopener">Instagram</a>
         <a href="https://discord.gg/arvenis" target="_blank" rel="noopener">Discord</a>
         <a href="https://guns.lol/an" target="_blank" rel="noopener">Guns.lol</a>
+        <a href="../liens/">Tous mes liens</a>
       </div>
       <div>
         <p class="footer__title">Contact</p>
         <a href="mailto:contact@mvriuus.fr">contact@mvriuus.fr</a>
-        <a href="./">Rejoindre mon staff</a>
+        <a href="./">Rejoindre l'équipe</a>
         <a href="#main" class="footer__top">Retour en haut <svg class="ico"><use href="#i-arrow-up"/></svg></a>
       </div>
     </div>
