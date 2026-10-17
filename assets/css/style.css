@@ -295,8 +295,9 @@ em {
 
 .menu {
   position: fixed; inset: 0; z-index: 99;
-  display: flex; flex-direction: column; justify-content: center;
+  display: flex; flex-direction: column;
   padding: 100px var(--gutter) 40px;
+  overflow-y: auto; overscroll-behavior: contain;
   background: rgba(7, 8, 12, .96);
   backdrop-filter: blur(20px);
   clip-path: circle(0 at calc(100% - 44px) 44px);
@@ -304,7 +305,7 @@ em {
   transition: clip-path .8s var(--ease-io), visibility 0s .8s;
 }
 .menu-open .menu { clip-path: circle(150% at calc(100% - 44px) 44px); visibility: visible; transition: clip-path .8s var(--ease-io), visibility 0s; }
-.menu__links { display: flex; flex-direction: column; }
+.menu__links { display: flex; flex-direction: column; margin-top: auto; }
 .menu__links a {
   display: flex; align-items: baseline; gap: 16px;
   padding: 10px 0; border-bottom: 1px solid var(--line);
@@ -320,7 +321,7 @@ em {
 .menu-open .menu__links a:nth-child(4) { transition-delay: .3s; }
 .menu-open .menu__links a:nth-child(5) { transition-delay: .35s; }
 .menu-open .menu__links a:nth-child(6) { transition-delay: .4s; }
-.menu__foot { margin-top: 32px; color: var(--muted); font-size: 14px; }
+.menu__foot { margin-top: 32px; margin-bottom: auto; color: var(--muted); font-size: 14px; }
 .menu-open { overflow: hidden; }
 
 /* ---------- Hero ---------- */
@@ -1209,6 +1210,12 @@ a.copy { padding-right: 18px; }
 .footer__bottom { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-block: 26px 30px; border-top: 1px solid var(--line); color: var(--dim); font-size: 13.5px; }
 
 /* ---------- Responsive ---------- */
+/* Navigation : 8 liens, on passe au menu burger dès que la place manque */
+@media (max-width: 1120px) {
+  .nav__links, .nav__cta { display: none; }
+  .burger { display: block; margin-left: 0; }
+  .lang { margin-left: auto; }
+}
 @media (max-width: 1100px) {
   .cards { grid-template-columns: repeat(2, 1fr); }
   .cards--3 { grid-template-columns: 1fr 1fr; }

@@ -55,14 +55,18 @@ T = [
     ('data-text="Réseaux"><span>Réseaux</span>', 'data-text="Socials"><span>Socials</span>', 1),
     ('<a href="staff/" data-text="Rejoindre l\'équipe"><span>Rejoindre l\'équipe</span></a>',
      '<a href="../staff/" data-text="Join the team" hreflang="fr"><span>Join the team</span></a>', 1),
-    ('<a href="staff/"><small>06</small>Rejoindre l\'équipe</a>', '<a href="../staff/" hreflang="fr"><small>06</small>Join the team</a>', 1),
+    ('<a href="staff/"><small>08</small>Rejoindre l\'équipe</a>', '<a href="../staff/" hreflang="fr"><small>08</small>Join the team</a>', 1),
     ('<a class="lang" href="en/" hreflang="en" lang="en" aria-label="English version">EN</a>',
      '<a class="lang" href="../" hreflang="fr" lang="fr" aria-label="Version française">FR</a>', 1),
     ('aria-label="Ouvrir le menu"', 'aria-label="Open menu"', 1),
     ('aria-label="Menu mobile"', 'aria-label="Mobile menu"', 1),
     ('<small>02</small>Projets</a>', '<small>02</small>Projects</a>', 1),
     ('<small>03</small>Avis</a>', '<small>03</small>Reviews</a>', 1),
-    ('<small>04</small>Réseaux</a>', '<small>04</small>Socials</a>', 1),
+    ('<small>06</small>Réseaux</a>', '<small>06</small>Socials</a>', 1),
+    ('data-text="Diagnostic"><span>Diagnostic</span>', 'data-text="Check-up"><span>Check-up</span>', 1),
+    ('data-text="Conseils"><span>Conseils</span>', 'data-text="Tips"><span>Tips</span>', 1),
+    ('<small>04</small>Diagnostic</a>', '<small>04</small>Check-up</a>', 1),
+    ('<small>05</small>Conseils</a>', '<small>05</small>Tips</a>', 1),
     ('<p>Expert en gestion de communautés Discord. Disponible pour de nouvelles collaborations.</p>',
      '<p>Discord community management expert. Available for new collaborations.</p>', 1),
     ('Disponible pour de nouvelles collaborations', 'Available for new collaborations', 2),
@@ -503,7 +507,24 @@ def build_articles(version):
     print(f"Conseils : {len(data)} articles")
 
 
+def sync_staff_page():
+    home = SRC.read_text(encoding="utf-8")
+    _, nav, footer = page_parts(home, "../")
+    nav = nav.replace('aria-label="Mvrius, retour en haut"', 'aria-label="Mvrius, retour à l\'accueil"')
+    nav = nav.replace('<a href="../staff/" data-text="Rejoindre l\'équipe">', '<a href="./" data-text="Rejoindre l\'équipe" aria-current="page">')
+    nav = re.sub(r'<a href="\.\./staff/"><small>(\d+)</small>', r'<a href="./" aria-current="page"><small>\1</small>', nav)
+    footer = footer.replace('href="../staff/"', 'href="./"')
+    path = ROOT / "staff" / "index.html"
+    page = path.read_text(encoding="utf-8")
+    page, n1 = re.subn(r'  <a class="skip".*?(?=\n  <main id="main">)', lambda m: nav.rstrip("\n"), page, count=1, flags=re.S)
+    page, n2 = re.subn(r'  <footer class="footer">.*?</footer>\n', lambda m: footer, page, count=1, flags=re.S)
+    if n1 != 1 or n2 != 1:
+        sys.exit("Page équipe : navigation ou pied de page introuvable")
+    path.write_text(page, encoding="utf-8")
+
+
 def main():
+    sync_staff_page()
     version = stamp()
     build_articles(version)
     html = SRC.read_text(encoding="utf-8")
