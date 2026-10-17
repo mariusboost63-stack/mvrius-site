@@ -116,9 +116,113 @@
   const steps = stepsEl ? $$('.step', stepsEl) : [];
   if (reduced) steps.forEach(s => s.classList.add('is-lit'));
 
-  /* ---------- Projets : légère profondeur au scroll ---------- */
-  const parallaxShots = reduced ? [] : $$('.js-parallax');
   const pad2 = n => String(n).padStart(2, '0');
+  const fmt = n => n.toLocaleString('fr-FR');
+
+  /* ---------- Compteurs Discord en direct ---------- */
+  function animateNumber(el, to) {
+    if (reduced) { el.textContent = fmt(to); return; }
+    const t0 = performance.now();
+    const step = t => {
+      const p = clamp((t - t0) / 1400, 0, 1);
+      el.textContent = fmt(Math.round(to * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+  function whenVisible(el, fn) {
+    if (!('IntersectionObserver' in window)) return fn();
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return;
+      io.disconnect();
+      fn();
+    }, { threshold: 0.4 });
+    io.observe(el);
+  }
+  // Les chiffres viennent de l'invitation publique de chaque serveur (mis en cache 10 min)
+  async function fetchInvite(code) {
+    const key = `mv-invite-${code}`;
+    try {
+      const cached = JSON.parse(sessionStorage.getItem(key) || 'null');
+      if (cached && Date.now() - cached.t < 10 * 60 * 1000) return cached;
+    } catch (e) { /* stockage indisponible */ }
+    const res = await fetch(`https://discord.com/api/v10/invites/${code}?with_counts=true`);
+    if (!res.ok) throw new Error(res.status);
+    const d = await res.json();
+    const data = { t: Date.now(), members: d.approximate_member_count, online: d.approximate_presence_count };
+    try { sessionStorage.setItem(key, JSON.stringify(data)); } catch (e) { /* stockage indisponible */ }
+    return data;
+  }
+  $$('[data-invite]').forEach(row => {
+    const code = row.dataset.invite;
+    fetchInvite(code).then(({ members: total, online }) => {
+      if (!total) return;
+      const count = $('.prow__count', row);
+      const live = $('.prow__live', row);
+      whenVisible(row, () => {
+        count.hidden = false;
+        live.hidden = !online;
+        animateNumber($('[data-members]', row), total);
+        if (online) animateNumber($('[data-online]', row), online);
+      });
+      document.dispatchEvent(new CustomEvent('mv:counts', { detail: { code, members: total, online } }));
+    }).catch(() => { /* Discord injoignable : on garde les valeurs affichées */ });
+  });
+
+  /* ---------- Projets : aperçu qui suit la souris ---------- */
+  const preview = $('.js-ppreview');
+  const pv = { x: 0, y: 0, s: 0, target: 0 };
+  if (preview && finePointer && !reduced) {
+    const strip = $('.ppreview__strip', preview);
+    $$('.prow').forEach(row => {
+      row.addEventListener('pointerenter', e => {
+        if (pv.s < .05) { pv.x = e.clientX; pv.y = e.clientY; }
+        pv.target = 1;
+        strip.style.transform = `translateY(${-row.dataset.preview * 100}%)`;
+      });
+      row.addEventListener('pointerleave', () => { pv.target = 0; });
+    });
+  }
+
+  /* ---------- Demande de devis ---------- */
+  const quote = $('.js-quote');
+  if (quote) {
+    const status = $('.quote__status', quote);
+    const label = $('.quote__label', quote);
+    const mailto = data => 'mailto:contact@mvriuus.fr?subject=' + encodeURIComponent('Demande de devis')
+      + '&body=' + encodeURIComponent(Object.entries(data).filter(([k]) => !k.startsWith('_')).map(([k, v]) => `${k} : ${v}`).join('\n'));
+    quote.addEventListener('submit', async e => {
+      e.preventDefault();
+      status.textContent = '';
+      if (!quote.checkValidity()) {
+        quote.classList.add('was-validated');
+        status.textContent = 'Merci de compléter les champs en rouge.';
+        $(':invalid:not(fieldset)', quote)?.focus();
+        return;
+      }
+      if (quote.elements._honey.value) return;
+      const data = Object.fromEntries(new FormData(quote));
+      quote.classList.add('is-sending');
+      label.textContent = 'Envoi en cours…';
+      try {
+        const res = await fetch('https://formsubmit.co/ajax/contact@mvriuus.fr', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(data),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || String(json.success) !== 'true') throw new Error(json.message || res.status);
+        quote.classList.add('is-done');
+        $('.quote__done', quote).hidden = false;
+        quote.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+      } catch (err) {
+        status.innerHTML = `L'envoi n'a pas fonctionné. Écrivez-moi directement à <a href="${mailto(data)}">contact@mvriuus.fr</a>.`;
+      } finally {
+        quote.classList.remove('is-sending');
+        label.textContent = 'Envoyer ma demande';
+      }
+    });
+  }
 
   /* ---------- Copier l'adresse e-mail ---------- */
   $$('.js-copy').forEach(btn => {
@@ -311,6 +415,17 @@
     while (chat.children.length > 6) chat.firstElementChild.remove();
   }
 
+  let memberCount = 9208;
+  const showMembers = () => {
+    members.textContent = fmt(memberCount);
+    membersRaw.textContent = memberCount;
+  };
+  document.addEventListener('mv:counts', e => {
+    if (e.detail.code !== 'france') return;
+    memberCount = e.detail.members;
+    showMembers();
+  });
+
   if (chat) {
     // La conversation a déjà commencé quand on arrive
     SEED.forEach(m => chat.append(messageEl(m)));
@@ -318,7 +433,6 @@
       SCRIPT.slice(0, 3).forEach(f => chat.append(messageEl(f(NEWCOMERS[0]))));
     } else {
       let idx = 0;
-      let memberCount = 9208;
       let heroVisible = true;
       new IntersectionObserver(([e]) => { heroVisible = e.isIntersecting; }).observe(hero);
       const next = async () => {
@@ -339,8 +453,7 @@
         // Chaque nouvel arrivant fait grimper le compteur de membres
         if (m.join) {
           memberCount++;
-          members.textContent = memberCount.toLocaleString('fr-FR');
-          membersRaw.textContent = memberCount;
+          showMembers();
         }
         setTimeout(next, 2200);
       };
@@ -364,7 +477,6 @@
     const railVisible = rail && rail.offsetParent !== null;
     const stepTops = !railVisible && !reduced ? steps.map(s => s.getBoundingClientRect().top) : null;
     const probe = vh * .4;
-    const shotRects = parallaxShots.map(img => img.parentElement.getBoundingClientRect());
     let current = null;
     navSections.forEach((sec, i) => {
       if (!sec) return;
@@ -391,12 +503,6 @@
       }
     }
 
-    parallaxShots.forEach((img, i) => {
-      const r = shotRects[i];
-      if (r.bottom < 0 || r.top > vh) return;
-      const offset = (r.top + r.height / 2 - vh / 2) / vh;
-      img.style.setProperty('--py', `${(offset * 36).toFixed(1)}px`);
-    });
   }
 
   function frame(t) {
@@ -427,6 +533,17 @@
       ptr.rx = lerp(ptr.rx, ptr.x, .2);
       ptr.ry = lerp(ptr.ry, ptr.y, .2);
       cursor.style.transform = `translate3d(${ptr.rx}px, ${ptr.ry}px, 0)`;
+
+      if (preview && (pv.s > .001 || pv.target)) {
+        const px = pv.x;
+        pv.x = lerp(pv.x, ptr.x, .14);
+        pv.y = lerp(pv.y, ptr.y, .14);
+        pv.s = lerp(pv.s, pv.target, .14);
+        const tilt = clamp((pv.x - px) * .9, -12, 12);
+        const x = Math.min(pv.x + 32, innerWidth - 360);
+        preview.style.opacity = pv.s;
+        preview.style.transform = `translate3d(${x}px, ${pv.y - 110}px, 0) rotate(${tilt}deg) scale(${.6 + pv.s * .4})`;
+      }
 
       if (wide.matches && y < vh) {
         ptr.cx = lerp(ptr.cx, ptr.hx, .07);
