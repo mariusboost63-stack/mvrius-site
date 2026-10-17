@@ -110,45 +110,6 @@
     if (e.propertyName === 'transform' && e.target.matches?.('[data-reveal].is-in')) e.target.classList.add('revealed');
   });
 
-  /* ---------- Compteurs ---------- */
-  const counters = $$('[data-count]');
-  if (!reduced && 'IntersectionObserver' in window) {
-    counters.forEach(el => { el.textContent = '0'; });
-    const cio = new IntersectionObserver(entries => {
-      entries.forEach(e => {
-        if (!e.isIntersecting) return;
-        cio.unobserve(e.target);
-        const el = e.target;
-        const target = +el.dataset.count;
-        const t0 = performance.now();
-        const step = now => {
-          const p = clamp((now - t0) / 1800, 0, 1);
-          el.textContent = p < 1 ? Math.round(target * (1 - Math.pow(2, -10 * p))) : target;
-          if (p < 1) requestAnimationFrame(step);
-        };
-        requestAnimationFrame(step);
-      });
-    }, { threshold: 0.6 });
-    counters.forEach(el => cio.observe(el));
-  }
-
-  /* ---------- Paragraphe « scrub » (les mots s'allument au scroll) ---------- */
-  const scrub = $('.js-scrub');
-  let scrubWords = [];
-  if (scrub) {
-    const text = scrub.textContent.trim();
-    scrub.textContent = '';
-    text.split(SPACES).forEach(part => {
-      if (!part.trim()) { scrub.append(part); return; }
-      const s = document.createElement('span');
-      s.className = 'sw';
-      s.textContent = part;
-      scrub.append(s);
-    });
-    scrubWords = $$('.sw', scrub);
-    if (reduced) scrubWords.forEach(w => w.classList.add('is-lit'));
-  }
-
   /* ---------- Méthode : ligne de progression ---------- */
   const stepsEl = $('.js-steps');
   const rail = stepsEl && $('.steps__rail', stepsEl);
@@ -176,6 +137,57 @@
       t = setTimeout(() => { btn.classList.remove('is-copied'); status.textContent = ''; }, 2200);
     });
   });
+
+  /* ---------- Carrousel d'avis ---------- */
+  const carousel = $('.js-testimonials');
+  if (carousel) {
+    const slides = $$('.testimonial', carousel);
+    const dots = $$('.t-dot', carousel);
+    let current = 0;
+    slides.forEach(sl => splitWords($('.testimonial__text', sl)));
+
+    const show = (n, dir = 1) => {
+      n = (n + slides.length) % slides.length;
+      if (n === current) return;
+      slides[current].style.setProperty('--from', `${-48 * dir}px`);
+      slides[current].classList.remove('is-active');
+      slides[n].style.setProperty('--from', `${48 * dir}px`);
+      // force le point de départ avant d'activer la nouvelle diapositive
+      void slides[n].offsetWidth;
+      slides[n].classList.add('is-active');
+      dots.forEach((d, i) => {
+        d.classList.toggle('is-active', i === n);
+        d.setAttribute('aria-selected', String(i === n));
+      });
+      current = n;
+    };
+    const next = () => show(current + 1, 1);
+    const prev = () => show(current - 1, -1);
+
+    $('.js-t-next').addEventListener('click', next);
+    $('.js-t-prev').addEventListener('click', prev);
+    dots.forEach((d, i) => d.addEventListener('click', () => show(i, i > current ? 1 : -1)));
+    // Défilement automatique : la barre de progression du point actif donne le tempo
+    if (!reduced) dots.forEach(d => $('span', d).addEventListener('animationend', next));
+    // Le défilement ne tourne que lorsque les avis sont à l'écran
+    carousel.classList.add('is-offscreen');
+    new IntersectionObserver(([e]) => carousel.classList.toggle('is-offscreen', !e.isIntersecting), { threshold: 0.4 }).observe(carousel);
+    carousel.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') carousel.classList.add('is-paused'); });
+    carousel.addEventListener('pointerleave', () => carousel.classList.remove('is-paused'));
+    carousel.addEventListener('focusin', () => carousel.classList.add('is-paused'));
+    carousel.addEventListener('focusout', () => carousel.classList.remove('is-paused'));
+
+    // Balayage sur mobile
+    let x0 = null;
+    const stage = $('.testimonials__stage', carousel);
+    stage.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true });
+    stage.addEventListener('touchend', e => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 50) (dx < 0 ? next : prev)();
+      x0 = null;
+    });
+  }
 
   /* ---------- Bandeau défilant ---------- */
   const marquee = $('.js-marquee');
@@ -262,18 +274,6 @@
       });
       el.addEventListener('pointerleave', () => { el.style.transform = ''; });
     });
-
-    const photo = $('.tilt');
-    if (photo) {
-      const area = photo.parentElement;
-      area.addEventListener('pointermove', e => {
-        const r = photo.getBoundingClientRect();
-        const x = (e.clientX - r.left) / r.width - .5;
-        const y = (e.clientY - r.top) / r.height - .5;
-        photo.style.transform = `rotateY(${x * 12}deg) rotateX(${-y * 12}deg)`;
-      });
-      area.addEventListener('pointerleave', () => { photo.style.transform = ''; });
-    }
   }
 
   /* ---------- Maquette Discord animée ---------- */
@@ -282,31 +282,29 @@
   const membersRaw = $('.js-members-raw');
   const now = new Date();
   const hhmm = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
-  const CAFE_LOGO = '<img src="assets/img/projets/cafe-logo.png" alt="">';
+  // Conversation du salon #discussion du Café Français
+  const NEWCOMERS = [['Lina', 330], ['Yanis', 200], ['Chloé', 290], ['Rayan', 140]];
+  const SEED = [
+    { name: 'Inès', h: 280, text: 'Bonne soirée à tous ☕' },
+    { name: 'Tom', h: 200, text: 'Qui est chaud pour un vocal ce soir ? 🎧', react: '🎧 4' },
+  ];
   const SCRIPT = [
-    {
-      kind: 'app', name: 'Café Français', tag: 'APP',
-      embed: '<img src="assets/img/projets/cafe-banner.webp" alt="" width="562" height="147"><strong>☕ Bienvenue sur Le Café Français</strong><span>Discuter, faire des rencontres, partager ses passions et participer à des activités, dans une ambiance conviviale.</span>',
-    },
-    { kind: 'app', name: 'Café Français', tag: 'APP', join: true, text: 'Bienvenue <b>@Lina</b> ! Pense à lire <b>#🪦 | nos-règles</b> ☕' },
-    { kind: 'user', name: 'Lina', h: 330, text: 'Coucou tout le monde ! 🥐', react: '👋 9' },
-    { kind: 'me', name: 'Mvrius', tag: 'GÉRANT', text: 'Nouveau concours ce soir à 21h, tous les détails dans <b>#🍬 | concours</b> !' },
-    { kind: 'user', name: 'Hugo', h: 160, text: 'Trop bien, je participe 🔥', react: '🔥 7' },
-    { kind: 'app', name: 'Café Français', tag: 'APP', join: true, text: 'Bienvenue <b>@Sarah</b> ! Pense à lire <b>#🪦 | nos-règles</b> ☕' },
-    { kind: 'user', name: 'Sarah', h: 20, text: "L'ambiance ici est vraiment top 🎃", react: '❤️ 12' },
+    n => ({ name: n[0], h: n[1], join: true, text: "Coucou, je viens d'arriver sur le serveur ! 🥐", react: '👋 9' }),
+    n => ({ name: 'Hugo', h: 160, text: `Bienvenue <b>@${n[0]}</b> ! Installe-toi, le café est servi ☕` }),
+    () => ({ me: true, name: 'Mvrius', tag: 'GÉRANT', text: 'Nouveau concours ce soir à 21h, tous les détails dans <b>#🍬 | concours</b> !' }),
+    () => ({ name: 'Sarah', h: 20, text: 'Trop bien, je participe 🔥', react: '🔥 7' }),
+    n => ({ name: n[0], h: n[1], text: "L'ambiance ici est vraiment top 🎃", react: '❤️ 12' }),
   ];
 
   function messageEl(m) {
     const el = document.createElement('div');
     el.className = 'msg';
-    const av = m.kind === 'app'
-      ? `<span class="msg__av msg__av--img">${CAFE_LOGO}</span>`
-      : m.kind === 'me'
-        ? '<span class="msg__av msg__av--me">M</span>'
-        : `<span class="msg__av" style="--h:${m.h}">${m.name[0]}</span>`;
-    const tag = m.tag ? `<span class="msg__tag${m.kind === 'me' ? ' msg__tag--mod' : ''}">${m.tag}</span>` : '';
+    const av = m.me
+      ? '<span class="msg__av msg__av--me">M</span>'
+      : `<span class="msg__av" style="--h:${m.h}">${m.name[0]}</span>`;
+    const tag = m.tag ? `<span class="msg__tag msg__tag--mod">${m.tag}</span>` : '';
     const react = m.react ? `<span class="msg__react">${m.react}</span>` : '';
-    el.innerHTML = `${av}<div><p class="msg__name">${m.name}${tag}<time>Aujourd'hui à ${hhmm}</time></p>${m.text ? `<p class="msg__text">${m.text}</p>` : ''}${m.embed ? `<div class="msg__embed">${m.embed}</div>` : ''}${react}</div>`;
+    el.innerHTML = `${av}<div><p class="msg__name">${m.name}${tag}<time>Aujourd'hui à ${hhmm}</time></p><p class="msg__text">${m.text}</p>${react}</div>`;
     return el;
   }
   function trimChat() {
@@ -314,8 +312,10 @@
   }
 
   if (chat) {
+    // La conversation a déjà commencé quand on arrive
+    SEED.forEach(m => chat.append(messageEl(m)));
     if (reduced) {
-      SCRIPT.slice(0, 2).forEach(m => chat.append(messageEl(m)));
+      SCRIPT.slice(0, 3).forEach(f => chat.append(messageEl(f(NEWCOMERS[0]))));
     } else {
       let idx = 0;
       let memberCount = 9208;
@@ -323,19 +323,17 @@
       new IntersectionObserver(([e]) => { heroVisible = e.isIntersecting; }).observe(hero);
       const next = async () => {
         if (!heroVisible || document.hidden) { setTimeout(next, 800); return; }
-        // L'embed d'accueil n'apparaît qu'au premier passage
-        if (idx >= SCRIPT.length) idx = 1;
-        const m = SCRIPT[idx];
+        // Un nouvel arrivant différent à chaque tour de la conversation
+        const newcomer = NEWCOMERS[Math.floor(idx / SCRIPT.length) % NEWCOMERS.length];
+        const m = SCRIPT[idx % SCRIPT.length](newcomer);
         idx++;
-        if (m.kind !== 'app') {
-          const typing = document.createElement('div');
-          typing.className = 'typing';
-          typing.innerHTML = `<i><span></span><span></span><span></span></i>${m.name} est en train d'écrire…`;
-          chat.append(typing);
-          trimChat();
-          await wait(1300);
-          typing.remove();
-        }
+        const typing = document.createElement('div');
+        typing.className = 'typing';
+        typing.innerHTML = `<i><span></span><span></span><span></span></i>${m.name} est en train d'écrire…`;
+        chat.append(typing);
+        trimChat();
+        await wait(1300);
+        typing.remove();
         chat.append(messageEl(m));
         trimChat();
         // Chaque nouvel arrivant fait grimper le compteur de membres
@@ -344,9 +342,9 @@
           members.textContent = memberCount.toLocaleString('fr-FR');
           membersRaw.textContent = memberCount;
         }
-        setTimeout(next, m.embed ? 2600 : m.kind === 'app' ? 1600 : 2200);
+        setTimeout(next, 2200);
       };
-      setTimeout(next, loader ? 2200 : 900);
+      setTimeout(next, loader ? 2400 : 1000);
     }
   }
 
@@ -362,7 +360,6 @@
   function onScroll(y, vh) {
     // Lectures
     const docH = document.documentElement.scrollHeight - vh;
-    const scrubRect = scrub && !reduced ? scrub.getBoundingClientRect() : null;
     const stepsRect = stepsEl && !reduced ? stepsEl.getBoundingClientRect() : null;
     const railVisible = rail && rail.offsetParent !== null;
     const stepTops = !railVisible && !reduced ? steps.map(s => s.getBoundingClientRect().top) : null;
@@ -383,12 +380,6 @@
       navY = y;
     }
     setActive(current);
-
-    if (scrubRect) {
-      const p = clamp((vh * .82 - scrubRect.top) / (scrubRect.height + vh * .3), 0, 1);
-      const lit = Math.round(p * scrubWords.length);
-      scrubWords.forEach((w, i) => w.classList.toggle('is-lit', i < lit));
-    }
 
     if (stepsRect) {
       if (railVisible) {
