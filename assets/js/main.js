@@ -281,27 +281,31 @@
   const online = $('.js-online');
   const now = new Date();
   const hhmm = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
-  const BOT_ICON = '<svg viewBox="0 0 24 24"><use href="#i-bot"/></svg>';
+  const CAFE_LOGO = '<img src="assets/img/projets/cafe-logo.png" alt="">';
   const SCRIPT = [
-    { kind: 'bot', name: 'Assistant', tag: 'BOT', text: 'Bienvenue <b>@Lina</b> ! Pense à lire le <b>#règlement</b> 👋' },
-    { kind: 'user', name: 'Lina', h: 330, text: 'Merci ! Le serveur est super bien organisé 😍', react: '❤️ 12' },
-    { kind: 'me', name: 'Mvrius', tag: 'MOD', text: '📅 Soirée jeux vendredi à 21h, inscriptions dans <b>#événements</b> !' },
-    { kind: 'user', name: 'Hugo', h: 160, text: 'Je suis chaud 🔥 je ramène des potes', react: '🔥 8' },
-    { kind: 'bot', name: 'Assistant', tag: 'BOT', text: '🎉 <b>@Hugo</b> passe au niveau 10 !' },
-    { kind: 'user', name: 'Sarah', h: 20, text: 'Les nouveaux rôles sont trop propres 👀', react: '✨ 6' },
+    {
+      kind: 'app', name: 'Café Français', tag: 'APP',
+      embed: '<img src="assets/img/projets/cafe-banner.webp" alt="" width="562" height="147"><strong>☕ Bienvenue sur Le Café Français</strong><span>Discuter, faire des rencontres, partager ses passions et participer à des activités, dans une ambiance conviviale.</span>',
+    },
+    { kind: 'app', name: 'Café Français', tag: 'APP', text: 'Bienvenue <b>@Lina</b> ! Installe-toi, le café est servi ☕' },
+    { kind: 'user', name: 'Lina', h: 330, text: 'Coucou tout le monde ! 🥐', react: '👋 9' },
+    { kind: 'me', name: 'Mvrius', tag: 'GÉRANT', text: '🎁 Nouveau concours ce soir à 21h, tous les détails dans <b>#concours</b> !' },
+    { kind: 'user', name: 'Hugo', h: 160, text: 'Trop bien, je participe 🔥', react: '🔥 7' },
+    { kind: 'app', name: 'Café Français', tag: 'APP', text: 'Bienvenue <b>@Sarah</b> ! Installe-toi, le café est servi ☕' },
+    { kind: 'user', name: 'Sarah', h: 20, text: "L'ambiance ici est vraiment top ❤️", react: '❤️ 12' },
   ];
 
   function messageEl(m) {
     const el = document.createElement('div');
     el.className = 'msg';
-    const av = m.kind === 'bot'
-      ? `<span class="msg__av msg__av--bot">${BOT_ICON}</span>`
+    const av = m.kind === 'app'
+      ? `<span class="msg__av msg__av--img">${CAFE_LOGO}</span>`
       : m.kind === 'me'
         ? '<span class="msg__av msg__av--me">M</span>'
         : `<span class="msg__av" style="--h:${m.h}">${m.name[0]}</span>`;
-    const tag = m.tag ? `<span class="msg__tag${m.tag === 'MOD' ? ' msg__tag--mod' : ''}">${m.tag}</span>` : '';
+    const tag = m.tag ? `<span class="msg__tag${m.kind === 'me' ? ' msg__tag--mod' : ''}">${m.tag}</span>` : '';
     const react = m.react ? `<span class="msg__react">${m.react}</span>` : '';
-    el.innerHTML = `${av}<div><p class="msg__name">${m.name}${tag}<time>Aujourd'hui à ${hhmm}</time></p><p class="msg__text">${m.text}</p>${react}</div>`;
+    el.innerHTML = `${av}<div><p class="msg__name">${m.name}${tag}<time>Aujourd'hui à ${hhmm}</time></p>${m.text ? `<p class="msg__text">${m.text}</p>` : ''}${m.embed ? `<div class="msg__embed">${m.embed}</div>` : ''}${react}</div>`;
     return el;
   }
   function trimChat() {
@@ -310,16 +314,18 @@
 
   if (chat) {
     if (reduced) {
-      SCRIPT.slice(0, 3).forEach(m => chat.append(messageEl(m)));
+      SCRIPT.slice(0, 2).forEach(m => chat.append(messageEl(m)));
     } else {
       let idx = 0;
       let heroVisible = true;
       new IntersectionObserver(([e]) => { heroVisible = e.isIntersecting; }).observe(hero);
       const next = async () => {
         if (!heroVisible || document.hidden) { setTimeout(next, 800); return; }
-        const m = SCRIPT[idx % SCRIPT.length];
+        // L'embed d'accueil n'apparaît qu'au premier passage
+        if (idx >= SCRIPT.length) idx = 1;
+        const m = SCRIPT[idx];
         idx++;
-        if (m.kind !== 'bot') {
+        if (m.kind !== 'app') {
           const typing = document.createElement('div');
           typing.className = 'typing';
           typing.innerHTML = `<i><span></span><span></span><span></span></i>${m.name} est en train d'écrire…`;
@@ -330,11 +336,11 @@
         }
         chat.append(messageEl(m));
         trimChat();
-        setTimeout(next, m.kind === 'bot' ? 1600 : 2200);
+        setTimeout(next, m.embed ? 2600 : m.kind === 'app' ? 1600 : 2200);
       };
       setTimeout(next, loader ? 2200 : 900);
 
-      let count = 1284;
+      let count = 1087;
       setInterval(() => {
         if (!heroVisible) return;
         count += Math.round(Math.random() * 9) - 3;
