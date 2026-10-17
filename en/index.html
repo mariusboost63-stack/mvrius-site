@@ -259,7 +259,10 @@
               <span><img src="../assets/img/projets/nico-pdp.webp" alt="" width="40" height="40"></span>
               <span><img src="../assets/img/projets/byilhan-pdp.webp" alt="" width="40" height="40"></span>
             </div>
-            <p>CEO of <b>Arvenis</b>, manager of <b>Le Café Français</b> and administrator of the <b>Nico Là</b> and <b>Byilhan</b> communities.</p>
+            <div class="trust__text">
+              <p class="trust__total" hidden><i></i><b class="js-total">0</b> members across my communities</p>
+              <p>CEO of <b>Arvenis</b>, manager of <b>Le Café Français</b> and administrator of the <b>Nico Là</b> and <b>Byilhan</b> communities.</p>
+            </div>
           </div>
         </div>
 
@@ -489,51 +492,46 @@
     <!-- AVIS -->
     <section class="section reviews" id="avis">
       <div class="container">
-        <header class="section__head section__head--row">
-          <div>
-            <p class="eyebrow" data-reveal>Reviews</p>
-            <h2 class="title" data-split>They <em>trusted</em> me.</h2>
-          </div>
-          <div class="t-nav" data-reveal>
-            <button class="t-nav__btn js-t-prev" type="button" aria-label="Previous review"><svg class="ico"><use href="#i-arrow-right"/></svg></button>
-            <button class="t-nav__btn js-t-next" type="button" aria-label="Next review"><svg class="ico"><use href="#i-arrow-right"/></svg></button>
-          </div>
+        <header class="section__head">
+          <p class="eyebrow" data-reveal>Reviews</p>
+          <h2 class="title" data-split>They <em>trusted</em> me.</h2>
         </header>
 
-        <div class="testimonials js-testimonials" data-reveal aria-roledescription="carousel" aria-label="Client reviews">
-          <div class="testimonials__stage">
-            <figure class="testimonial spotlight is-active" aria-roledescription="slide" aria-label="Review 1 of 3">
-              <svg class="testimonial__quote" aria-hidden="true"><use href="#i-quote"/></svg>
-              <blockquote class="testimonial__text">Marius's work on the server has benefited both members and staff. His professional and complete restructuring led to better inclusion of members within the server. His efficient staff recruitment also gave members high-quality, professional moderation and activities. All in all, his work on the server is high-quality and professional! Thanks to him!</blockquote>
-              <figcaption>
-                <span class="review__av" aria-hidden="true">S</span>
-                <span><b>Stizo</b><small>Server restructuring &amp; staff recruitment</small></span>
-              </figcaption>
-            </figure>
-            <figure class="testimonial spotlight" aria-roledescription="slide" aria-label="Review 2 of 3">
-              <svg class="testimonial__quote" aria-hidden="true"><use href="#i-quote"/></svg>
-              <blockquote class="testimonial__text">Marius does thorough and serious work. Always available and committed to the tasks he is given. I have been working with him for several months and so far I have had no negative feedback to pass on. He shows rigor and discipline in the work we have done together. He is very comfortable with Discord, both the app and all of its features, and brings real added value to the team.</blockquote>
-              <figcaption>
-                <span class="review__av review__av--img" aria-hidden="true"><img src="../assets/img/projets/byilhan-pdp.webp" alt="" width="48" height="48" loading="lazy"></span>
-                <span><b>Byilhan</b><small>Influencer · Byilhan Discord server</small></span>
-              </figcaption>
-            </figure>
-            <figure class="testimonial spotlight" aria-roledescription="slide" aria-label="Review 3 of 3">
-              <svg class="testimonial__quote" aria-hidden="true"><use href="#i-quote"/></svg>
-              <blockquote class="testimonial__text">Marius was quick, efficient and attentive when creating my community server. He suggested tailored solutions and delivered professional, well-structured work. I highly recommend him!</blockquote>
-              <figcaption>
-                <span class="review__av" aria-hidden="true">G</span>
-                <span><b>Guizzi</b><small>Community server creation</small></span>
-              </figcaption>
-            </figure>
+        <div class="dchan js-dchan" data-reveal>
+          <div class="dchan__head">
+            <span class="dchan__name"><svg aria-hidden="true"><use href="#i-hash"/></svg>⭐ | avis</span>
+            <span class="dchan__topic">What my clients say about my work</span>
           </div>
-          <div class="t-dots" role="tablist" aria-label="Choose a review">
-            <button class="t-dot is-active" type="button" role="tab" aria-selected="true" aria-label="Review by Stizo"><span></span></button>
-            <button class="t-dot" type="button" role="tab" aria-selected="false" aria-label="Review by Byilhan"><span></span></button>
-            <button class="t-dot" type="button" role="tab" aria-selected="false" aria-label="Review by Guizzi"><span></span></button>
+          <div class="dchan__msgs">
+            <article class="dmsg" data-name="Stizo">
+              <span class="dmsg__av" style="--h:250">S</span>
+              <div class="dmsg__body">
+                <p class="dmsg__reply"><span class="dmsg__curve" aria-hidden="true"></span><b>@Mvrius</b> Server restructuring &amp; staff recruitment</p>
+                <p class="dmsg__name">Stizo <span class="dmsg__tag">CLIENT</span></p>
+                <blockquote class="dmsg__text">Marius's work on the server has benefited both members and staff. His professional and complete restructuring led to better inclusion of members within the server. His efficient staff recruitment also gave members high-quality, professional moderation and activities. All in all, his work on the server is high-quality and professional! Thanks to him!</blockquote>
+              </div>
+            </article>
+            <article class="dmsg" data-name="Byilhan">
+              <span class="dmsg__av dmsg__av--img"><img src="../assets/img/projets/byilhan-pdp.webp" alt="" width="44" height="44" loading="lazy"></span>
+              <div class="dmsg__body">
+                <p class="dmsg__reply"><span class="dmsg__curve" aria-hidden="true"></span><b>@Mvrius</b> Influencer · Byilhan Discord server</p>
+                <p class="dmsg__name">Byilhan <span class="dmsg__tag">CLIENT</span></p>
+                <blockquote class="dmsg__text">Marius does thorough and serious work. Always available and committed to the tasks he is given. I have been working with him for several months and so far I have had no negative feedback to pass on. He shows rigor and discipline in the work we have done together. He is very comfortable with Discord, both the app and all of its features, and brings real added value to the team.</blockquote>
+              </div>
+            </article>
+            <article class="dmsg" data-name="Guizzi">
+              <span class="dmsg__av" style="--h:160">G</span>
+              <div class="dmsg__body">
+                <p class="dmsg__reply"><span class="dmsg__curve" aria-hidden="true"></span><b>@Mvrius</b> Community server creation</p>
+                <p class="dmsg__name">Guizzi <span class="dmsg__tag">CLIENT</span></p>
+                <blockquote class="dmsg__text">Marius was quick, efficient and attentive when creating my community server. He suggested tailored solutions and delivered professional, well-structured work. I highly recommend him!</blockquote>
+              </div>
+            </article>
           </div>
-          <p class="t-note">Reviews translated from French.</p>
+          <div class="dchan__typing" aria-hidden="true"><i><span></span><span></span><span></span></i><span class="js-dtyping"></span></div>
+          <div class="dchan__input" aria-hidden="true">Message #⭐ | avis</div>
         </div>
+        <p class="t-note">Reviews translated from French.</p>
       </div>
     </section>
 
@@ -690,7 +688,7 @@
               </button>
             </h3>
             <div class="faq__a" id="faq-9" role="region" aria-labelledby="faq-9-q">
-              <div><p>Yes. I have teams and I run recruitment to build a staff that fits your community.</p></div>
+              <div><p>Yes. I have teams and I run recruitment to build a staff that fits your community. Want to join? <a class="faq__link" href="../staff/">Apply here</a> (in French).</p></div>
             </div>
           </div>
           <div class="faq__item" data-reveal>
@@ -722,7 +720,7 @@
         <h2 class="contact__title" data-split>Ready to grow <em>your community</em>?</h2>
         <p class="contact__lead" data-reveal>Tell me about your project: I will get back to you quickly with a tailored proposal.</p>
 
-        <form class="quote js-quote" action="https://formsubmit.co/contact@mvriuus.fr" method="POST" novalidate data-reveal>
+        <form class="quote js-quote" action="https://formsubmit.co/contact@mvriuus.fr" method="POST" novalidate data-reveal data-mail-subject="Quote request">
           <input type="hidden" name="_subject" value="Nouvelle demande de devis (version anglaise) — mvriuus.fr">
           <input type="hidden" name="_template" value="table">
           <input type="hidden" name="_captcha" value="false">
@@ -815,6 +813,7 @@
       <div>
         <p class="footer__title">Contact</p>
         <a href="mailto:contact@mvriuus.fr">contact@mvriuus.fr</a>
+        <a href="../staff/" hreflang="fr">Join my staff (FR)</a>
         <a href="#top" class="footer__top">Back to top <svg class="ico"><use href="#i-arrow-up"/></svg></a>
       </div>
     </div>
@@ -824,5 +823,7 @@
       <p>Crafted with care · Hosted on GitHub Pages</p>
     </div>
   </footer>
+
+  <a class="fab-cta js-fab" href="#contact" inert><span>Request a quote</span><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
 </body>
 </html>

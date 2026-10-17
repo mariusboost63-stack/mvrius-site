@@ -64,6 +64,7 @@ T = [
     ('<span>Me contacter</span>', '<span>Contact me</span>', 1),
     ('<p>CEO d\'<b>Arvenis</b>, gérant du <b>Café Français</b> et administrateur des communautés de <b>Nico Là</b> et <b>Byilhan</b>.</p>',
      '<p>CEO of <b>Arvenis</b>, manager of <b>Le Café Français</b> and administrator of the <b>Nico Là</b> and <b>Byilhan</b> communities.</p>', 1),
+    ('membres réunis dans mes communautés</p>', 'members across my communities</p>', 1),
     ('<b class="js-members">9 208</b> membres</span>', '<b class="js-members">9,208</b> members</span>', 1),
     ('<div class="mock__input">Envoyer un message dans #💬 | discussion</div>', '<div class="mock__input">Message #💬 | discussion</div>', 1),
     ('<use href="#i-shield"/></svg>Modération</div>', '<use href="#i-shield"/></svg>Moderation</div>', 1),
@@ -119,26 +120,17 @@ T = [
     # --- Avis ---
     ('<p class="eyebrow" data-reveal>Avis</p>', '<p class="eyebrow" data-reveal>Reviews</p>', 1),
     ('<h2 class="title" data-split>Ils m\'ont fait <em>confiance</em>.</h2>', '<h2 class="title" data-split>They <em>trusted</em> me.</h2>', 1),
-    ('aria-label="Avis précédent"', 'aria-label="Previous review"', 1),
-    ('aria-label="Avis suivant"', 'aria-label="Next review"', 1),
-    ('aria-roledescription="carrousel" aria-label="Avis clients"', 'aria-roledescription="carousel" aria-label="Client reviews"', 1),
-    ('aria-roledescription="diapositive"', 'aria-roledescription="slide"', 3),
-    ('aria-label="Avis 1 sur 3"', 'aria-label="Review 1 of 3"', 1),
-    ('aria-label="Avis 2 sur 3"', 'aria-label="Review 2 of 3"', 1),
-    ('aria-label="Avis 3 sur 3"', 'aria-label="Review 3 of 3"', 1),
+    ('<span class="dchan__topic">Ce que mes clients disent de mon travail</span>', '<span class="dchan__topic">What my clients say about my work</span>', 1),
+    ('<div class="dchan__input" aria-hidden="true">Envoyer un message dans #⭐ | avis</div>', '<div class="dchan__input" aria-hidden="true">Message #⭐ | avis</div>', 1),
     ('L\'action de Marius au sein du serveur a été bénéfique pour les membres et staffs. Sa restructuration professionnelle et complète a permis une meilleure inclusion des membres au sein du serveur. Sa mise en place efficace de recrutements Staff a également permis aux membres de profiter d\'une modération et animation de qualité et professionnelle. Ainsi, son action sur le serveur est qualitative et professionnelle&nbsp;! Merci à lui&nbsp;!',
      'Marius\'s work on the server has benefited both members and staff. His professional and complete restructuring led to better inclusion of members within the server. His efficient staff recruitment also gave members high-quality, professional moderation and activities. All in all, his work on the server is high-quality and professional! Thanks to him!', 1),
-    ('<small>Restructuration du serveur &amp; recrutements staff</small>', '<small>Server restructuring &amp; staff recruitment</small>', 1),
+    ('Restructuration du serveur &amp; recrutements staff</p>', 'Server restructuring &amp; staff recruitment</p>', 1),
     ('Marius effectue un travail complet et sérieux. Toujours disponible et investi dans la tâche qui lui est confiée. Je travaille avec lui depuis plusieurs mois et pour l\'instant je n\'ai pas eu de retour négatif à lui transmettre. Il sait faire preuve de rigueur et de discipline dans le travail que nous avons pu effectuer en commun. Il a une très bonne aisance sur Discord, l\'utilisation de l\'application ainsi que l\'ensemble des fonctionnalités de celle-ci, et apporte un réel plus à l\'équipe.',
      'Marius does thorough and serious work. Always available and committed to the tasks he is given. I have been working with him for several months and so far I have had no negative feedback to pass on. He shows rigor and discipline in the work we have done together. He is very comfortable with Discord, both the app and all of its features, and brings real added value to the team.', 1),
-    ('<small>Influenceur · serveur Discord Byilhan</small>', '<small>Influencer · Byilhan Discord server</small>', 1),
+    ('Influenceur · serveur Discord Byilhan</p>', 'Influencer · Byilhan Discord server</p>', 1),
     ('Marius a été rapide, efficace et à l\'écoute pour la création de mon serveur communautaire. Il a su proposer des solutions adaptées et livrer un travail pro et bien structuré. Je recommande sans hésitation&nbsp;!',
      'Marius was quick, efficient and attentive when creating my community server. He suggested tailored solutions and delivered professional, well-structured work. I highly recommend him!', 1),
-    ('<small>Création d\'un serveur communautaire</small>', '<small>Community server creation</small>', 1),
-    ('aria-label="Choisir un avis"', 'aria-label="Choose a review"', 1),
-    ('aria-label="Avis de Stizo"', 'aria-label="Review by Stizo"', 1),
-    ('aria-label="Avis de Byilhan"', 'aria-label="Review by Byilhan"', 1),
-    ('aria-label="Avis de Guizzi"', 'aria-label="Review by Guizzi"', 1),
+    ('Création d\'un serveur communautaire</p>', 'Community server creation</p>', 1),
 
     # --- Réseaux ---
     ('<p class="eyebrow" data-reveal>Réseaux</p>', '<p class="eyebrow" data-reveal>Socials</p>', 1),
@@ -172,6 +164,8 @@ T = [
     ('Quels bots utilisez-vous&nbsp;?', 'Which bots do you use?', 1),
     ('J\'utilise les bots développés par Arvenis, le collectif que je dirige.', 'I use the bots developed by Arvenis, the collective I run.', 1),
     ('Pouvez-vous recruter et gérer un staff&nbsp;?', 'Can you recruit and manage a staff team?', 1),
+    ('Envie d\'en faire partie&nbsp;? <a class="faq__link" href="staff/">Postulez ici</a>.',
+     'Want to join? <a class="faq__link" href="../staff/">Apply here</a> (in French).', 1),
     ('Oui. Je dispose d\'équipes et je mène des recrutements pour constituer un staff adapté à votre communauté.',
      'Yes. I have teams and I run recruitment to build a staff that fits your community.', 1),
     ('Pouvez-vous intervenir sur un serveur existant&nbsp;?', 'Can you work on an existing server?', 1),
@@ -182,6 +176,8 @@ T = [
     ('Prêt à développer <em>votre communauté</em>&nbsp;?', 'Ready to grow <em>your community</em>?', 1),
     ('Parlez-moi de votre projet&nbsp;: je reviens vers vous rapidement avec une proposition adaptée.',
      'Tell me about your project: I will get back to you quickly with a tailored proposal.', 1),
+    ('data-mail-subject="Demande de devis"', 'data-mail-subject="Quote request"', 1),
+    ('<span>Demander un devis</span>', '<span>Request a quote</span>', 1),
     ('value="Nouvelle demande de devis — mvriuus.fr"', 'value="Nouvelle demande de devis (version anglaise) — mvriuus.fr"', 1),
     ('<legend>Type de projet</legend>', '<legend>Project type</legend>', 1),
     ('<span>Création de serveur</span>', '<span>Server creation</span>', 1),
@@ -211,6 +207,7 @@ T = [
     ('aria-label="Navigation du pied de page"', 'aria-label="Footer navigation"', 1),
     ('<a href="#projets">Projets</a>', '<a href="#projets">Projects</a>', 1),
     ('<a href="#avis">Avis</a>', '<a href="#avis">Reviews</a>', 1),
+    ('<a href="staff/">Rejoindre mon staff</a>', '<a href="../staff/" hreflang="fr">Join my staff (FR)</a>', 1),
     ('Retour en haut <svg', 'Back to top <svg', 1),
     ('Mvrius. Tous droits réservés.', 'Mvrius. All rights reserved.', 1),
     ('Conçu avec soin · Hébergé sur GitHub Pages', 'Crafted with care · Hosted on GitHub Pages', 1),
@@ -276,9 +273,9 @@ def main():
         sys.exit("Traduction à mettre à jour :\n- " + "\n- ".join(errors))
 
     # Note sous le carrousel : les avis sont traduits
-    html, n = re.subn(r'(<div class="t-dots".*?</div>)', r'\1\n          <p class="t-note">Reviews translated from French.</p>', html, count=1, flags=re.S)
+    html, n = re.subn(r'(<div class="dchan js-dchan".*?<div class="dchan__input"[^>]*>.*?</div>\s*</div>)', r'\1\n        <p class="t-note">Reviews translated from French.</p>', html, count=1, flags=re.S)
     if n != 1:
-        sys.exit("Carrousel d'avis introuvable")
+        sys.exit("Salon d'avis introuvable")
 
     OUT.parent.mkdir(exist_ok=True)
     OUT.write_text(html, encoding="utf-8")

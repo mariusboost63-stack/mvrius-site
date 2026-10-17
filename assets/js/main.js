@@ -116,15 +116,15 @@
   const T = {
     fr: {
       locale: 'fr-FR', typing: "est en train d'écrire…", today: "Aujourd'hui à",
-      copied: 'Adresse copiée !', sending: 'Envoi en cours…', send: 'Envoyer ma demande',
+      copied: 'Adresse copiée !', sending: 'Envoi en cours…',
       invalid: 'Merci de compléter les champs en rouge.', failed: "L'envoi n'a pas fonctionné. Écrivez-moi directement à",
-      mailSubject: 'Demande de devis', menuOpen: 'Ouvrir le menu', menuClose: 'Fermer le menu',
+      menuOpen: 'Ouvrir le menu', menuClose: 'Fermer le menu',
     },
     en: {
       locale: 'en-US', typing: 'is typing…', today: 'Today at',
-      copied: 'Address copied!', sending: 'Sending…', send: 'Send my request',
+      copied: 'Address copied!', sending: 'Sending…',
       invalid: 'Please fill in the fields in red.', failed: "Sending didn't work. Email me directly at",
-      mailSubject: 'Quote request', menuOpen: 'Open menu', menuClose: 'Close menu',
+      menuOpen: 'Open menu', menuClose: 'Close menu',
     },
   }[LANG];
   const fmt = n => n.toLocaleString(T.locale);
@@ -163,10 +163,10 @@
     try { sessionStorage.setItem(key, JSON.stringify(data)); } catch (e) { /* stockage indisponible */ }
     return data;
   }
-  $$('[data-invite]').forEach(row => {
+  const invites = $$('[data-invite]').map(row => {
     const code = row.dataset.invite;
-    fetchInvite(code).then(({ members: total, online }) => {
-      if (!total) return;
+    return fetchInvite(code).then(({ members: total, online }) => {
+      if (!total) return 0;
       const count = $('.prow__count', row);
       const live = $('.prow__live', row);
       whenVisible(row, () => {
@@ -176,8 +176,21 @@
         if (online) animateNumber($('[data-online]', row), online);
       });
       document.dispatchEvent(new CustomEvent('mv:counts', { detail: { code, members: total, online } }));
-    }).catch(() => { /* Discord injoignable : on garde les valeurs affichées */ });
+      return total;
+    }).catch(() => 0); // Discord injoignable : on garde les valeurs affichées
   });
+
+  // Somme des membres de toutes les communautés, affichée sous l'accueil
+  const totalEl = $('.js-total');
+  if (totalEl && invites.length) {
+    Promise.all(invites).then(values => {
+      const sum = values.reduce((a, b) => a + b, 0);
+      if (!sum) return;
+      totalEl.closest('[hidden]')?.removeAttribute('hidden');
+      const start = () => animateNumber(totalEl, sum);
+      if (root.classList.contains('is-ready')) start(); else setTimeout(start, 1600);
+    });
+  }
 
   /* ---------- Projets : aperçu qui suit la souris ---------- */
   const preview = $('.js-ppreview');
@@ -194,25 +207,25 @@
     });
   }
 
-  /* ---------- Demande de devis ---------- */
-  const quote = $('.js-quote');
-  if (quote) {
-    const status = $('.quote__status', quote);
-    const label = $('.quote__label', quote);
-    const mailto = data => 'mailto:contact@mvriuus.fr?subject=' + encodeURIComponent(T.mailSubject)
+  /* ---------- Formulaires (devis, candidature) ---------- */
+  $$('.js-quote').forEach(form => {
+    const status = $('.quote__status', form);
+    const label = $('.quote__label', form);
+    const labelText = label.textContent;
+    const mailto = data => 'mailto:contact@mvriuus.fr?subject=' + encodeURIComponent(form.dataset.mailSubject || 'mvriuus.fr')
       + '&body=' + encodeURIComponent(Object.entries(data).filter(([k]) => !k.startsWith('_')).map(([k, v]) => `${k} : ${v}`).join('\n'));
-    quote.addEventListener('submit', async e => {
+    form.addEventListener('submit', async e => {
       e.preventDefault();
       status.textContent = '';
-      if (!quote.checkValidity()) {
-        quote.classList.add('was-validated');
+      if (!form.checkValidity()) {
+        form.classList.add('was-validated');
         status.textContent = T.invalid;
-        $(':invalid:not(fieldset)', quote)?.focus();
+        $(':invalid:not(fieldset)', form)?.focus();
         return;
       }
-      if (quote.elements._honey.value) return;
-      const data = Object.fromEntries(new FormData(quote));
-      quote.classList.add('is-sending');
+      if (form.elements._honey.value) return;
+      const data = Object.fromEntries(new FormData(form));
+      form.classList.add('is-sending');
       label.textContent = T.sending;
       try {
         const res = await fetch('https://formsubmit.co/ajax/contact@mvriuus.fr', {
@@ -222,17 +235,17 @@
         });
         const json = await res.json().catch(() => ({}));
         if (!res.ok || String(json.success) !== 'true') throw new Error(json.message || res.status);
-        quote.classList.add('is-done');
-        $('.quote__done', quote).hidden = false;
-        quote.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+        form.classList.add('is-done');
+        $('.quote__done', form).hidden = false;
+        form.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
       } catch (err) {
         status.innerHTML = `${T.failed} <a href="${mailto(data)}">contact@mvriuus.fr</a>.`;
       } finally {
-        quote.classList.remove('is-sending');
-        label.textContent = T.send;
+        form.classList.remove('is-sending');
+        label.textContent = labelText;
       }
     });
-  }
+  });
 
   /* ---------- Copier l'adresse e-mail ---------- */
   $$('.js-copy').forEach(btn => {
@@ -252,55 +265,45 @@
     });
   });
 
-  /* ---------- Carrousel d'avis ---------- */
-  const carousel = $('.js-testimonials');
-  if (carousel) {
-    const slides = $$('.testimonial', carousel);
-    const dots = $$('.t-dot', carousel);
-    let current = 0;
-    slides.forEach(sl => splitWords($('.testimonial__text', sl)));
-
-    const show = (n, dir = 1) => {
-      n = (n + slides.length) % slides.length;
-      if (n === current) return;
-      slides[current].style.setProperty('--from', `${-48 * dir}px`);
-      slides[current].classList.remove('is-active');
-      slides[n].style.setProperty('--from', `${48 * dir}px`);
-      // force le point de départ avant d'activer la nouvelle diapositive
-      void slides[n].offsetWidth;
-      slides[n].classList.add('is-active');
-      dots.forEach((d, i) => {
-        d.classList.toggle('is-active', i === n);
-        d.setAttribute('aria-selected', String(i === n));
+  /* ---------- Avis : salon Discord ---------- */
+  const dchan = $('.js-dchan');
+  if (dchan) {
+    const msgs = $$('.dmsg', dchan);
+    const typing = $('.dchan__typing', dchan);
+    const typingName = $('.js-dtyping', dchan);
+    if (reduced) {
+      msgs.forEach(m => m.classList.add('is-in'));
+    } else {
+      whenVisible(dchan, async () => {
+        for (const m of msgs) {
+          typingName.textContent = `${m.dataset.name} ${T.typing}`;
+          typing.classList.add('is-on');
+          await wait(950);
+          typing.classList.remove('is-on');
+          m.classList.add('is-in');
+          await wait(650);
+        }
       });
-      current = n;
+    }
+  }
+
+  /* ---------- Bouton flottant (mobile) ---------- */
+  const fab = $('.js-fab');
+  const fabHero = $('.hero');
+  const fabContact = $('#contact');
+  if (fab && fabHero && fabContact && 'IntersectionObserver' in window) {
+    const seen = new Map();
+    const update = () => {
+      const show = !seen.get(fabHero) && !seen.get(fabContact);
+      fab.classList.toggle('is-visible', show);
+      fab.toggleAttribute('inert', !show);
     };
-    const next = () => show(current + 1, 1);
-    const prev = () => show(current - 1, -1);
-
-    $('.js-t-next').addEventListener('click', next);
-    $('.js-t-prev').addEventListener('click', prev);
-    dots.forEach((d, i) => d.addEventListener('click', () => show(i, i > current ? 1 : -1)));
-    // Défilement automatique : la barre de progression du point actif donne le tempo
-    if (!reduced) dots.forEach(d => $('span', d).addEventListener('animationend', next));
-    // Le défilement ne tourne que lorsque les avis sont à l'écran
-    carousel.classList.add('is-offscreen');
-    new IntersectionObserver(([e]) => carousel.classList.toggle('is-offscreen', !e.isIntersecting), { threshold: 0.4 }).observe(carousel);
-    carousel.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') carousel.classList.add('is-paused'); });
-    carousel.addEventListener('pointerleave', () => carousel.classList.remove('is-paused'));
-    carousel.addEventListener('focusin', () => carousel.classList.add('is-paused'));
-    carousel.addEventListener('focusout', () => carousel.classList.remove('is-paused'));
-
-    // Balayage sur mobile
-    let x0 = null;
-    const stage = $('.testimonials__stage', carousel);
-    stage.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true });
-    stage.addEventListener('touchend', e => {
-      if (x0 === null) return;
-      const dx = e.changedTouches[0].clientX - x0;
-      if (Math.abs(dx) > 50) (dx < 0 ? next : prev)();
-      x0 = null;
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => seen.set(e.target, e.isIntersecting));
+      update();
     });
+    io.observe(fabHero);
+    io.observe(fabContact);
   }
 
   /* ---------- FAQ ---------- */
@@ -332,12 +335,13 @@
   const nav = $('#nav');
   const navLinks = $$('.nav__links a');
   const indicator = $('.nav__indicator');
-  const navSections = navLinks.map(a => $(a.getAttribute('href')));
+  const navSections = navLinks.map(a => { const h = a.getAttribute('href'); return h.startsWith('#') ? $(h) : null; });
   let activeLink = null;
   function setActive(link) {
     if (link === activeLink) return;
     activeLink = link;
     navLinks.forEach(a => a.classList.toggle('is-active', a === link));
+    if (!indicator) return;
     if (!link) { indicator.style.opacity = 0; return; }
     indicator.style.opacity = 1;
     indicator.style.width = link.offsetWidth - 28 + 'px';
@@ -378,14 +382,14 @@
     document.documentElement.addEventListener('pointerleave', () => cursor.classList.add('is-hidden'));
     document.documentElement.addEventListener('pointerenter', () => cursor.classList.remove('is-hidden'));
 
-    hero.addEventListener('pointermove', e => {
+    hero?.addEventListener('pointermove', e => {
       const r = hero.getBoundingClientRect();
       ptr.hx = (e.clientX - r.left) / r.width - .5;
       ptr.hy = (e.clientY - r.top) / r.height - .5;
       hero.style.setProperty('--sx', e.clientX - r.left + 'px');
       hero.style.setProperty('--sy', e.clientY - r.top + 'px');
     });
-    hero.addEventListener('pointerleave', () => { ptr.hx = 0; ptr.hy = 0; });
+    hero?.addEventListener('pointerleave', () => { ptr.hx = 0; ptr.hy = 0; });
 
     $$('.spotlight').forEach(el => el.addEventListener('pointermove', e => {
       const r = el.getBoundingClientRect();
@@ -441,6 +445,7 @@
 
   let memberCount = 9208;
   const showMembers = () => {
+    if (!members) return;
     members.textContent = fmt(memberCount);
     membersRaw.textContent = memberCount;
   };
@@ -555,7 +560,7 @@
         preview.style.transform = `translate3d(${x}px, ${pv.y - 110}px, 0) rotate(${tilt}deg) scale(${.6 + pv.s * .4})`;
       }
 
-      if (wide.matches && y < vh) {
+      if (mock && wide.matches && y < vh) {
         ptr.cx = lerp(ptr.cx, ptr.hx, .07);
         ptr.cy = lerp(ptr.cy, ptr.hy, .07);
         mock.style.setProperty('--ry', `${-10 + ptr.cx * 16}deg`);
@@ -579,9 +584,9 @@
   addEventListener('load', relayout);
   document.fonts?.ready.then(relayout);
   wide.addEventListener?.('change', () => {
-    if (!wide.matches) { mock.removeAttribute('style'); chips.forEach(c => { c.style.transform = ''; }); }
+    if (!wide.matches && mock) { mock.removeAttribute('style'); chips.forEach(c => { c.style.transform = ''; }); }
   });
 
-  $('.js-year').textContent = new Date().getFullYear();
+  $$('.js-year').forEach(el => { el.textContent = new Date().getFullYear(); });
   requestAnimationFrame(frame);
 })();

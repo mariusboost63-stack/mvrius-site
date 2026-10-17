@@ -11,6 +11,7 @@ Chaque modification poussée sur la branche `main` est publiée automatiquement.
 ```
 index.html              → toutes les sections du site (français)
 en/index.html           → version anglaise, générée par tools/build-en.py
+staff/index.html        → page « Rejoins mon staff » (candidatures, en français)
 404.html                → page « introuvable »
 site.webmanifest        → nom et icônes quand le site est ajouté à l'écran d'accueil
 assets/css/style.css    → styles et animations
