@@ -146,7 +146,7 @@
       if (!e.isIntersecting) return;
       io.disconnect();
       fn();
-    }, { threshold: 0.4 });
+    }, { rootMargin: '0px 0px -20% 0px' });
     io.observe(el);
   }
   // Les chiffres viennent de l'invitation publique de chaque serveur (mis en cache 10 min)
@@ -285,6 +285,14 @@
         }
       });
     }
+  }
+
+  /* ---------- Annonce de recrutement ---------- */
+  const reacts = $$('.js-react');
+  if (reacts.length) {
+    whenVisible(reacts[0].closest('.recruit'), () => {
+      reacts.forEach((el, i) => setTimeout(() => animateNumber(el, +el.dataset.to), reduced ? 0 : 600 + i * 250));
+    });
   }
 
   /* ---------- Bouton flottant (mobile) ---------- */

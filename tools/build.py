@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Génère la version anglaise du site (en/index.html) à partir de index.html.
+"""Prépare le site avant publication.
 
-Usage : python3 tools/build-en.py
+Usage : python3 tools/build.py
 
-Chaque texte français de la table doit exister dans index.html : si une phrase
-a été modifiée côté français, le script s'arrête et indique laquelle, pour que
-la traduction soit mise à jour en même temps.
+1. Ajoute aux liens vers style.css et main.js un numéro de version (?v=…) calculé
+   à partir de leur contenu : les navigateurs rechargent ainsi les fichiers à
+   chaque mise à jour au lieu de garder une ancienne version en mémoire.
+2. Génère la version anglaise (en/index.html) à partir de index.html. Chaque texte
+   français de la table doit exister dans index.html : si une phrase a été modifiée
+   côté français, le script s'arrête et indique laquelle.
 """
+import hashlib
 import json
 import pathlib
 import re
@@ -15,6 +19,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "index.html"
 OUT = ROOT / "en" / "index.html"
+STAMPED = ["index.html", "staff/index.html", "404.html"]
 
 # (texte français, texte anglais, nombre d'occurrences attendu)
 T = [
@@ -42,6 +47,9 @@ T = [
     ('data-text="Projets"><span>Projets</span>', 'data-text="Projects"><span>Projects</span>', 1),
     ('data-text="Avis"><span>Avis</span>', 'data-text="Reviews"><span>Reviews</span>', 1),
     ('data-text="Réseaux"><span>Réseaux</span>', 'data-text="Socials"><span>Socials</span>', 1),
+    ('<a href="staff/" data-text="Rejoindre l\'équipe"><span>Rejoindre l\'équipe</span></a>',
+     '<a href="../staff/" data-text="Join the team" hreflang="fr"><span>Join the team</span></a>', 1),
+    ('<a href="staff/"><small>06</small>Rejoindre l\'équipe</a>', '<a href="../staff/" hreflang="fr"><small>06</small>Join the team</a>', 1),
     ('<a class="lang" href="en/" hreflang="en" lang="en" aria-label="English version">EN</a>',
      '<a class="lang" href="../" hreflang="fr" lang="fr" aria-label="Version française">FR</a>', 1),
     ('aria-label="Ouvrir le menu"', 'aria-label="Open menu"', 1),
@@ -249,7 +257,22 @@ def ld_block(data):
     return f'<script type="application/ld+json">\n  {body}\n  </script>'
 
 
+def stamp():
+    assets = ROOT / "assets"
+    digest = hashlib.md5((assets / "css" / "style.css").read_bytes() + (assets / "js" / "main.js").read_bytes())
+    version = digest.hexdigest()[:8]
+    for page in STAMPED:
+        path = ROOT / page
+        html = path.read_text(encoding="utf-8")
+        html, n = re.subn(r'(style\.css|main\.js)(\?v=[0-9a-z]+)?"', rf'\1?v={version}"', html)
+        if not n:
+            sys.exit(f"Aucun lien style.css / main.js dans {page}")
+        path.write_text(html, encoding="utf-8")
+    print(f"Version des fichiers : {version}")
+
+
 def main():
+    stamp()
     html = SRC.read_text(encoding="utf-8")
 
     # Données structurées en anglais (remplacées d'abord : elles reprennent les textes de la FAQ)

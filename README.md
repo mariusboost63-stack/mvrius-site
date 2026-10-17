@@ -10,7 +10,7 @@ Chaque modification poussée sur la branche `main` est publiée automatiquement.
 
 ```
 index.html              → toutes les sections du site (français)
-en/index.html           → version anglaise, générée par tools/build-en.py
+en/index.html           → version anglaise, générée par tools/build.py
 staff/index.html        → page « Rejoins mon staff » (candidatures, en français)
 404.html                → page « introuvable »
 site.webmanifest        → nom et icônes quand le site est ajouté à l'écran d'accueil
@@ -28,12 +28,21 @@ assets/img/             → photo de profil, logos et visuels des projets, image
 - **Formulaire de devis** : envoyé via [FormSubmit](https://formsubmit.co) vers
   `contact@mvriuus.fr`. La première demande déclenche un e-mail d'activation à valider.
 
+## Avant chaque publication
+
+```
+python3 tools/build.py
+```
+
+Ce script ajoute un numéro de version aux liens vers `style.css` et `main.js` (les
+navigateurs rechargent ainsi les fichiers modifiés) puis régénère la version anglaise.
+
 ## Version anglaise
 
 `en/index.html` est générée à partir de `index.html` :
 
 ```
-python3 tools/build-en.py
+python3 tools/build.py
 ```
 
 Le script contient la table de traduction. Si un texte français a changé, il s'arrête

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Rejoins mon staff — Mvrius</title>
+  <title>Rejoindre l'équipe — Mvrius</title>
   <meta name="description" content="Candidature staff : modération, animation et support pour Le Café Français, Arvenis et les communautés de Nico Là et Byilhan.">
   <meta name="theme-color" content="#07080c">
   <link rel="canonical" href="https://mvriuus.fr/staff/">
@@ -11,7 +11,7 @@
   <meta property="og:type" content="website">
   <meta property="og:locale" content="fr_FR">
   <meta property="og:site_name" content="Mvrius">
-  <meta property="og:title" content="Rejoins mon staff — Mvrius">
+  <meta property="og:title" content="Rejoindre l'équipe — Mvrius">
   <meta property="og:description" content="Modération, animation, support : postule pour rejoindre les équipes du Café Français, d'Arvenis, de Nico Là et de Byilhan.">
   <meta property="og:url" content="https://mvriuus.fr/staff/">
   <meta property="og:image" content="https://mvriuus.fr/assets/img/og.jpg">
@@ -26,7 +26,7 @@
   <meta name="apple-mobile-web-app-title" content="Mvrius">
   <link rel="preload" href="../assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="../assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="../assets/css/style.css?v=2286defa">
 
   <script>
     (function (d) {
@@ -36,7 +36,7 @@
       setTimeout(function () { if (!window.MV) d.classList.remove('js'); }, 4000);
     })(document.documentElement);
   </script>
-  <script src="../assets/js/main.js" defer></script>
+  <script src="../assets/js/main.js?v=2286defa" defer></script>
 </head>
 <body>
   <!-- Sprite d'icônes (Lucide + Simple Icons) -->
@@ -84,6 +84,7 @@
         <a href="../#avis" data-text="Avis"><span>Avis</span></a>
         <a href="../#reseaux" data-text="Réseaux"><span>Réseaux</span></a>
         <a href="../#faq" data-text="FAQ"><span>FAQ</span></a>
+        <a href="./" data-text="Rejoindre l'équipe" aria-current="page"><span>Rejoindre l'équipe</span></a>
         <span class="nav__indicator" aria-hidden="true"></span>
       </nav>
       <a class="lang" href="../en/" hreflang="en" lang="en" aria-label="English version">EN</a>
@@ -101,7 +102,8 @@
       <a href="../#avis"><small>03</small>Avis</a>
       <a href="../#reseaux"><small>04</small>Réseaux</a>
       <a href="../#faq"><small>05</small>FAQ</a>
-      <a href="../#contact"><small>06</small>Contact</a>
+      <a href="./" aria-current="page"><small>06</small>Rejoindre l'équipe</a>
+      <a href="../#contact"><small>07</small>Contact</a>
     </nav>
     <p class="menu__foot">Disponible pour de nouvelles collaborations</p>
   </div>
@@ -114,16 +116,42 @@
         <div class="aurora"><span></span><span></span><span></span></div>
         <div class="gridlines"></div>
       </div>
-      <div class="container page-hero__inner">
-        <p class="eyebrow" data-reveal>Recrutement</p>
-        <h1 class="page-hero__title" data-split>Rejoins mon <em>staff</em>.</h1>
-        <p class="section__lead" data-reveal>Je recrute régulièrement pour les communautés que je gère&nbsp;: Le Café Français, Arvenis et les serveurs de Nico Là et Byilhan. Tu veux faire partie de l'équipe&nbsp;? Présente-toi ci-dessous.</p>
-        <ul class="staff-servers" data-stagger>
-          <li data-reveal><img src="../assets/img/projets/cafe-logo.webp" alt="" width="40" height="40">Le Café Français</li>
-          <li data-reveal><img src="../assets/img/projets/arvenis-logo.webp" alt="" width="40" height="40">Arvenis</li>
-          <li data-reveal><img src="../assets/img/projets/nico-pdp.webp" alt="" width="40" height="40">Nico Là</li>
-          <li data-reveal><img src="../assets/img/projets/byilhan-pdp.webp" alt="" width="40" height="40">Byilhan</li>
-        </ul>
+      <div class="container page-hero__inner page-hero__inner--split">
+        <div>
+          <p class="eyebrow" data-reveal>Recrutement</p>
+          <h1 class="page-hero__title" data-split>Rejoins <em>l'équipe</em>.</h1>
+          <p class="section__lead" data-reveal>Je recrute régulièrement pour les communautés que je gère&nbsp;: Le Café Français, Arvenis et les serveurs de Nico Là et Byilhan. Tu veux faire partie de l'aventure&nbsp;? Présente-toi ci-dessous.</p>
+          <div class="page-hero__cta" data-reveal>
+            <a class="btn btn--primary magnetic" href="#candidature"><span>Postuler maintenant</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
+          </div>
+          <ul class="staff-servers" data-stagger>
+            <li data-reveal><img src="../assets/img/projets/cafe-logo.webp" alt="" width="40" height="40">Le Café Français</li>
+            <li data-reveal><img src="../assets/img/projets/arvenis-logo.webp" alt="" width="40" height="40">Arvenis</li>
+            <li data-reveal><img src="../assets/img/projets/nico-pdp.webp" alt="" width="40" height="40">Nico Là</li>
+            <li data-reveal><img src="../assets/img/projets/byilhan-pdp.webp" alt="" width="40" height="40">Byilhan</li>
+          </ul>
+        </div>
+
+        <div class="recruit" data-reveal aria-hidden="true">
+          <div class="recruit__head"><svg><use href="#i-megaphone"/></svg>🧛 | recrutements</div>
+          <div class="recruit__msg">
+            <span class="msg__av msg__av--me">M</span>
+            <div>
+              <p class="msg__name">Mvrius <span class="msg__tag msg__tag--mod">GÉRANT</span><time>Aujourd'hui</time></p>
+              <div class="recruit__embed">
+                <strong>📢 Les recrutements sont ouverts&nbsp;!</strong>
+                <span>On cherche de nouvelles personnes motivées pour renforcer les équipes.</span>
+                <div class="recruit__roles"><span>🛡️ Modération</span><span>🎉 Animation</span><span>💬 Support</span></div>
+                <span class="recruit__btn">Postuler</span>
+              </div>
+              <div class="recruit__reacts">
+                <span class="recruit__react"><b>🔥</b> <span class="js-react" data-to="24">0</span></span>
+                <span class="recruit__react"><b>✋</b> <span class="js-react" data-to="17">0</span></span>
+                <span class="recruit__react"><b>💜</b> <span class="js-react" data-to="9">0</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
