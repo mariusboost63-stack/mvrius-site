@@ -164,19 +164,40 @@
     }, { rootMargin: '0px 0px -20% 0px' });
     io.observe(el);
   }
-  // Les chiffres viennent de l'invitation publique de chaque serveur (mis en cache 10 min)
-  async function fetchInvite(code) {
+  // Les chiffres viennent de l'invitation publique de chaque serveur. Ils sont gardés 10 min ;
+  // si Discord ne répond pas, la dernière valeur connue du visiteur est affichée.
+  const store = {
+    get: key => { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { return null; } },
+    set: (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* stockage indisponible */ } },
+  };
+  let inviteQueue = Promise.resolve();
+  function fetchInvite(code) {
     const key = `mv-invite-${code}`;
-    try {
-      const cached = JSON.parse(sessionStorage.getItem(key) || 'null');
-      if (cached && Date.now() - cached.t < 10 * 60 * 1000) return cached;
-    } catch (e) { /* stockage indisponible */ }
-    const res = await fetch(`https://discord.com/api/v10/invites/${code}?with_counts=true`);
-    if (!res.ok) throw new Error(res.status);
-    const d = await res.json();
-    const data = { t: Date.now(), members: d.approximate_member_count, online: d.approximate_presence_count };
-    try { sessionStorage.setItem(key, JSON.stringify(data)); } catch (e) { /* stockage indisponible */ }
-    return data;
+    const cached = store.get(key);
+    if (cached && Date.now() - cached.t < 10 * 60 * 1000) return Promise.resolve(cached);
+    // Une requête à la fois : Discord refuse les appels trop rapprochés
+    const request = async () => {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const res = await fetch(`https://discord.com/api/v10/invites/${code}?with_counts=true`);
+        if (res.status === 429 && !attempt) {
+          const { retry_after: retry = 1 } = await res.json().catch(() => ({}));
+          await wait(Math.min(retry, 3) * 1000);
+          continue;
+        }
+        if (!res.ok) break;
+        const d = await res.json();
+        const data = { t: Date.now(), members: d.approximate_member_count, online: d.approximate_presence_count };
+        store.set(key, data);
+        return data;
+      }
+      throw new Error('Discord indisponible');
+    };
+    const result = inviteQueue.then(request).catch(() => {
+      if (cached) return { ...cached, online: 0 }; // dernière valeur connue, sans « en ligne »
+      throw new Error('Aucun chiffre disponible');
+    });
+    inviteQueue = result.catch(() => {});
+    return result;
   }
   const invites = $$('[data-invite]').map(row => {
     const code = row.dataset.invite;
@@ -190,6 +211,9 @@
         animateNumber($('[data-members]', row), total);
         if (online) animateNumber($('[data-online]', row), online);
       });
+      // Carte d'aperçu au survol
+      const card = $(`.pcard[data-code="${code}"] .pcard__count`);
+      if (card) { $('b', card).textContent = fmt(total); card.hidden = false; }
       document.dispatchEvent(new CustomEvent('mv:counts', { detail: { code, members: total, online } }));
       return total;
     }).catch(() => 0); // Discord injoignable : on garde les valeurs affichées
@@ -206,6 +230,15 @@
       if (root.classList.contains('is-ready')) start(); else setTimeout(start, 1600);
     });
   }
+
+  /* ---------- Projets : autres communautés sur demande ---------- */
+  const plistMore = $('.js-plist-more');
+  plistMore?.addEventListener('click', () => {
+    const extra = $$('.plist__item--more');
+    extra.forEach((el, i) => { el.style.setProperty('--d', i * 90); el.classList.add('is-shown'); });
+    plistMore.closest('.plist__foot').remove();
+    $('.prow', extra[0])?.focus({ preventScroll: true });
+  });
 
   /* ---------- Projets : aperçu qui suit la souris ---------- */
   const preview = $('.js-ppreview');
