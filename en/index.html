@@ -31,12 +31,23 @@
   <meta name="apple-mobile-web-app-title" content="Mvrius">
   <link rel="preload" href="../assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="../assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="../assets/css/style.css?v=0e282524">
+  <link rel="stylesheet" href="../assets/css/style.css?v=bda42250">
 
   <script>
     (function (d) {
       d.classList.add('js');
-      try { if (sessionStorage.getItem('mv-intro')) d.classList.add('intro-seen'); } catch (e) {}
+      // Écran d'intro : à l'arrivée sur le site et à chaque rechargement (retour en haut de page).
+      // Pas d'intro en naviguant entre les pages du site ni avec le bouton Retour.
+      var nav = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]) || {};
+      var type = nav.type || (performance.navigation && performance.navigation.type === 1 ? 'reload' : 'navigate');
+      var internal = false;
+      try { internal = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) {}
+      d.setAttribute('data-nav', type);
+      // Le site gère lui-même la position de défilement (main.js)
+      if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+      if (type === 'reload') {
+        if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+      } else if (type === 'back_forward' || internal) d.classList.add('intro-seen');
       // L'écran d'intro attend la police du titre (au plus 0,7 s) pour éviter un changement de police en pleine animation
       var fontsReady = function () { d.classList.add('fonts-ready'); };
       if (document.fonts && document.fonts.load) { document.fonts.load('800 1em Bricolage').then(fontsReady, fontsReady); setTimeout(fontsReady, 700); } else fontsReady();
@@ -45,7 +56,7 @@
       setTimeout(function () { if (!window.MV) d.classList.remove('js'); }, 4000);
     })(document.documentElement);
   </script>
-  <script src="../assets/js/main.js?v=0e282524" defer></script>
+  <script src="../assets/js/main.js?v=bda42250" defer></script>
 
   <script type="application/ld+json">
   {

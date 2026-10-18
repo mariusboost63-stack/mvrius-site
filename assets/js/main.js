@@ -58,6 +58,23 @@
   $$('[data-split]').forEach(splitWords);
 
   /* ---------- Intro ---------- */
+  // Position de défilement (le navigateur ne la restaure pas, voir <head>) : on repart du haut
+  // à chaque rechargement, et on retrouve sa position avec le bouton Retour.
+  if (root.dataset.nav) {
+    const scrollKey = `mv-scroll-${location.pathname}`;
+    const jump = top => scrollTo({ top, left: 0, behavior: 'instant' });
+    if (root.dataset.nav === 'reload') {
+      jump(0);
+      addEventListener('load', () => jump(0), { once: true });
+    } else if (root.dataset.nav === 'back_forward') {
+      let saved = null;
+      try { saved = sessionStorage.getItem(scrollKey); } catch (e) { /* stockage indisponible */ }
+      if (saved !== null) addEventListener('load', () => jump(+saved), { once: true });
+    }
+    addEventListener('pagehide', () => {
+      try { sessionStorage.setItem(scrollKey, String(Math.round(scrollY))); } catch (e) { /* stockage indisponible */ }
+    });
+  }
   const loader = $('.loader');
   const startIntro = () => root.classList.add('is-ready');
 
@@ -75,7 +92,6 @@
       loader.classList.add('is-done');
       setTimeout(startIntro, 250);
       setTimeout(() => loader.remove(), 1100);
-      try { sessionStorage.setItem('mv-intro', '1'); } catch (e) { /* stockage indisponible */ }
     });
   } else {
     if (loader) loader.remove();
