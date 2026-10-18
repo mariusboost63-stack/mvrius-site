@@ -15,7 +15,6 @@
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   const lerp = (a, b, t) => a + (b - a) * t;
   const wait = ms => new Promise(r => setTimeout(r, ms));
-  const easeInOut = t => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
   const SPACES = /([ \t\n\r]+)/; // l'espace insécable reste collé au mot
   const PUNCT = /^[  ]?[.,;:!?…)»]+$/;
 
@@ -63,27 +62,21 @@
   const startIntro = () => root.classList.add('is-ready');
 
   if (loader && getComputedStyle(loader).display !== 'none') {
-    const count = $('.loader__count');
-    const bar = $('.loader__bar span');
+    // La barre et le titre sont animés en CSS : ils restent fluides même pendant le chargement.
+    // L'intro se termine au plus tôt à MIN ms après l'ouverture de la page, une fois les polices prêtes.
     const tips = $$('.loader__tips li');
     const tipEl = $('.js-loader-tip');
     if (tips.length && tipEl) tipEl.textContent = tips[Math.floor(Math.random() * tips.length)].textContent;
-    const t0 = performance.now();
-    const DURATION = tips.length ? 1900 : 1300;
-    const tick = now => {
-      const p = clamp((now - t0) / DURATION, 0, 1);
-      const e = easeInOut(p);
-      count.textContent = String(Math.round(e * 100)).padStart(2, '0');
-      bar.style.transform = `scaleX(${e})`;
-      if (p < 1) return requestAnimationFrame(tick);
-      Promise.race([document.fonts ? document.fonts.ready : Promise.resolve(), wait(1200)]).then(() => {
-        loader.classList.add('is-done');
-        setTimeout(startIntro, 250);
-        setTimeout(() => loader.remove(), 1200);
-        try { sessionStorage.setItem('mv-intro', '1'); } catch (e) { /* stockage indisponible */ }
-      });
-    };
-    requestAnimationFrame(tick);
+    const MIN = tips.length ? 1900 : 1300;
+    Promise.all([
+      wait(Math.max(0, MIN - performance.now())),
+      Promise.race([document.fonts ? document.fonts.ready : Promise.resolve(), wait(1200)]),
+    ]).then(() => {
+      loader.classList.add('is-done');
+      setTimeout(startIntro, 250);
+      setTimeout(() => loader.remove(), 1100);
+      try { sessionStorage.setItem('mv-intro', '1'); } catch (e) { /* stockage indisponible */ }
+    });
   } else {
     if (loader) loader.remove();
     requestAnimationFrame(() => requestAnimationFrame(startIntro));
@@ -138,7 +131,8 @@
         + (weak.length ? ` Areas to improve: ${weak.join(', ')}.` : '') + ' I would like to discuss it with you.',
     },
   }[LANG];
-  const fmt = n => n.toLocaleString(T.locale);
+  const numberFormat = new Intl.NumberFormat(T.locale);
+  const fmt = n => numberFormat.format(n);
 
   /* ---------- Compteurs Discord en direct ---------- */
   function animateNumber(el, to) {
@@ -301,6 +295,23 @@
       t = setTimeout(() => { btn.classList.remove('is-copied'); label.textContent = text; }, 2200);
     });
   });
+
+  /* ---------- Articles : sommaire (partie en cours de lecture) ---------- */
+  const toc = $('.js-toc');
+  if (toc && 'IntersectionObserver' in window) {
+    const tocLinks = $$('a', toc);
+    const heads = tocLinks.map(a => document.getElementById(decodeURIComponent(a.hash.slice(1))));
+    const setToc = i => tocLinks.forEach((a, k) => a.classList.toggle('is-active', k === i));
+    // Partie en cours : le dernier intertitre passé au-dessus du tiers haut de l'écran.
+    // Recalculé seulement quand un intertitre franchit cette ligne.
+    const io = new IntersectionObserver(() => {
+      const line = innerHeight * .34;
+      let current = -1;
+      heads.forEach((h, i) => { if (h && h.getBoundingClientRect().top < line) current = i; });
+      setToc(current);
+    }, { rootMargin: '0px 0px -66% 0px' });
+    heads.forEach(h => h && io.observe(h));
+  }
 
   /* ---------- Bots Arvenis : photos et bannières à jour ---------- */
   const botCards = $$('[data-bot]');
@@ -512,6 +523,15 @@
     });
   });
 
+  // Questions supplémentaires affichées sur demande
+  const faqMore = $('.js-faq-more');
+  faqMore?.addEventListener('click', () => {
+    const extra = $$('.faq__item--more');
+    extra.forEach((el, i) => { el.style.setProperty('--d', i * 70); el.classList.add('is-shown'); });
+    faqMore.remove();
+    $('.faq__q', extra[0])?.focus({ preventScroll: true });
+  });
+
   /* ---------- Bandeau défilant ---------- */
   const marquee = $('.js-marquee');
   let mq = { x: 0, period: 0, dir: -1 };
@@ -688,6 +708,20 @@
   /* ---------- Boucle d'animation ---------- */
   const progressBar = $('.progress span');
   const prose = $('.js-prose');
+  // La position de défilement et la hauteur d'écran sont mises en cache : la boucle ne force
+  // aucun calcul de mise en page tant que rien ne bouge.
+  let scrollTop = scrollY;
+  let vh = innerHeight;
+  addEventListener('scroll', () => { scrollTop = scrollY; }, { passive: true });
+  // Le bandeau ne défile et l'accueil ne s'anime que lorsqu'ils sont à l'écran
+  const onScreen = new Set([hero, marquee]);
+  if ('IntersectionObserver' in window) {
+    const vis = new IntersectionObserver(entries => entries.forEach(e => {
+      onScreen[e.isIntersecting ? 'add' : 'delete'](e.target);
+      if (e.target === hero) hero.classList.toggle('is-off', !e.isIntersecting);
+    }));
+    [hero, marquee].forEach(el => el && vis.observe(el));
+  }
   let lastY = -1;
   let navY = scrollY;
   let vel = 0;
@@ -729,8 +763,7 @@
   function frame(t) {
     const dt = Math.min(64, t - lastT);
     lastT = t;
-    const y = scrollY;
-    const vh = innerHeight;
+    const y = scrollTop;
 
     if (y !== lastY || dirty) {
       onScroll(y, vh);
@@ -741,7 +774,7 @@
     vel = lerp(vel, y - prevY, .12);
     prevY = y;
 
-    if (mq.period) {
+    if (mq.period && onScreen.has(marquee)) {
       if (Math.abs(vel) > .5) mq.dir = vel > 0 ? -1 : 1;
       const speed = (.55 + Math.min(Math.abs(vel) * .35, 14)) * (dt / 16.67);
       mq.x += mq.dir * speed;
@@ -766,7 +799,7 @@
         preview.style.transform = `translate3d(${x}px, ${pv.y - 110}px, 0) rotate(${tilt}deg) scale(${.6 + pv.s * .4})`;
       }
 
-      if (mock && wide.matches && y < vh) {
+      if (mock && wide.matches && onScreen.has(hero)) {
         ptr.cx = lerp(ptr.cx, ptr.hx, .07);
         ptr.cy = lerp(ptr.cy, ptr.hy, .07);
         mock.style.setProperty('--ry', `${-10 + ptr.cx * 16}deg`);
@@ -784,7 +817,7 @@
   }
 
   /* ---------- Initialisation & redimensionnement ---------- */
-  const relayout = () => { mq.measure?.(); activeLink = undefined; dirty = true; };
+  const relayout = () => { vh = innerHeight; scrollTop = scrollY; mq.measure?.(); activeLink = undefined; dirty = true; };
   let rT;
   addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(relayout, 150); });
   addEventListener('load', relayout);

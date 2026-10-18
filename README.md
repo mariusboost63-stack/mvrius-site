@@ -48,6 +48,15 @@ Pour ajouter un article : créer `tools/articles/<nom>.html` (même en-tête que
 titre, description, extrait, catégorie, durée, date, icône), ajouter `<nom>` en tête de la liste
 `ARTICLES` dans `tools/build.py`, puis lancer le script.
 
+Image d'aperçu de l'article (affichée quand il est partagé sur Discord, X…) :
+
+```
+node tools/og.js <nom>     # nécessite Playwright (npm i -D playwright)
+python3 tools/build.py
+```
+
+Sans image propre, l'article utilise l'aperçu général du site (`assets/img/og.jpg`).
+
 ## Version anglaise
 
 `en/index.html` est générée à partir de `index.html` :

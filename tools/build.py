@@ -18,6 +18,7 @@ import json
 import pathlib
 import re
 import sys
+import unicodedata
 import urllib.parse
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -36,7 +37,7 @@ ARTICLE_ICONS = (
     '      <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98"/><path d="m15.41 6.51-6.82 3.98"/></symbol>\n'
     '      <symbol id="b-x" viewBox="0 0 24 24"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></symbol>\n'
 )
-SECTIONS = ("services", "projets", "avis", "diagnostic", "conseils", "reseaux", "faq", "contact")
+SECTIONS = ("services", "projets", "avis", "diagnostic", "conseils", "faq", "contact")
 
 # (texte français, texte anglais, nombre d'occurrences attendu)
 T = [
@@ -63,17 +64,15 @@ T = [
     ('aria-label="Navigation principale"', 'aria-label="Main navigation"', 1),
     ('data-text="Projets"><span>Projets</span>', 'data-text="Projects"><span>Projects</span>', 1),
     ('data-text="Avis"><span>Avis</span>', 'data-text="Reviews"><span>Reviews</span>', 1),
-    ('data-text="Réseaux"><span>Réseaux</span>', 'data-text="Socials"><span>Socials</span>', 1),
     ('<a href="staff/" data-text="Rejoindre l\'équipe"><span>Rejoindre l\'équipe</span></a>',
      '<a href="../staff/" data-text="Join the team" hreflang="fr"><span>Join the team</span></a>', 1),
-    ('<a href="staff/"><small>08</small>Rejoindre l\'équipe</a>', '<a href="../staff/" hreflang="fr"><small>08</small>Join the team</a>', 1),
+    ('<a href="staff/"><small>07</small>Rejoindre l\'équipe</a>', '<a href="../staff/" hreflang="fr"><small>07</small>Join the team</a>', 1),
     ('<a class="lang" href="en/" hreflang="en" lang="en" aria-label="English version">EN</a>',
      '<a class="lang" href="../" hreflang="fr" lang="fr" aria-label="Version française">FR</a>', 1),
     ('aria-label="Ouvrir le menu"', 'aria-label="Open menu"', 1),
     ('aria-label="Menu mobile"', 'aria-label="Mobile menu"', 1),
     ('<small>02</small>Projets</a>', '<small>02</small>Projects</a>', 1),
     ('<small>03</small>Avis</a>', '<small>03</small>Reviews</a>', 1),
-    ('<small>06</small>Réseaux</a>', '<small>06</small>Socials</a>', 1),
     ('data-text="Diagnostic"><span>Diagnostic</span>', 'data-text="Check-up"><span>Check-up</span>', 1),
     ('data-text="Conseils"><span>Conseils</span>', 'data-text="Tips"><span>Tips</span>', 1),
     ('<small>04</small>Diagnostic</a>', '<small>04</small>Check-up</a>', 1),
@@ -161,13 +160,6 @@ T = [
      'Marius was quick, efficient and attentive when creating my community server. He suggested tailored solutions and delivered professional, well-structured work. I highly recommend him!', 1),
     ('Création d\'un serveur communautaire</p>', 'Community server creation</p>', 1),
 
-    # --- Réseaux ---
-    ('<p class="eyebrow" data-reveal>Réseaux</p>', '<p class="eyebrow" data-reveal>Socials</p>', 1),
-    ('<h2 class="title" data-split>Retrouvez-moi <em>partout</em>.</h2>', '<h2 class="title" data-split>Find me <em>everywhere</em>.</h2>', 1),
-    ('Suivez mon actualité ou écrivez-moi directement sur la plateforme de votre choix.',
-     'Follow my updates or message me directly on the platform of your choice.', 1),
-    ('<span class="social__name">E-mail</span>', '<span class="social__name">Email</span>', 1),
-
     # --- FAQ ---
     ('<h2 class="title" data-split>Vos questions, <em>mes réponses</em>.</h2>', '<h2 class="title" data-split>Your questions, <em>my answers</em>.</h2>', 1),
     ('Une autre question&nbsp;? <a class="faq__link" href="#contact">Écrivez-moi</a>, je vous réponds directement.',
@@ -193,6 +185,7 @@ T = [
     ('Quels bots utilisez-vous&nbsp;?', 'Which bots do you use?', 1),
     ('J\'utilise les bots développés par Arvenis, le collectif que je dirige.', 'I use the bots developed by Arvenis, the collective I run.', 1),
     ('Découvrez-les ici</a>.', 'Discover them here</a> (in French).', 1),
+    ('<span>Voir toutes les questions</span>', '<span>See all questions</span>', 1),
     ('Pouvez-vous recruter et gérer un staff&nbsp;?', 'Can you recruit and manage a staff team?', 1),
     ('Envie d\'en faire partie&nbsp;? <a class="faq__link" href="staff/">Postulez ici</a>.',
      'Want to join? <a class="faq__link" href="../staff/">Apply here</a> (in French).', 1),
@@ -411,9 +404,57 @@ def typo(text):
     return re.sub(r" ([:;?!])", r"&nbsp;\1", text)
 
 
-def doc_head(title, description, url, version, prefix, og_type="website", ld=None):
+MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
+
+
+def fr_date(iso):
+    y, m, d = (int(x) for x in iso.split("-"))
+    return f"{'1er' if d == 1 else d} {MONTHS[m - 1]} {y}"
+
+
+def slugify(text):
+    text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+
+
+def with_toc(body):
+    """Ajoute un identifiant à chaque intertitre et renvoie le sommaire correspondant."""
+    entries, seen = [], set()
+
+    def add_id(m):
+        label = re.sub(r'<span class="(?:bot-card__badge|prose__new)">.*?</span>', "", m.group(1))
+        label = re.sub(r"<[^>]+>", "", label).replace("&nbsp;", " ").strip()
+        label = re.sub(r"^\d+\.\s*", "", label)  # le sommaire numérote déjà
+        anchor = slugify(label)
+        while anchor in seen:
+            anchor += "-2"
+        seen.add(anchor)
+        entries.append((anchor, label))
+        return f'<h2 id="{anchor}">{m.group(1)}</h2>'
+
+    body = re.sub(r"<h2>(.*?)</h2>", add_id, body)
+    # Cartes des bots : l'ancre vise la carte entière (bannière comprise)
+    body = re.sub(r'(<div class="bot-card" data-bot="[^"]+")(.*?)<h2 id="([^"]+)">', r'\1 id="\3"\2<h2>', body, flags=re.S)
+    items = "\n".join(f'              <li><a href="#{a}">{typo(label)}</a></li>' for a, label in entries)
+    toc = f"""          <nav class="toc js-toc" aria-label="Sommaire" data-reveal>
+            <p class="toc__title">Dans cet article</p>
+            <ol class="toc__list">
+{items}
+            </ol>
+          </nav>"""
+    return body, toc
+
+
+def og_image(slug):
+    """Image d'aperçu propre à l'article (tools/og.js), sinon celle du site."""
+    own = ROOT / "assets" / "img" / "og" / f"{slug}.jpg"
+    return f"{SITE}assets/img/og/{slug}.jpg" if own.exists() else f"{SITE}assets/img/og.jpg"
+
+
+def doc_head(title, description, url, version, prefix, og_type="website", ld=None, image=None):
     """En-tête commun aux pages générées (page des conseils et articles)."""
     ld = f"\n  {ld_block(ld)}" if ld else ""
+    image = image or f"{SITE}assets/img/og.jpg"
     return f"""<!doctype html>
 <html lang="fr">
 <head>
@@ -430,11 +471,11 @@ def doc_head(title, description, url, version, prefix, og_type="website", ld=Non
   <meta property="og:title" content="{title}">
   <meta property="og:description" content="{description}">
   <meta property="og:url" content="{url}">
-  <meta property="og:image" content="{SITE}assets/img/og.jpg">
+  <meta property="og:image" content="{image}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="{SITE}assets/img/og.jpg">
+  <meta name="twitter:image" content="{image}">
 
   <link rel="icon" href="{prefix}assets/img/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="{prefix}assets/img/apple-touch-icon.png">
@@ -533,11 +574,13 @@ def build_articles(version):
     build_listing(home, data, version)
     for i, (slug, (meta, body)) in enumerate(data.items()):
         url = f"{SITE}conseils/{slug}/"
+        image = og_image(slug)
+        body, toc = with_toc(body)
         article_ld = {
             "@context": "https://schema.org", "@type": "Article",
             "headline": meta["title"], "description": meta["description"], "inLanguage": "fr",
             "datePublished": meta["date"], "dateModified": meta["date"],
-            "image": f"{SITE}assets/img/og.jpg", "mainEntityOfPage": url,
+            "image": image, "mainEntityOfPage": url,
             "author": {"@type": "Person", "name": "Mvrius", "url": SITE},
             "publisher": {"@type": "Person", "name": "Mvrius", "url": SITE},
         }
@@ -549,7 +592,7 @@ def build_articles(version):
             <span class="tip-card__more">Lire l'article <svg class="ico"><use href="#i-arrow-right"/></svg></span>
           </a>""" for other in nexts)
         tweet = "https://twitter.com/intent/tweet?" + urllib.parse.urlencode({"text": meta["title"], "url": url})
-        page = doc_head(meta["title"], meta["description"], url, version, "../../", "article", article_ld) + f"""<body class="page-article">
+        page = doc_head(meta["title"], meta["description"], url, version, "../../", "article", article_ld, image) + f"""<body class="page-article">
   <!-- Page générée par tools/build.py à partir de tools/articles/{slug}.html : modifier le texte là-bas -->
 {sprite}{nav}
   <main id="main">
@@ -565,14 +608,17 @@ def build_articles(version):
           <h1 class="article__title" data-split>{typo(meta["title"])}</h1>
           <p class="article__meta" data-reveal>
             <span class="avatar-status"><span class="avatar avatar--sm"><span class="avatar__fallback">M</span><img src="../../assets/img/profile-sm.jpg" alt="" width="36" height="36" onerror="this.remove()"></span><span class="status js-status" hidden></span></span>
-            <span>Par <b>Mvrius</b> · {meta["read"]} de lecture</span>
+            <span>Par <b>Mvrius</b> · <time datetime="{meta["date"]}">{fr_date(meta["date"]).replace(" ", "&nbsp;")}</time> · {meta["read"].replace(" ", "&nbsp;")}&nbsp;de&nbsp;lecture</span>
           </p>
         </div>
       </header>
 
       <div class="container article__body">
-        <div class="prose js-prose" data-reveal>
+        <div class="article__layout">
+{toc}
+          <div class="prose js-prose" data-reveal>
 {body}
+          </div>
         </div>
 
         <div class="share" data-reveal>

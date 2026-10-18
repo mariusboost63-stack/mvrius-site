@@ -14,11 +14,11 @@
   <meta property="og:title" content="Comment bien structurer les salons de son serveur Discord">
   <meta property="og:description" content="Parcours du nouveau membre, catégories essentielles, noms de salons, permissions : la méthode pour structurer un serveur Discord clair et vivant.">
   <meta property="og:url" content="https://mvriuus.fr/conseils/structurer-salons-discord/">
-  <meta property="og:image" content="https://mvriuus.fr/assets/img/og.jpg">
+  <meta property="og:image" content="https://mvriuus.fr/assets/img/og/structurer-salons-discord.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://mvriuus.fr/assets/img/og.jpg">
+  <meta name="twitter:image" content="https://mvriuus.fr/assets/img/og/structurer-salons-discord.jpg">
 
   <link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="../../assets/img/apple-touch-icon.png">
@@ -26,7 +26,7 @@
   <meta name="apple-mobile-web-app-title" content="Mvrius">
   <link rel="preload" href="../../assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="../../assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="../../assets/css/style.css?v=d0b559a4">
+  <link rel="stylesheet" href="../../assets/css/style.css?v=bf6324b4">
 
   <script>
     (function (d) {
@@ -36,7 +36,7 @@
       setTimeout(function () { if (!window.MV) d.classList.remove('js'); }, 4000);
     })(document.documentElement);
   </script>
-  <script src="../../assets/js/main.js?v=d0b559a4" defer></script>
+  <script src="../../assets/js/main.js?v=bf6324b4" defer></script>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -46,7 +46,7 @@
     "inLanguage": "fr",
     "datePublished": "2026-10-17",
     "dateModified": "2026-10-17",
-    "image": "https://mvriuus.fr/assets/img/og.jpg",
+    "image": "https://mvriuus.fr/assets/img/og/structurer-salons-discord.jpg",
     "mainEntityOfPage": "https://mvriuus.fr/conseils/structurer-salons-discord/",
     "author": {
       "@type": "Person",
@@ -109,7 +109,6 @@
         <a href="../../#avis" data-text="Avis"><span>Avis</span></a>
         <a href="../../#diagnostic" data-text="Diagnostic"><span>Diagnostic</span></a>
         <a href="../../conseils/" data-text="Conseils"><span>Conseils</span></a>
-        <a href="../../#reseaux" data-text="Réseaux"><span>Réseaux</span></a>
         <a href="../../#faq" data-text="FAQ"><span>FAQ</span></a>
         <a href="../../staff/" data-text="Rejoindre l'équipe"><span>Rejoindre l'équipe</span></a>
         <span class="nav__indicator" aria-hidden="true"></span>
@@ -129,10 +128,9 @@
       <a href="../../#avis"><small>03</small>Avis</a>
       <a href="../../#diagnostic"><small>04</small>Diagnostic</a>
       <a href="../../conseils/"><small>05</small>Conseils</a>
-      <a href="../../#reseaux"><small>06</small>Réseaux</a>
-      <a href="../../#faq"><small>07</small>FAQ</a>
-      <a href="../../staff/"><small>08</small>Rejoindre l'équipe</a>
-      <a href="../../#contact"><small>09</small>Contact</a>
+      <a href="../../#faq"><small>06</small>FAQ</a>
+      <a href="../../staff/"><small>07</small>Rejoindre l'équipe</a>
+      <a href="../../#contact"><small>08</small>Contact</a>
     </nav>
     <p class="menu__foot">Disponible pour de nouvelles collaborations</p>
   </div>
@@ -150,19 +148,32 @@
           <h1 class="article__title" data-split>Comment bien structurer les salons de son serveur Discord</h1>
           <p class="article__meta" data-reveal>
             <span class="avatar-status"><span class="avatar avatar--sm"><span class="avatar__fallback">M</span><img src="../../assets/img/profile-sm.jpg" alt="" width="36" height="36" onerror="this.remove()"></span><span class="status js-status" hidden></span></span>
-            <span>Par <b>Mvrius</b> · 5 min de lecture</span>
+            <span>Par <b>Mvrius</b> · <time datetime="2026-10-17">17&nbsp;octobre&nbsp;2026</time> · 5&nbsp;min&nbsp;de&nbsp;lecture</span>
           </p>
         </div>
       </header>
 
       <div class="container article__body">
-        <div class="prose js-prose" data-reveal>
+        <div class="article__layout">
+          <nav class="toc js-toc" aria-label="Sommaire" data-reveal>
+            <p class="toc__title">Dans cet article</p>
+            <ol class="toc__list">
+              <li><a href="#pensez-parcours-pas-liste">Pensez parcours, pas liste</a></li>
+              <li><a href="#les-categories-essentielles">Les catégories essentielles</a></li>
+              <li><a href="#des-noms-clairs-et-coherents">Des noms clairs et cohérents</a></li>
+              <li><a href="#moins-mais-mieux">Moins, mais mieux</a></li>
+              <li><a href="#des-permissions-par-categorie">Des permissions par catégorie</a></li>
+              <li><a href="#un-exemple-de-structure">Un exemple de structure</a></li>
+              <li><a href="#en-resume">En résumé</a></li>
+            </ol>
+          </nav>
+          <div class="prose js-prose" data-reveal>
 <p class="prose__lead">La structure d'un serveur, c'est sa première impression. En quelques secondes, un nouveau membre doit comprendre où il est, ce qu'il peut faire et où parler. Voici la méthode que j'applique quand je structure ou restructure un serveur.</p>
 
-<h2>Pensez parcours, pas liste</h2>
+<h2 id="pensez-parcours-pas-liste">Pensez parcours, pas liste</h2>
 <p>Avant de créer le moindre salon, posez-vous une question&nbsp;: que doit faire un membre pendant ses cinq premières minutes&nbsp;? En général&nbsp;: découvrir le serveur, lire les règles, choisir ses rôles, puis rejoindre la discussion. Votre structure doit suivre ce parcours, de haut en bas.</p>
 
-<h2>Les catégories essentielles</h2>
+<h2 id="les-categories-essentielles">Les catégories essentielles</h2>
 <ul>
   <li><strong>Accueil</strong>&nbsp;: règlement, annonces, choix des rôles.</li>
   <li><strong>Communauté</strong>&nbsp;: discussion générale, présentations, partage de médias.</li>
@@ -172,16 +183,16 @@
 </ul>
 <p>Selon votre projet, ajoutez une catégorie dédiée (jeux, créations, bots…), mais gardez ce socle.</p>
 
-<h2>Des noms clairs et cohérents</h2>
+<h2 id="des-noms-clairs-et-coherents">Des noms clairs et cohérents</h2>
 <p>Un bon nom de salon se comprend sans cliquer dessus. Choisissez un format et tenez-vous-y&nbsp;: par exemple un émoji suivi d'un nom court, comme «&nbsp;💬 | discussion&nbsp;» ou «&nbsp;📢 | annonces&nbsp;». L'émoji aide à repérer les salons d'un coup d'œil, à condition de rester sobre.</p>
 
-<h2>Moins, mais mieux</h2>
+<h2 id="moins-mais-mieux">Moins, mais mieux</h2>
 <p>Un salon vide fait plus de mal qu'un salon manquant. Fusionnez les salons peu actifs, archivez ceux qui ne servent plus, et ne créez un nouveau salon que lorsque le besoin est réel.</p>
 
-<h2>Des permissions par catégorie</h2>
+<h2 id="des-permissions-par-categorie">Des permissions par catégorie</h2>
 <p>Réglez les permissions au niveau des catégories plutôt que salon par salon&nbsp;: c'est plus lisible et plus sûr. Les salons d'information restent en lecture seule, les salons du staff sont invisibles pour les membres, et les nouveaux ne voient que l'essentiel tant qu'ils n'ont pas validé le règlement.</p>
 
-<h2>Un exemple de structure</h2>
+<h2 id="un-exemple-de-structure">Un exemple de structure</h2>
 <div class="prose__channels" aria-label="Exemple de structure de salons">
   <p class="prose__cat">📌 Accueil</p>
   <p># 📜 | règlement</p>
@@ -201,8 +212,9 @@
   <p>🔊 | salon vocal</p>
 </div>
 
-<h2>En résumé</h2>
+<h2 id="en-resume">En résumé</h2>
 <p>Une bonne structure ne se remarque pas&nbsp;: on s'y retrouve, tout simplement. Si votre serveur a grandi sans plan et que vous voulez le remettre d'aplomb, je peux m'en charger.</p>
+          </div>
         </div>
 
         <div class="share" data-reveal>

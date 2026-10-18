@@ -31,18 +31,21 @@
   <meta name="apple-mobile-web-app-title" content="Mvrius">
   <link rel="preload" href="../assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="../assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="../assets/css/style.css?v=d0b559a4">
+  <link rel="stylesheet" href="../assets/css/style.css?v=bf6324b4">
 
   <script>
     (function (d) {
       d.classList.add('js');
       try { if (sessionStorage.getItem('mv-intro')) d.classList.add('intro-seen'); } catch (e) {}
+      // L'écran d'intro attend la police du titre (au plus 0,7 s) pour éviter un changement de police en pleine animation
+      var fontsReady = function () { d.classList.add('fonts-ready'); };
+      if (document.fonts && document.fonts.load) { document.fonts.load('800 1em Bricolage').then(fontsReady, fontsReady); setTimeout(fontsReady, 700); } else fontsReady();
       if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) d.classList.add('reduced');
       // Filet de sécurité : si le JS principal ne démarre pas, on affiche tout le contenu.
       setTimeout(function () { if (!window.MV) d.classList.remove('js'); }, 4000);
     })(document.documentElement);
   </script>
-  <script src="../assets/js/main.js?v=d0b559a4" defer></script>
+  <script src="../assets/js/main.js?v=bf6324b4" defer></script>
 
   <script type="application/ld+json">
   {
@@ -187,7 +190,7 @@
   <!-- Écran d'intro -->
   <div class="loader" aria-hidden="true">
     <div class="loader__word"><span>M</span><span>v</span><span>r</span><span>i</span><span>u</span><span>s</span></div>
-    <div class="loader__meta"><span>Community Manager</span><span class="loader__count">00</span></div>
+    <div class="loader__meta"><span>Community Manager</span><span>Discord</span></div>
     <div class="loader__bar"><span></span></div>
     <p class="loader__tip"><small>Did you know?</small><span class="js-loader-tip"></span></p>
     <ul class="loader__tips" hidden>
@@ -217,7 +220,6 @@
         <a href="#avis" data-text="Reviews"><span>Reviews</span></a>
         <a href="#diagnostic" data-text="Check-up"><span>Check-up</span></a>
         <a href="#conseils" data-text="Tips"><span>Tips</span></a>
-        <a href="#reseaux" data-text="Socials"><span>Socials</span></a>
         <a href="#faq" data-text="FAQ"><span>FAQ</span></a>
         <a href="../staff/" data-text="Join the team" hreflang="fr"><span>Join the team</span></a>
         <span class="nav__indicator" aria-hidden="true"></span>
@@ -237,10 +239,9 @@
       <a href="#avis"><small>03</small>Reviews</a>
       <a href="#diagnostic"><small>04</small>Check-up</a>
       <a href="#conseils"><small>05</small>Tips</a>
-      <a href="#reseaux"><small>06</small>Socials</a>
-      <a href="#faq"><small>07</small>FAQ</a>
-      <a href="../staff/" hreflang="fr"><small>08</small>Join the team</a>
-      <a href="#contact"><small>09</small>Contact</a>
+      <a href="#faq"><small>06</small>FAQ</a>
+      <a href="../staff/" hreflang="fr"><small>07</small>Join the team</a>
+      <a href="#contact"><small>08</small>Contact</a>
     </nav>
     <p class="menu__foot">Available for new collaborations</p>
   </div>
@@ -668,45 +669,6 @@
       </div>
     </section>
 
-    <!-- RÉSEAUX -->
-    <section class="section socials" id="reseaux">
-      <div class="container">
-        <header class="section__head section__head--row">
-          <div>
-            <p class="eyebrow" data-reveal>Socials</p>
-            <h2 class="title" data-split>Find me <em>everywhere</em>.</h2>
-          </div>
-          <p class="section__lead" data-reveal>Follow my updates or message me directly on the platform of your choice.</p>
-        </header>
-        <div class="social-list" data-stagger>
-          <a class="social" href="https://www.instagram.com/mvriuus_/" target="_blank" rel="noopener" style="--brand:linear-gradient(90deg,#f9ce34,#ee2a7b 45%,#6228d7);--brand-ink:#fff" data-reveal>
-            <span class="social__icon"><svg><use href="#b-instagram"/></svg></span>
-            <span class="social__name">Instagram</span>
-            <span class="social__handle">@mvriuus_</span>
-            <span class="social__arrow"><svg class="ico"><use href="#i-arrow-up-right"/></svg></span>
-          </a>
-          <a class="social" href="https://discord.gg/arvenis" target="_blank" rel="noopener" style="--brand:#5865f2;--brand-ink:#fff" data-reveal>
-            <span class="social__icon"><svg><use href="#b-discord"/></svg></span>
-            <span class="social__name">Discord</span>
-            <span class="social__handle">discord.gg/arvenis</span>
-            <span class="social__arrow"><svg class="ico"><use href="#i-arrow-up-right"/></svg></span>
-          </a>
-          <a class="social" href="https://guns.lol/an" target="_blank" rel="noopener" style="--brand:linear-gradient(90deg,#8b9bff,#c3a6ff);--brand-ink:#0a0a12" data-reveal>
-            <span class="social__icon"><svg class="ico"><use href="#i-link"/></svg></span>
-            <span class="social__name">Guns.lol</span>
-            <span class="social__handle">guns.lol/an</span>
-            <span class="social__arrow"><svg class="ico"><use href="#i-arrow-up-right"/></svg></span>
-          </a>
-          <a class="social" href="mailto:contact@mvriuus.fr" style="--brand:#eef0f8;--brand-ink:#0a0b12" data-reveal>
-            <span class="social__icon"><svg class="ico"><use href="#i-mail"/></svg></span>
-            <span class="social__name">Email</span>
-            <span class="social__handle">contact@mvriuus.fr</span>
-            <span class="social__arrow"><svg class="ico"><use href="#i-arrow-up-right"/></svg></span>
-          </a>
-        </div>
-      </div>
-    </section>
-
     <!-- FAQ -->
     <section class="section faq" id="faq">
       <div class="container faq__grid">
@@ -715,6 +677,7 @@
           <h2 class="title" data-split>Your questions, <em>my answers</em>.</h2>
           <p class="section__lead" data-reveal>Another question? <a class="faq__link" href="#contact">Write to me</a> and I will get back to you directly.</p>
         </header>
+        <div class="faq__body">
         <div class="faq__list js-faq" data-stagger>
           <div class="faq__item" data-reveal>
             <h3 class="faq__h">
@@ -776,7 +739,7 @@
               <div><p>Yes. Beyond the initial setup, I can manage your community over the long term.</p></div>
             </div>
           </div>
-          <div class="faq__item" data-reveal>
+          <div class="faq__item faq__item--more" data-reveal>
             <h3 class="faq__h">
               <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-6" id="faq-6-q">
                 <span class="faq__num">06</span>
@@ -788,7 +751,7 @@
               <div><p>I mainly work with content creators and businesses.</p></div>
             </div>
           </div>
-          <div class="faq__item" data-reveal>
+          <div class="faq__item faq__item--more" data-reveal>
             <h3 class="faq__h">
               <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-7" id="faq-7-q">
                 <span class="faq__num">07</span>
@@ -800,7 +763,7 @@
               <div><p>On Discord, I need full access to the server. For social media, the access required depends on the project.</p></div>
             </div>
           </div>
-          <div class="faq__item" data-reveal>
+          <div class="faq__item faq__item--more" data-reveal>
             <h3 class="faq__h">
               <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-8" id="faq-8-q">
                 <span class="faq__num">08</span>
@@ -812,7 +775,7 @@
               <div><p>I use the bots developed by Arvenis, the collective I run. <a class="faq__link" hreflang="fr" href="../conseils/bots-arvenis-discord/">Discover them here</a> (in French).</p></div>
             </div>
           </div>
-          <div class="faq__item" data-reveal>
+          <div class="faq__item faq__item--more" data-reveal>
             <h3 class="faq__h">
               <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-9" id="faq-9-q">
                 <span class="faq__num">09</span>
@@ -824,7 +787,7 @@
               <div><p>Yes. I have teams and I run recruitment to build a staff that fits your community. Want to join? <a class="faq__link" href="../staff/">Apply here</a> (in French).</p></div>
             </div>
           </div>
-          <div class="faq__item" data-reveal>
+          <div class="faq__item faq__item--more" data-reveal>
             <h3 class="faq__h">
               <button class="faq__q" type="button" aria-expanded="false" aria-controls="faq-10" id="faq-10-q">
                 <span class="faq__num">10</span>
@@ -836,6 +799,8 @@
               <div><p>Yes. I can take over and restructure an existing server, or build one from scratch.</p></div>
             </div>
           </div>
+        </div>
+        <button class="faq__more js-faq-more" type="button"><span>See all questions</span><small>+5</small><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg></button>
         </div>
       </div>
     </section>
@@ -916,6 +881,8 @@
             <span class="copy__status" role="status" aria-live="polite"></span>
           </button>
           <a class="copy" href="https://discord.gg/arvenis" target="_blank" rel="noopener"><svg class="ico ico--fill"><use href="#b-discord"/></svg><span class="copy__text">Discord</span></a>
+          <a class="copy" href="https://www.instagram.com/mvriuus_/" target="_blank" rel="noopener"><svg class="ico ico--fill"><use href="#b-instagram"/></svg><span class="copy__text">Instagram</span></a>
+          <a class="copy" href="https://guns.lol/an" target="_blank" rel="noopener"><svg class="ico"><use href="#i-link"/></svg><span class="copy__text">Guns.lol</span></a>
         </div>
       </div>
     </section>
