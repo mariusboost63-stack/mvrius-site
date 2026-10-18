@@ -26,11 +26,13 @@ assets/img/             → photo de profil, logos et visuels des projets, image
 
 ## Services externes
 
-- **Compteurs Discord** : récupérés dans le navigateur via l'API publique des invitations
-  (attribut `data-invite` de chaque ligne de la section Projets), une invitation à la fois.
-  Ils sont gardés 10 min ; si Discord ne répond pas, la dernière valeur vue par le visiteur
-  (ou celle écrite dans `index.html`) reste affichée. Le total sous l'accueil additionne
-  toutes les communautés, y compris celles affichées avec « Voir d'autres communautés ».
+- **Compteurs Discord** : demandés à Discord depuis le navigateur du visiteur, via l'invitation
+  publique de chaque ligne de la section Projets (attribut `data-invite`), une à la fois et
+  gardés 10 min. Si Discord ne répond pas (limite d'appels, bloqueur, VPN…), le site utilise le
+  relevé fait toutes les heures par GitHub Actions (`.github/workflows/discord-counts.yml` et
+  `tools/discord_counts.py`), publié sur la branche `data` (`discord.json`). En dernier recours,
+  la dernière valeur vue par le visiteur, ou celle écrite dans `index.html`, reste affichée.
+  Le total sous l'accueil additionne toutes les communautés.
 - **Formulaire de devis** : envoyé via [FormSubmit](https://formsubmit.co) vers
   `contact@mvriuus.fr`. La première demande déclenche un e-mail d'activation à valider.
 - **Bots Arvenis** : l'article des bots affiche les photos et bannières hébergées par Discord,

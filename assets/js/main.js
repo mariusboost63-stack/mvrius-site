@@ -180,12 +180,19 @@
     }, { rootMargin: '0px 0px -20% 0px' });
     io.observe(el);
   }
-  // Les chiffres viennent de l'invitation publique de chaque serveur. Ils sont gardés 10 min ;
-  // si Discord ne répond pas, la dernière valeur connue du visiteur est affichée.
+  // Les chiffres viennent de l'invitation publique de chaque serveur, demandée à Discord depuis le
+  // navigateur et gardée 10 min. Si Discord ne répond pas (limite d'appels, bloqueur, VPN…), le site
+  // se sert du relevé fait toutes les heures par GitHub (tools/discord_counts.py), puis de la
+  // dernière valeur vue par le visiteur.
   const store = {
     get: key => { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { return null; } },
     set: (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* stockage indisponible */ } },
   };
+  const SNAPSHOT = 'https://raw.githubusercontent.com/mariusboost63-stack/mvrius-site/data/discord.json';
+  let snapshot = null;
+  const getSnapshot = () => (snapshot = snapshot || fetch(SNAPSHOT, { cache: 'no-cache' })
+    .then(r => (r.ok ? r.json() : null)).then(d => (d && d.servers) || {}).catch(() => ({})));
+  let discordDown = false;
   let inviteQueue = Promise.resolve();
   function fetchInvite(code) {
     const key = `mv-invite-${code}`;
@@ -193,14 +200,16 @@
     if (cached && Date.now() - cached.t < 10 * 60 * 1000) return Promise.resolve(cached);
     // Une requête à la fois : Discord refuse les appels trop rapprochés
     const request = async () => {
+      if (discordDown) throw new Error('Discord indisponible');
       for (let attempt = 0; attempt < 2; attempt++) {
-        const res = await fetch(`https://discord.com/api/v10/invites/${code}?with_counts=true`);
+        const timeout = window.AbortSignal && AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined;
+        const res = await fetch(`https://discord.com/api/v10/invites/${code}?with_counts=true`, { signal: timeout });
         if (res.status === 429 && !attempt) {
           const { retry_after: retry = 1 } = await res.json().catch(() => ({}));
           await wait(Math.min(retry, 3) * 1000);
           continue;
         }
-        if (!res.ok) break;
+        if (!res.ok) throw new Error(res.status);
         const d = await res.json();
         const data = { t: Date.now(), members: d.approximate_member_count, online: d.approximate_presence_count };
         store.set(key, data);
@@ -208,7 +217,12 @@
       }
       throw new Error('Discord indisponible');
     };
-    const result = inviteQueue.then(request).catch(() => {
+    const result = inviteQueue.then(request).catch(async err => {
+      // Discord injoignable ou limité depuis ce navigateur : inutile d'insister pour les serveurs
+      // suivants (seule une invitation introuvable ne concerne que ce serveur)
+      if (!['400', '404'].includes(err.message)) discordDown = true;
+      const snap = (await getSnapshot())[code];
+      if (snap && snap.members) return { members: snap.members, online: snap.online || 0 };
       if (cached) return { ...cached, online: 0 }; // dernière valeur connue, sans « en ligne »
       throw new Error('Aucun chiffre disponible');
     });
