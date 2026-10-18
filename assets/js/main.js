@@ -118,6 +118,11 @@
       invalid: 'Merci de compléter les champs en rouge.', failed: "L'envoi n'a pas fonctionné. Écrivez-moi directement à",
       menuOpen: 'Ouvrir le menu', menuClose: 'Fermer le menu',
       diagDone: 'Résultat', colon: '\u00a0: ',
+      diagShare: score => ({
+        text: `J'ai obtenu ${score}/100 au diagnostic express de mon serveur Discord. Et le vôtre\u00a0?`,
+        url: `https://mvriuus.fr/diagnostic/${score}/`,
+      }),
+      shareCopied: 'Copié ! Collez-le sur Discord',
       diagMessage: (score, weak) => `Bonjour, j'ai fait le diagnostic express : ${score}/100.`
         + (weak.length ? ` Points à améliorer : ${weak.join(', ')}.` : '') + ' J\'aimerais en discuter avec vous.',
     },
@@ -127,6 +132,11 @@
       invalid: 'Please fill in the fields in red.', failed: "Sending didn't work. Email me directly at",
       menuOpen: 'Open menu', menuClose: 'Close menu',
       diagDone: 'Result', colon: ': ',
+      diagShare: score => ({
+        text: `My Discord server scored ${score}/100 on the quick check-up. What about yours?`,
+        url: 'https://mvriuus.fr/en/#diagnostic',
+      }),
+      shareCopied: 'Copied! Paste it on Discord',
       diagMessage: (score, weak) => `Hi, I took the quick check-up: ${score}/100.`
         + (weak.length ? ` Areas to improve: ${weak.join(', ')}.` : '') + ' I would like to discuss it with you.',
     },
@@ -339,23 +349,32 @@
   /* ---------- Avis : salon Discord ---------- */
   const dchan = $('.js-dchan');
   if (dchan) {
-    const msgs = $$('.dmsg', dchan);
     const typing = $('.dchan__typing', dchan);
     const typingName = $('.js-dtyping', dchan);
-    if (reduced) {
-      msgs.forEach(m => m.classList.add('is-in'));
-    } else {
-      whenVisible(dchan, async () => {
+    // Les messages arrivent un par un, précédés de « … est en train d'écrire »
+    let queue = Promise.resolve();
+    const play = msgs => {
+      if (reduced) { msgs.forEach(m => m.classList.add('is-in')); return; }
+      queue = queue.then(async () => {
         for (const m of msgs) {
           typingName.textContent = `${m.dataset.name} ${T.typing}`;
           typing.classList.add('is-on');
-          await wait(950);
+          await wait(800);
           typing.classList.remove('is-on');
           m.classList.add('is-in');
-          await wait(650);
+          await wait(450);
         }
       });
-    }
+    };
+    whenVisible(dchan, () => play($$('.dmsg:not(.dmsg--more)', dchan)));
+    // Avis supplémentaires sur demande
+    const more = $('.js-dchan-more', dchan);
+    more?.addEventListener('click', () => {
+      const extra = $$('.dmsg--more', dchan);
+      extra.forEach(m => m.classList.add('is-shown'));
+      more.remove();
+      play(extra);
+    });
   }
 
   /* ---------- Diagnostic express ---------- */
@@ -436,6 +455,29 @@
       ring.style.strokeDashoffset = 327;
       summary = null;
       go(0, -1);
+    });
+
+    // « Partager mon score » : lien vers une page dont l'aperçu (Discord, X…) affiche le score
+    const shareBtn = $('.js-diag-share', diag);
+    const shareLabel = $('.js-diag-share-label', diag);
+    const shareText = shareLabel.textContent;
+    let shareT;
+    shareBtn.addEventListener('click', async () => {
+      if (!summary) return;
+      const { text, url } = T.diagShare(summary.score);
+      if (navigator.share) {
+        try { await navigator.share({ text, url }); return; } catch (e) { if (e.name === 'AbortError') return; }
+      }
+      try {
+        await navigator.clipboard.writeText(`${text} ${url}`);
+      } catch (e) {
+        window.prompt(shareText, url);
+        return;
+      }
+      shareLabel.textContent = T.shareCopied;
+      shareBtn.classList.add('is-copied');
+      clearTimeout(shareT);
+      shareT = setTimeout(() => { shareLabel.textContent = shareText; shareBtn.classList.remove('is-copied'); }, 2600);
     });
 
     // « Améliorer mon serveur » : le formulaire de devis est pré-rempli avec le résultat

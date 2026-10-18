@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 /*
- * Génère les images d'aperçu des articles « Conseils » (assets/img/og/<article>.jpg, 1200 × 630),
- * affichées quand un article est partagé sur Discord, X, WhatsApp…
+ * Génère les images d'aperçu (1200 × 630) affichées quand une page est partagée sur Discord, X, WhatsApp… :
+ * - articles « Conseils » : assets/img/og/<article>.jpg
+ * - scores du diagnostic express : assets/img/og/diagnostic-<score>.jpg
  *
- * Usage : node tools/og.js            (toutes les images)
- *         node tools/og.js <article>  (une seule)
+ * Usage : node tools/og.js               (toutes les images)
+ *         node tools/og.js <article>     (un seul article)
+ *         node tools/og.js diagnostic    (les scores du diagnostic)
  * Nécessite Playwright (npm i -D playwright). Relancer ensuite python3 tools/build.py.
  */
 const fs = require('fs');
@@ -26,6 +28,67 @@ const typo = text => text.replace(/ ([:;?!])/g, '&nbsp;$1');
 function readArticle(file) {
   const raw = fs.readFileSync(path.join(ROOT, 'tools', 'articles', file), 'utf8');
   return JSON.parse(raw.match(/<!--([\s\S]*?)-->/)[1]);
+}
+
+// Scores possibles et verdicts : repris du diagnostic de index.html (comme tools/build.py)
+function diagnostic() {
+  const questions = (home.match(/class="diag__q[ "]/g) || []).length;
+  const verdicts = [...home.matchAll(/<li data-min="(\d+)" data-title="([^"]+)" data-text="([^"]+)"><\/li>/g)]
+    .map(m => ({ min: +m[1], title: m[2] })).sort((a, b) => b.min - a.min);
+  const scores = [...new Set(Array.from({ length: questions * 2 + 1 }, (_, t) => Math.round(t / (questions * 2) * 100)))];
+  const colors = ['#3ddc84', '#f0b232', '#ff6b6b'];
+  return scores.map(score => {
+    const rank = verdicts.findIndex(v => score >= v.min);
+    return { score, title: verdicts[rank].title, color: colors[Math.min(rank, 2)] };
+  });
+}
+
+function diagPage({ score, title, color }) {
+  const r = 150;
+  const len = 2 * Math.PI * r;
+  return `<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<style>
+@font-face { font-family: "Bricolage"; src: url("${ORIGIN}assets/fonts/bricolage.woff2") format("woff2"); font-weight: 200 800; }
+@font-face { font-family: "Inter"; src: url("${ORIGIN}assets/fonts/inter.woff2") format("woff2"); font-weight: 100 900; }
+* { box-sizing: border-box; margin: 0; }
+html, body { width: 1200px; height: 630px; overflow: hidden; }
+body { position: relative; background: #07080c; color: #eef0f8; font-family: Inter, sans-serif; }
+.blob { position: absolute; border-radius: 50%; }
+.b1 { width: 900px; height: 900px; left: -420px; top: -360px; background: radial-gradient(closest-side, ${color}55, transparent); }
+.b2 { width: 800px; height: 800px; right: -300px; top: -300px; background: radial-gradient(closest-side, rgba(139,155,255,.3), transparent); }
+.grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.055) 1px, transparent 1px); background-size: 60px 60px; -webkit-mask-image: radial-gradient(ellipse 75% 75% at 30% 50%, #000 20%, transparent 80%); }
+.wrap { position: absolute; inset: 0; padding: 0 80px 0 72px; display: grid; grid-template-columns: 340px 1fr; gap: 64px; align-items: center; }
+.gauge { position: relative; width: 340px; height: 340px; }
+.gauge svg { width: 100%; height: 100%; overflow: visible; transform: rotate(-90deg); }
+.gauge circle { fill: none; stroke-width: 18; }
+.gauge .track { stroke: rgba(255,255,255,.1); }
+.gauge .ring { stroke: ${color}; stroke-linecap: round; stroke-dasharray: ${len}; stroke-dashoffset: ${len * (1 - score / 100)}; filter: drop-shadow(0 0 18px ${color}88); }
+.gauge p { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.gauge b { font-family: Bricolage; font-weight: 700; font-size: 120px; line-height: 1; letter-spacing: -.05em; }
+.gauge small { font-size: 26px; color: #9ba3ba; }
+.eyebrow { font-size: 18px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #8b9bff; }
+h1 { margin-top: 18px; font-family: Bricolage; font-weight: 700; font-size: 60px; line-height: 1.04; letter-spacing: -.04em; text-wrap: balance; }
+.sub { margin-top: 20px; font-size: 26px; line-height: 1.4; color: #b4bbcf; }
+.foot { margin-top: 44px; display: flex; align-items: center; gap: 14px; font-size: 22px; font-weight: 600; }
+.foot img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,.25); }
+.foot span { background: linear-gradient(110deg, #8b9bff, #c3a6ff 50%, #6ee7ff); -webkit-background-clip: text; color: transparent; }
+</style></head>
+<body>
+  <div class="blob b1"></div><div class="blob b2"></div><div class="grid"></div>
+  <div class="wrap">
+    <div class="gauge">
+      <svg viewBox="0 0 340 340"><circle class="track" cx="170" cy="170" r="${r}"/><circle class="ring" cx="170" cy="170" r="${r}"/></svg>
+      <p><b>${score}</b><small>/100</small></p>
+    </div>
+    <div>
+      <p class="eyebrow">Diagnostic express · Discord</p>
+      <h1>${typo(title)}</h1>
+      <p class="sub">Le score de ce serveur. Et le vôtre&nbsp;? Faites le test en une minute.</p>
+      <p class="foot"><img src="${ORIGIN}assets/img/profile.jpg" alt=""><span>mvriuus.fr</span></p>
+    </div>
+  </div>
+</body></html>`;
 }
 
 function page(meta) {
@@ -81,9 +144,16 @@ h1 { position: relative; margin-top: auto; font-family: Bricolage; font-weight: 
 
 (async () => {
   const only = process.argv[2];
-  const files = fs.readdirSync(path.join(ROOT, 'tools', 'articles'))
-    .filter(f => f.endsWith('.html') && (!only || f === `${only}.html`));
-  if (!files.length) throw new Error(`Article introuvable : ${only}`);
+  const jobs = [];
+  if (!only || only === 'diagnostic') {
+    diagnostic().forEach(d => jobs.push({ name: `diagnostic-${d.score}`, html: () => diagPage(d) }));
+  }
+  if (only !== 'diagnostic') {
+    fs.readdirSync(path.join(ROOT, 'tools', 'articles'))
+      .filter(f => f.endsWith('.html') && (!only || f === `${only}.html`))
+      .forEach(f => jobs.push({ name: f.replace(/\.html$/, ''), html: () => page(readArticle(f)) }));
+  }
+  if (!jobs.length) throw new Error(`Article introuvable : ${only}`);
   fs.mkdirSync(OUT, { recursive: true });
 
   const browser = await chromium.launch();
@@ -97,13 +167,12 @@ h1 { position: relative; margin-top: auto; font-family: Bricolage; font-weight: 
     if (!file.startsWith(ROOT) || !fs.existsSync(file)) return route.fulfill({ status: 404 });
     route.fulfill({ contentType: TYPES[path.extname(file)] || 'application/octet-stream', body: fs.readFileSync(file) });
   });
-  for (const file of files) {
-    const slug = file.replace(/\.html$/, '');
-    html = page(readArticle(file));
+  for (const job of jobs) {
+    html = job.html();
     await p.goto(`${ORIGIN}__og.html`);
     await p.evaluate(() => document.fonts.ready);
-    await p.screenshot({ path: path.join(OUT, `${slug}.jpg`), type: 'jpeg', quality: 86 });
-    console.log(`assets/img/og/${slug}.jpg`);
+    await p.screenshot({ path: path.join(OUT, `${job.name}.jpg`), type: 'jpeg', quality: 86 });
+    console.log(`assets/img/og/${job.name}.jpg`);
   }
   await browser.close();
 })();

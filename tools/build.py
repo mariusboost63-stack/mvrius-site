@@ -12,6 +12,7 @@ Usage : python3 tools/build.py
    français de la table doit exister dans index.html : si une phrase a été modifiée
    côté français, le script s'arrête et indique laquelle.
 4. Génère sitemap.xml et robots.txt pour les moteurs de recherche.
+5. Génère les pages des scores partagés du diagnostic express (diagnostic/<score>/).
 """
 import hashlib
 import json
@@ -34,7 +35,6 @@ ARTICLES = [
 SITE = "https://mvriuus.fr/"
 # Icônes utilisées seulement dans les articles (ajoutées au sprite de l'accueil)
 ARTICLE_ICONS = (
-    '      <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98"/><path d="m15.41 6.51-6.82 3.98"/></symbol>\n'
     '      <symbol id="b-x" viewBox="0 0 24 24"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></symbol>\n'
 )
 SECTIONS = ("services", "projets", "avis", "diagnostic", "conseils", "faq", "contact")
@@ -159,6 +159,19 @@ T = [
     ('Marius a été rapide, efficace et à l\'écoute pour la création de mon serveur communautaire. Il a su proposer des solutions adaptées et livrer un travail pro et bien structuré. Je recommande sans hésitation&nbsp;!',
      'Marius was quick, efficient and attentive when creating my community server. He suggested tailored solutions and delivered professional, well-structured work. I highly recommend him!', 1),
     ('Création d\'un serveur communautaire</p>', 'Community server creation</p>', 1),
+    ('Administration du serveur depuis 2&nbsp;ans</p>', 'Server administration for 2 years</p>', 1),
+    ("Administrateur depuis 2 ans, je remercie Marius pour le travail qu'il a accompli et qu'il continue de fournir sur mon serveur. Toujours à l'écoute, réactif et professionnel, il assure une gestion impeccable, que ce soit en matière de sécurité ou d'animation de la communauté sur mon Discord.",
+     'An administrator for 2 years, I thank Marius for the work he has done and keeps doing on my server. Always attentive, responsive and professional, he manages everything flawlessly, from security to community activities on my Discord.', 1),
+    ('Création des serveurs, gestion du staff &amp; événements</p>', 'Server creation, staff management &amp; events</p>', 1),
+    ("Par rapport à ton taff et tout, rien à dire, c'était parfait. Toujours carré, efficace. T'as géré de A à Z, que ce soit la création des serveurs, la gestion du staff ou l'organisation des événements. Franchement, un vrai atout. Merci pour tout ce que tu m'as apporté, t'es grave un bosseur&nbsp;!",
+     "About your work and everything, nothing to say, it was perfect. Always on point, efficient. You handled everything from A to Z, from creating the servers to managing the staff and organising events. Honestly, a real asset. Thanks for everything you brought me, you're a seriously hard worker!", 1),
+    ("Gestion du serveur Discord d'Evan</p>", "Managing Evan's Discord server</p>", 1),
+    ("Marius a fait un super travail en aidant à gérer le Discord d'Evan pendant plusieurs mois. Il a su maintenir une bonne organisation, gérer les situations rapidement et veiller à une ambiance agréable pour tous. Tout s'est très bien passé grâce à son implication et son sérieux&nbsp;!",
+     "Marius did a great job helping to manage Evan's Discord for several months. He kept things well organised, handled situations quickly and made sure the atmosphere was pleasant for everyone. Everything went very smoothly thanks to his commitment and reliability!", 1),
+    ('Administration &amp; croissance du serveur</p>', 'Server administration &amp; growth</p>', 1),
+    ("Très bon administrateur dévoué, qui aide à l'agrandissement de mon serveur de jour en jour.",
+     'A very good, dedicated administrator who helps my server grow day after day.', 1),
+    ('>Voir 3 avis de plus<svg', '>See 3 more reviews<svg', 1),
 
     # --- FAQ ---
     ('<h2 class="title" data-split>Vos questions, <em>mes réponses</em>.</h2>', '<h2 class="title" data-split>Your questions, <em>my answers</em>.</h2>', 1),
@@ -280,6 +293,7 @@ T = [
     ('<span>Jamais</span>', '<span>Never</span>', 1),
     ('<span>Améliorer mon serveur</span>', '<span>Improve my server</span>', 1),
     ('<span>Recommencer</span>', '<span>Start over</span>', 1),
+    ('<span class="js-diag-share-label">Partager mon score</span>', '<span class="js-diag-share-label">Share my score</span>', 1),
     ('data-title="Serveur solide 💪" data-text="Votre base est saine. Pour aller plus loin, misez sur la croissance, les événements et la fidélisation."',
      'data-title="Solid server 💪" data-text="Your foundations are healthy. To go further, focus on growth, events and retention."', 1),
     ('data-title="Bonne base, à optimiser" data-text="L\'essentiel est là, mais quelques réglages feraient vraiment la différence pour vos membres."',
@@ -445,16 +459,17 @@ def with_toc(body):
     return body, toc
 
 
-def og_image(slug):
-    """Image d'aperçu propre à l'article (tools/og.js), sinon celle du site."""
-    own = ROOT / "assets" / "img" / "og" / f"{slug}.jpg"
-    return f"{SITE}assets/img/og/{slug}.jpg" if own.exists() else f"{SITE}assets/img/og.jpg"
+def og_image(name):
+    """Image d'aperçu propre à la page (générée par tools/og.js), sinon celle du site."""
+    own = ROOT / "assets" / "img" / "og" / f"{name}.jpg"
+    return f"{SITE}assets/img/og/{name}.jpg" if own.exists() else f"{SITE}assets/img/og.jpg"
 
 
-def doc_head(title, description, url, version, prefix, og_type="website", ld=None, image=None):
+def doc_head(title, description, url, version, prefix, og_type="website", ld=None, image=None, noindex=False):
     """En-tête commun aux pages générées (page des conseils et articles)."""
     ld = f"\n  {ld_block(ld)}" if ld else ""
     image = image or f"{SITE}assets/img/og.jpg"
+    robots = '\n  <meta name="robots" content="noindex, follow">' if noindex else ""
     return f"""<!doctype html>
 <html lang="fr">
 <head>
@@ -462,7 +477,7 @@ def doc_head(title, description, url, version, prefix, og_type="website", ld=Non
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{title} — Mvrius</title>
   <meta name="description" content="{description}">
-  <meta name="theme-color" content="#07080c">
+  <meta name="theme-color" content="#07080c">{robots}
   <link rel="canonical" href="{url}">
 
   <meta property="og:type" content="{og_type}">
@@ -565,6 +580,69 @@ def build_listing(home, data, version):
 </html>
 """
     (ROOT / "conseils" / "index.html").write_text(page, encoding="utf-8")
+
+
+def diag_scores(home):
+    """Scores possibles du diagnostic express : chaque question est notée de 0 à 2."""
+    questions = len(re.findall(r'class="diag__q[ "]', home))
+    if not questions:
+        sys.exit("Diagnostic : aucune question trouvée dans index.html")
+    return sorted({round(total / (questions * 2) * 100) for total in range(questions * 2 + 1)})
+
+
+def diag_verdicts(home):
+    found = re.findall(r'<li data-min="(\d+)" data-title="([^"]+)" data-text="([^"]+)"></li>', home)
+    return sorted(((int(m), title, text) for m, title, text in found), reverse=True)
+
+
+def build_diag_pages(version):
+    """Pages d'arrivée des scores partagés (diagnostic/<score>/) : leur aperçu affiche le score."""
+    home = SRC.read_text(encoding="utf-8")
+    sprite, nav, footer = page_parts(home, "../../")
+    verdicts = diag_verdicts(home)
+    colors = ["var(--online)", "#f0b232", "#ff6b6b"]
+    scores = diag_scores(home)
+    for score in scores:
+        rank = next(i for i, v in enumerate(verdicts) if score >= v[0])
+        _, title, text = verdicts[rank]
+        offset = round(327 * (1 - score / 100), 1)
+        page = doc_head(f"{score}/100 au diagnostic express",
+                        f"Ce serveur Discord a obtenu {score}/100 au diagnostic express de Mvrius. Et le vôtre ? Faites le test en une minute.",
+                        f"{SITE}diagnostic/{score}/", version, "../../", image=og_image(f"diagnostic-{score}"), noindex=True) + f"""<body>
+  <!-- Page générée par tools/build.py : arrivée depuis un score partagé du diagnostic express -->
+{sprite}{nav}
+  <main id="main">
+    <section class="page-hero score-page">
+      <div class="hero__bg" aria-hidden="true">
+        <div class="aurora"><span></span><span></span><span></span></div>
+        <div class="gridlines"></div>
+      </div>
+      <div class="container score">
+        <div class="diag__gauge score__gauge" style="--to:{offset};--ring:{colors[min(rank, 2)]}" role="img" aria-label="Score : {score} sur 100" data-reveal>
+          <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52"/><circle class="diag__ring" cx="60" cy="60" r="52"/></svg>
+          <p aria-hidden="true"><b>{score}</b><small>/100</small></p>
+        </div>
+        <div class="score__copy">
+          <p class="eyebrow" data-reveal>Diagnostic express</p>
+          <h1 class="score__title" data-split>Ce serveur a obtenu <em>{score}/100</em>.</h1>
+          <p class="score__verdict" data-reveal><b>{title}</b>{text}</p>
+          <p class="score__invite" data-reveal>Et le vôtre&nbsp;? 6 questions, une minute&nbsp;: obtenez votre score et des conseils personnalisés pour votre serveur.</p>
+          <div class="page-hero__cta score__cta" data-reveal>
+            <a class="btn btn--primary magnetic" href="../../#diagnostic"><span>Faire le diagnostic</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
+            <a class="btn btn--ghost magnetic" href="../../"><span>Découvrir Mvrius</span></a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+{footer}</body>
+</html>
+"""
+        out = ROOT / "diagnostic" / str(score) / "index.html"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(page, encoding="utf-8")
+    print(f"Diagnostic : {len(scores)} pages de score")
 
 
 def build_articles(version):
@@ -699,6 +777,7 @@ def main():
     sync_staff_page()
     version = stamp()
     build_sitemap(build_articles(version))
+    build_diag_pages(version)
     html = SRC.read_text(encoding="utf-8")
 
     # Données structurées en anglais (remplacées d'abord : elles reprennent les textes de la FAQ)

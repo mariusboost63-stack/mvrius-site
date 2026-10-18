@@ -711,12 +711,17 @@ em {
 .dchan__topic { padding-left: 14px; border-left: 1px solid var(--line-2); color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dchan__msgs { display: flex; flex-direction: column; gap: 6px; padding: 18px 10px 4px; }
 .dmsg {
-  display: grid; grid-template-columns: 44px 1fr; gap: 14px;
+  display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px;
   padding: 10px 12px; border-radius: 10px;
   transition: background-color .3s;
 }
 .dmsg:hover { background: rgba(255, 255, 255, .03); }
 .js .dmsg { opacity: 0; transform: translateY(14px); }
+.js .dmsg--more:not(.is-shown) { display: none; }
+.dchan__more { display: flex; align-items: center; gap: 8px; margin: 8px auto 2px; padding: 8px 16px; border-radius: 999px; border: 1px solid rgba(139, 155, 255, .28); background: rgba(139, 155, 255, .1); color: var(--accent); font-size: 13.5px; font-weight: 600; transition: background-color .3s, color .3s; }
+.dchan__more:hover { background: rgba(139, 155, 255, .2); color: var(--text); }
+.dchan__more .ico { transform: rotate(90deg); }
+html:not(.js) .dchan__more { display: none; }
 .js .dmsg.is-in { opacity: 1; transform: none; transition: opacity .6s var(--ease), transform .8s var(--ease), background-color .3s; }
 .dmsg__av {
   --h: 232;
@@ -799,7 +804,26 @@ em {
 .diag__tips li { position: relative; padding: 12px 14px 12px 40px; border-radius: 12px; background: rgba(255, 255, 255, .04); border: 1px solid var(--line); font-size: 14.5px; color: #d5d9e6; }
 .diag__tips li::before { content: ""; position: absolute; left: 15px; top: 18px; width: 10px; height: 10px; border-radius: 50%; background: var(--grad); }
 .diag__tips b { color: var(--text); }
-.diag__actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+.diag__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 22px; }
+.js-diag-share.is-copied { border-color: rgba(61, 220, 132, .5); color: var(--online); }
+.diag__restart { padding: 8px 6px; color: var(--muted); font-size: 14.5px; font-weight: 600; text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 5px; transition: color .3s, text-decoration-color .3s; }
+.diag__restart:hover { color: var(--text); text-decoration-color: currentColor; }
+
+/* Page d'un score partagé */
+.score { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: clamp(32px, 6vw, 88px); align-items: center; }
+.score__gauge { width: clamp(150px, 22vw, 260px); height: clamp(150px, 22vw, 260px); }
+.score__gauge circle { stroke-width: 7; }
+.score__gauge .diag__ring { stroke: var(--ring); transition: stroke-dashoffset 1.8s var(--ease) .4s; }
+.score__gauge.is-in .diag__ring, html:not(.js) .score__gauge .diag__ring { stroke-dashoffset: var(--to); }
+.score__gauge b { font-size: clamp(2.8rem, 5.4vw, 4.6rem); }
+.score__gauge small { font-size: clamp(13px, 1.3vw, 16px); }
+.score__title { font-family: var(--font-display); font-weight: 700; font-size: clamp(2.4rem, 5.6vw, 4.6rem); line-height: 1.02; letter-spacing: -.04em; }
+.score__title em { font-size: 1.08em; }
+.score__verdict { max-width: 600px; margin-top: 24px; color: var(--muted); font-size: 1.05rem; line-height: 1.6; }
+.score__verdict b { display: block; margin-bottom: 4px; color: var(--text); font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; letter-spacing: -.02em; }
+.score__invite { max-width: 600px; margin-top: 18px; color: var(--text); font-size: 1.05rem; line-height: 1.6; }
+.score-page { min-height: 100vh; min-height: 100svh; display: flex; align-items: center; }
+.score-page > .container { width: 100%; }
 
 /* ---------- Conseils ---------- */
 .tips__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
@@ -1277,6 +1301,10 @@ a.copy { padding-right: 18px; }
   .diag__result { grid-template-columns: 1fr; justify-items: start; }
   .diag__gauge { width: 120px; height: 120px; }
   .diag__gauge b { font-size: 2.1rem; }
+  .score { grid-template-columns: 1fr; }
+  .score__gauge { width: 150px; height: 150px; }
+  .score__gauge b { font-size: 2.8rem; }
+  .score-page { min-height: 0; }
   .faq__num { display: none; }
   .faq__icon { width: 36px; height: 36px; }
   .faq__a p { padding: 0 8px 22px 2px; }
@@ -1286,7 +1314,7 @@ a.copy { padding-right: 18px; }
   .bot-card__avatar { width: 72px; height: 72px; margin-top: -32px; padding: 4px; }
   .share__btn { padding: 9px 14px; }
   .dchan__msgs { padding: 12px 4px 2px; }
-  .dmsg { grid-template-columns: 36px 1fr; gap: 10px; padding: 10px 8px; }
+  .dmsg { grid-template-columns: 36px minmax(0, 1fr); gap: 10px; padding: 10px 8px; }
   .dmsg__av { width: 36px; height: 36px; font-size: 14px; }
   .dmsg__reply { margin-left: -26px; }
   .dmsg__curve { width: 20px; }

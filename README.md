@@ -15,6 +15,7 @@ staff/index.html        → page « Rejoindre l'équipe » (candidatures, en fra
 liens/index.html        → page « Liens » à mettre dans les bios des réseaux sociaux
 conseils/                → liste et articles « Conseils », générés depuis tools/articles/ (modifier le texte là-bas)
 sitemap.xml, robots.txt  → pour Google, générés par tools/build.py
+diagnostic/<score>/      → pages d'arrivée des scores partagés du diagnostic, générées par tools/build.py
 404.html                → page « introuvable »
 site.webmanifest        → nom et icônes quand le site est ajouté à l'écran d'accueil
 assets/css/style.css    → styles et animations
@@ -56,6 +57,10 @@ python3 tools/build.py
 ```
 
 Sans image propre, l'article utilise l'aperçu général du site (`assets/img/og.jpg`).
+
+Les scores du diagnostic express ont aussi leur image d'aperçu (`node tools/og.js diagnostic`) :
+quand un visiteur partage son score, le lien `mvriuus.fr/diagnostic/<score>/` affiche sa jauge et
+son verdict. À relancer si les questions ou les verdicts du diagnostic changent.
 
 ## Version anglaise
 
