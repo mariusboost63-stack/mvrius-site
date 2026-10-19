@@ -652,6 +652,19 @@ html:not(.js) .plist__foot { display: none; }
   transition: transform .6s var(--ease), background-color .3s, color .3s, border-color .3s;
 }
 .prow:hover .prow__arrow { transform: rotate(45deg); background: var(--text); color: #0a0b12; border-color: var(--text); }
+/* Lien vers un site développé pour le projet, sous sa ligne */
+.prow-site {
+  --prow-pad: clamp(6px, 1.6vw, 20px); --prow-gap: clamp(14px, 2.4vw, 28px);
+  --prow-retrait: calc(var(--prow-pad) + 44px + 64px + 2 * var(--prow-gap));
+  display: inline-flex; align-items: center; gap: 8px; max-width: calc(100% - var(--prow-retrait));
+  margin: calc(-1 * clamp(8px, 1.4vw, 16px)) 0 clamp(18px, 2.4vw, 26px) var(--prow-retrait);
+  padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line-2);
+  font-size: 13.5px; color: var(--muted);
+  transition: color .3s, border-color .3s, background-color .3s;
+}
+.prow-site b { color: var(--text); font-weight: 600; }
+.prow-site .ico { width: 15px; height: 15px; }
+.prow-site:hover, .prow-site:focus-visible { color: var(--text); border-color: var(--text); background: color-mix(in srgb, var(--text) 6%, transparent); }
 
 /* Aperçu flottant */
 .ppreview {
@@ -1273,6 +1286,7 @@ a.copy { padding-right: 18px; }
   .prow { grid-template-columns: 36px 56px minmax(0, 1fr) auto auto 46px; }
   .prow__logo { width: 56px; height: 56px; }
   .prow__arrow { width: 46px; height: 46px; }
+  .prow-site { --prow-retrait: calc(var(--prow-pad) + 36px + 56px + 2 * var(--prow-gap)); }
 }
 @media (max-width: 960px) {
   .nav__links, .nav__cta { display: none; }
@@ -1342,6 +1356,7 @@ a.copy { padding-right: 18px; }
   .prow__logo { width: 52px; height: 52px; }
   .prow__stats { grid-column: 2 / -1; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
   .prow__role { grid-column: 3; grid-row: 1; padding: 5px 10px; font-size: 11px; }
+  .prow-site { --prow-retrait: calc(var(--prow-pad) + 52px + var(--prow-gap)); }
   .orbit--1 { width: 340px; height: 340px; }
   .orbit--2 { width: 560px; height: 560px; }
   .hero__cta .btn { --pad-x: 20px; }

@@ -135,6 +135,8 @@ T = [
     ('Mes propres serveurs, et ceux des créateurs que j\'accompagne. <span class="live-note"><i></i>Chiffres en direct depuis Discord</span>',
      'My own servers, and those of the creators I work with. <span class="live-note"><i></i>Live numbers from Discord</span>', 1),
     ('data-cursor="Rejoindre"', 'data-cursor="Join"', 8),
+    ('data-cursor="Visiter"', 'data-cursor="Visit"', 1),
+    ('<span>Site web développé par moi : <b>cafe-fr.com</b></span>', '<span>Website I built: <b>cafe-fr.com</b></span>', 1),
     ('<span class="prow__desc">Communauté francophone</span>', '<span class="prow__desc">French-speaking community</span>', 1),
     ('<span class="prow__desc">Collectif de bots Discord</span>', '<span class="prow__desc">Discord bot collective</span>', 1),
     ('<span class="prow__desc">Communauté d\'influenceur</span>', '<span class="prow__desc">Influencer community</span>', 5),
