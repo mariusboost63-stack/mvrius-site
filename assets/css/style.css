@@ -1349,7 +1349,7 @@ a.copy { padding-right: 18px; }
 }
 
 /* ---------- Mouvement réduit ---------- */
-@media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; transition-delay: 0s !important; }
-}
+/* Animations coupées : uniquement si la classe « reduced » est ajoutée à <html> (aucune page ne le fait :
+   les animations sont affichées pour tous, même si l'appareil demande à les réduire) */
+html.reduced { scroll-behavior: auto; }
+.reduced *, .reduced *::before, .reduced *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; transition-delay: 0s !important; }

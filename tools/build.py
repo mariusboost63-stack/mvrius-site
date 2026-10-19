@@ -507,7 +507,8 @@ def doc_head(title, description, url, version, prefix, og_type="website", ld=Non
   <script>
     (function (d) {{
       d.classList.add('js');
-      if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) d.classList.add('reduced');
+      // Animations affichées pour tous, même si l'appareil demande à les réduire
+      // (pour les couper : ajouter la classe « reduced » à <html>)
       // Filet de sécurité : si le JS principal ne démarre pas, on affiche tout le contenu.
       setTimeout(function () {{ if (!window.MV) d.classList.remove('js'); }}, 4000);
     }})(document.documentElement);
