@@ -33,6 +33,8 @@ ARTICLES = [
     "erreurs-serveur-discord", "structurer-salons-discord", "recruter-equipe-moderation",
 ]
 SITE = "https://mvriuus.fr/"
+# Pages légales (textes dans tools/pages/<nom>.html)
+PAGES = ["mentions-legales", "cgu"]
 # Icônes utilisées seulement dans les articles (ajoutées au sprite de l'accueil)
 ARTICLE_ICONS = (
     '      <symbol id="b-x" viewBox="0 0 24 24"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></symbol>\n'
@@ -341,6 +343,8 @@ T = [
     ('<a href="staff/">Rejoindre l\'équipe</a>\n', '<a href="../staff/" hreflang="fr">Join the team (FR)</a>\n', 1),
     ('Retour en haut <svg', 'Back to top <svg', 1),
     ('Mvrius. Tous droits réservés.', 'Mvrius. All rights reserved.', 1),
+    ('<a href="mentions-legales/">Mentions légales</a> · <a href="cgu/">CGU</a> · ',
+     '<a href="../mentions-legales/" hreflang="fr">Legal notice (FR)</a> · <a href="../cgu/" hreflang="fr">Terms of use (FR)</a> · ', 1),
     ('Conçu avec soin · Hébergé sur GitHub Pages', 'Crafted with care · Hosted on GitHub Pages', 1),
 
     # --- Chemins : la page anglaise est un dossier plus bas ---
@@ -407,7 +411,7 @@ def page_parts(home, prefix):
         block = block.replace('href="#top" class="footer__top"', 'href="#main" class="footer__top"')
         block = block.replace('href="#top"', f'href="{prefix}"')
         block = re.sub(r'href="#(' + "|".join(SECTIONS) + r')"', rf'href="{prefix}#\1"', block)
-        return re.sub(r'(href|src)="(assets/|staff/|liens/|en/)', rf'\1="{prefix}\2', block)
+        return re.sub(r'(href|src)="(assets/|staff/|liens/|en/|mentions-legales/|cgu/)', rf'\1="{prefix}\2', block)
 
     return sprite, fix(nav), fix(footer)
 
@@ -745,6 +749,50 @@ def build_articles(version):
     return data
 
 
+def build_legal_pages(version):
+    """Mentions légales et CGU (textes dans tools/pages/), avec la navigation et le pied de page de l'accueil."""
+    home = SRC.read_text(encoding="utf-8")
+    sprite, nav, footer = page_parts(home, "../")
+    for slug in PAGES:
+        raw = (ROOT / "tools" / "pages" / f"{slug}.html").read_text(encoding="utf-8")
+        meta = json.loads(re.match(r"<!--(.*?)-->", raw, re.S).group(1))
+        body = raw.split("-->", 1)[1].strip()
+        url = f"{SITE}{slug}/"
+        page = doc_head(meta["title"], meta["description"], url, version, "../") + f"""<body class="page-article">
+  <!-- Page générée par tools/build.py à partir de tools/pages/{slug}.html : modifier le texte là-bas -->
+{sprite}{nav}
+  <main id="main">
+    <article class="article">
+      <header class="article__hero">
+        <div class="hero__bg" aria-hidden="true">
+          <div class="aurora"><span></span><span></span><span></span></div>
+          <div class="gridlines"></div>
+        </div>
+        <div class="container article__head">
+          <a class="article__back" href="../"><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg>Retour à l'accueil</a>
+          <p class="eyebrow" data-reveal>Informations légales</p>
+          <h1 class="article__title" data-split>{typo(meta["title"])}</h1>
+          <p class="article__meta" data-reveal><span>Dernière mise à jour&nbsp;: <time datetime="{meta["date"]}">{fr_date(meta["date"]).replace(" ", "&nbsp;")}</time></span></p>
+        </div>
+      </header>
+
+      <div class="container article__body">
+        <div class="prose" data-reveal>
+{body}
+        </div>
+      </div>
+    </article>
+  </main>
+
+{footer}</body>
+</html>
+"""
+        out = ROOT / slug / "index.html"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(page, encoding="utf-8")
+    print(f"Pages légales : {len(PAGES)}")
+
+
 def build_sitemap(data):
     """sitemap.xml (pages publiques) et robots.txt."""
     last = max(meta["date"] for meta, _ in data.values())
@@ -754,6 +802,7 @@ def build_sitemap(data):
     urls = [(SITE, None, alt), (f"{SITE}en/", None, alt), (f"{SITE}conseils/", last, "")]
     urls += [(f"{SITE}conseils/{slug}/", meta["date"], "") for slug, (meta, _) in data.items()]
     urls += [(f"{SITE}staff/", None, ""), (f"{SITE}liens/", None, "")]
+    urls += [(f"{SITE}{slug}/", None, "") for slug in PAGES]
     rows = "\n".join(f"  <url>\n    <loc>{loc}</loc>" + (f"\n    <lastmod>{mod}</lastmod>" if mod else "") + f"{extra}\n  </url>"
                      for loc, mod, extra in urls)
     (ROOT / "sitemap.xml").write_text(
@@ -785,6 +834,7 @@ def main():
     version = stamp()
     build_sitemap(build_articles(version))
     build_diag_pages(version)
+    build_legal_pages(version)
     html = SRC.read_text(encoding="utf-8")
 
     # Données structurées en anglais (remplacées d'abord : elles reprennent les textes de la FAQ)
