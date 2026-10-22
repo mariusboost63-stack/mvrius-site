@@ -30,7 +30,7 @@
   <meta name="apple-mobile-web-app-title" content="Mvrius">
   <link rel="preload" href="assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="assets/css/style.css?v=a2c284ca">
+  <link rel="stylesheet" href="assets/css/style.css?v=d890ea75">
 
   <script>
     (function (d) {
@@ -56,7 +56,7 @@
       setTimeout(function () { if (!window.MV) d.classList.remove('js'); }, 4000);
     })(document.documentElement);
   </script>
-  <script src="assets/js/main.js?v=a2c284ca" defer></script>
+  <script src="assets/js/main.js?v=d890ea75" defer></script>
 
   <script type="application/ld+json">
   {
@@ -619,8 +619,8 @@
             <span class="dchan__name"><svg aria-hidden="true"><use href="#i-hash"/></svg>⭐ | avis</span>
             <span class="dchan__topic">Ce que mes clients disent de mon travail</span>
           </div>
-          <div class="dchan__msgs">
-            <article class="dmsg" data-name="Byilhan">
+          <div class="dchan__stage">
+            <article class="dmsg" id="avis-1" data-name="Byilhan" role="tabpanel" aria-labelledby="avis-tab-1">
               <span class="dmsg__av dmsg__av--img"><img src="assets/img/projets/byilhan-pdp.webp" alt="" width="44" height="44" loading="lazy"></span>
               <div class="dmsg__body">
                 <p class="dmsg__reply"><span class="dmsg__curve" aria-hidden="true"></span><b>@Mvrius</b> Influenceur · serveur Discord Byilhan</p>
@@ -628,7 +628,7 @@
                 <blockquote class="dmsg__text">Marius effectue un travail complet et sérieux. Toujours disponible et investi dans la tâche qui lui est confiée. Je travaille avec lui depuis plusieurs mois et pour l'instant je n'ai pas eu de retour négatif à lui transmettre. Il sait faire preuve de rigueur et de discipline dans le travail que nous avons pu effectuer en commun. Il a une très bonne aisance sur Discord, l'utilisation de l'application ainsi que l'ensemble des fonctionnalités de celle-ci, et apporte un réel plus à l'équipe.</blockquote>
               </div>
             </article>
-            <article class="dmsg" data-name="Biscotte">
+            <article class="dmsg" id="avis-2" data-name="Biscotte" role="tabpanel" aria-labelledby="avis-tab-2">
               <span class="dmsg__av" style="--h:330">B</span>
               <div class="dmsg__body">
                 <p class="dmsg__reply"><span class="dmsg__curve" aria-hidden="true"></span><b>@Mvrius</b> Administration du serveur depuis 2&nbsp;ans</p>
@@ -636,7 +636,7 @@
                 <blockquote class="dmsg__text">Administrateur depuis 2 ans, je remercie Marius pour le travail qu'il a accompli et qu'il continue de fournir sur mon serveur. Toujours à l'écoute, réactif et professionnel, il assure une gestion impeccable, que ce soit en matière de sécurité ou d'animation de la communauté sur mon Discord.</blockquote>
               </div>
             </article>
-            <article class="dmsg" data-name="Stizo">
+            <article class="dmsg" id="avis-3" data-name="Stizo" role="tabpanel" aria-labelledby="avis-tab-3">
               <span class="dmsg__av" style="--h:250">S</span>
               <div class="dmsg__body">
                 <p class="dmsg__reply"><span class="dmsg__curve" aria-hidden="true"></span><b>@Mvrius</b> Restructuration du serveur &amp; recrutements staff</p>
@@ -644,7 +644,7 @@
                 <blockquote class="dmsg__text">L'action de Marius au sein du serveur a été bénéfique pour les membres et staffs. Sa restructuration professionnelle et complète a permis une meilleure inclusion des membres au sein du serveur. Sa mise en place efficace de recrutements Staff a également permis aux membres de profiter d'une modération et animation de qualité et professionnelle. Ainsi, son action sur le serveur est qualitative et professionnelle&nbsp;! Merci à lui&nbsp;!</blockquote>
               </div>
             </article>
-            <article class="dmsg" data-name="Zea">
+            <article class="dmsg" id="avis-4" data-name="Zea" role="tabpanel" aria-labelledby="avis-tab-4">
               <span class="dmsg__av" style="--h:25">Z</span>
               <div class="dmsg__body">
                 <p class="dmsg__reply"><span class="dmsg__curve" aria-hidden="true"></span><b>@Mvrius</b> Création des serveurs, gestion du staff &amp; événements</p>
@@ -652,7 +652,7 @@
                 <blockquote class="dmsg__text">Par rapport à ton taff et tout, rien à dire, c'était parfait. Toujours carré, efficace. T'as géré de A à Z, que ce soit la création des serveurs, la gestion du staff ou l'organisation des événements. Franchement, un vrai atout. Merci pour tout ce que tu m'as apporté, t'es grave un bosseur&nbsp;!</blockquote>
               </div>
             </article>
-            <article class="dmsg dmsg--more" data-name="Evan V">
+            <article class="dmsg" id="avis-5" data-name="Evan V" role="tabpanel" aria-labelledby="avis-tab-5">
               <span class="dmsg__av" style="--h:200">E</span>
               <div class="dmsg__body">
                 <p class="dmsg__reply"><span class="dmsg__curve" aria-hidden="true"></span><b>@Mvrius</b> Gestion du serveur Discord d'Evan</p>
@@ -660,7 +660,7 @@
                 <blockquote class="dmsg__text">Marius a fait un super travail en aidant à gérer le Discord d'Evan pendant plusieurs mois. Il a su maintenir une bonne organisation, gérer les situations rapidement et veiller à une ambiance agréable pour tous. Tout s'est très bien passé grâce à son implication et son sérieux&nbsp;!</blockquote>
               </div>
             </article>
-            <article class="dmsg dmsg--more" data-name="Guizzi">
+            <article class="dmsg" id="avis-6" data-name="Guizzi" role="tabpanel" aria-labelledby="avis-tab-6">
               <span class="dmsg__av" style="--h:160">G</span>
               <div class="dmsg__body">
                 <p class="dmsg__reply"><span class="dmsg__curve" aria-hidden="true"></span><b>@Mvrius</b> Création d'un serveur communautaire</p>
@@ -668,7 +668,7 @@
                 <blockquote class="dmsg__text">Marius a été rapide, efficace et à l'écoute pour la création de mon serveur communautaire. Il a su proposer des solutions adaptées et livrer un travail pro et bien structuré. Je recommande sans hésitation&nbsp;!</blockquote>
               </div>
             </article>
-            <article class="dmsg dmsg--more" data-name="CIT">
+            <article class="dmsg" id="avis-7" data-name="CIT" role="tabpanel" aria-labelledby="avis-tab-7">
               <span class="dmsg__av" style="--h:130">C</span>
               <div class="dmsg__body">
                 <p class="dmsg__reply"><span class="dmsg__curve" aria-hidden="true"></span><b>@Mvrius</b> Administration &amp; croissance du serveur</p>
@@ -677,9 +677,27 @@
               </div>
             </article>
           </div>
-          <button class="dchan__more js-dchan-more" type="button">Voir 3 avis de plus<svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg></button>
-          <div class="dchan__typing" aria-hidden="true"><i><span></span><span></span><span></span></i><span class="js-dtyping"></span></div>
-          <div class="dchan__input" aria-hidden="true">Envoyer un message dans #⭐ | avis</div>
+          <div class="dchan__bar">
+            <div class="dchan__typing" aria-hidden="true"><i><span></span><span></span><span></span></i><span class="js-dtyping"></span></div>
+            <div class="dchan__ctrl">
+              <span class="dchan__count" aria-hidden="true"><b class="js-dchan-num">1</b> / 7</span>
+              <button class="dchan__btn dchan__btn--prev js-dchan-prev" type="button" aria-label="Avis précédent"><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg></button>
+              <button class="dchan__btn js-dchan-next" type="button" aria-label="Avis suivant"><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg></button>
+              <button class="dchan__btn dchan__btn--pause js-dchan-pause" type="button" aria-label="Mettre en pause le défilement des avis"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path class="dchan__pause" d="M9 6v12M15 6v12"/><path class="dchan__play" d="M8 5.5v13l10.5-6.5z"/></svg></button>
+            </div>
+          </div>
+          <div class="dchan__members">
+            <p class="dchan__members-title" aria-hidden="true">Clients — 7</p>
+            <div class="dchan__list" role="tablist" aria-label="Avis de mes clients">
+              <button class="dmember" id="avis-tab-1" type="button" role="tab" aria-selected="true" aria-controls="avis-1"><span class="dmember__av dmsg__av--img"><img src="assets/img/projets/byilhan-pdp.webp" alt="" width="44" height="44" loading="lazy"></span><span class="dmember__txt"><b>Byilhan</b><small>Influenceur</small></span><span class="dmember__bar" aria-hidden="true"></span></button>
+              <button class="dmember" id="avis-tab-2" type="button" role="tab" aria-selected="false" aria-controls="avis-2" tabindex="-1"><span class="dmember__av" style="--h:330">B</span><span class="dmember__txt"><b>Biscotte</b><small>Administration · 2&nbsp;ans</small></span><span class="dmember__bar" aria-hidden="true"></span></button>
+              <button class="dmember" id="avis-tab-3" type="button" role="tab" aria-selected="false" aria-controls="avis-3" tabindex="-1"><span class="dmember__av" style="--h:250">S</span><span class="dmember__txt"><b>Stizo</b><small>Restructuration &amp; staff</small></span><span class="dmember__bar" aria-hidden="true"></span></button>
+              <button class="dmember" id="avis-tab-4" type="button" role="tab" aria-selected="false" aria-controls="avis-4" tabindex="-1"><span class="dmember__av" style="--h:25">Z</span><span class="dmember__txt"><b>Zea</b><small>Création &amp; événements</small></span><span class="dmember__bar" aria-hidden="true"></span></button>
+              <button class="dmember" id="avis-tab-5" type="button" role="tab" aria-selected="false" aria-controls="avis-5" tabindex="-1"><span class="dmember__av" style="--h:200">E</span><span class="dmember__txt"><b>Evan V</b><small>Gestion du serveur</small></span><span class="dmember__bar" aria-hidden="true"></span></button>
+              <button class="dmember" id="avis-tab-6" type="button" role="tab" aria-selected="false" aria-controls="avis-6" tabindex="-1"><span class="dmember__av" style="--h:160">G</span><span class="dmember__txt"><b>Guizzi</b><small>Serveur communautaire</small></span><span class="dmember__bar" aria-hidden="true"></span></button>
+              <button class="dmember" id="avis-tab-7" type="button" role="tab" aria-selected="false" aria-controls="avis-7" tabindex="-1"><span class="dmember__av" style="--h:130">C</span><span class="dmember__txt"><b>CIT</b><small>Croissance du serveur</small></span><span class="dmember__bar" aria-hidden="true"></span></button>
+            </div>
+          </div>
         </div>
       </div>
     </section>

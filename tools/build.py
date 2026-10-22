@@ -157,7 +157,6 @@ T = [
     ('<p class="eyebrow" data-reveal>Avis</p>', '<p class="eyebrow" data-reveal>Reviews</p>', 1),
     ('<h2 class="title" data-split>Ils m\'ont fait <em>confiance</em>.</h2>', '<h2 class="title" data-split>They <em>trusted</em> me.</h2>', 1),
     ('<span class="dchan__topic">Ce que mes clients disent de mon travail</span>', '<span class="dchan__topic">What my clients say about my work</span>', 1),
-    ('<div class="dchan__input" aria-hidden="true">Envoyer un message dans #⭐ | avis</div>', '<div class="dchan__input" aria-hidden="true">Message #⭐ | avis</div>', 1),
     ('L\'action de Marius au sein du serveur a été bénéfique pour les membres et staffs. Sa restructuration professionnelle et complète a permis une meilleure inclusion des membres au sein du serveur. Sa mise en place efficace de recrutements Staff a également permis aux membres de profiter d\'une modération et animation de qualité et professionnelle. Ainsi, son action sur le serveur est qualitative et professionnelle&nbsp;! Merci à lui&nbsp;!',
      'Marius\'s work on the server has benefited both members and staff. His professional and complete restructuring led to better inclusion of members within the server. His efficient staff recruitment also gave members high-quality, professional moderation and activities. All in all, his work on the server is high-quality and professional! Thanks to him!', 1),
     ('Restructuration du serveur &amp; recrutements staff</p>', 'Server restructuring &amp; staff recruitment</p>', 1),
@@ -179,7 +178,17 @@ T = [
     ('Administration &amp; croissance du serveur</p>', 'Server administration &amp; growth</p>', 1),
     ("Très bon administrateur dévoué, qui aide à l'agrandissement de mon serveur de jour en jour.",
      'A very good, dedicated administrator who helps my server grow day after day.', 1),
-    ('>Voir 3 avis de plus<svg', '>See 3 more reviews<svg', 1),
+    ('aria-label="Avis précédent"', 'aria-label="Previous review"', 1),
+    ('aria-label="Avis suivant"', 'aria-label="Next review"', 1),
+    ('aria-label="Mettre en pause le défilement des avis"', 'aria-label="Pause the reviews"', 1),
+    ('aria-label="Avis de mes clients"', 'aria-label="Reviews from my clients"', 1),
+    ('<small>Influenceur</small>', '<small>Influencer</small>', 1),
+    ('<small>Administration · 2&nbsp;ans</small>', '<small>Administration · 2 years</small>', 1),
+    ('<small>Restructuration &amp; staff</small>', '<small>Restructuring &amp; staff</small>', 1),
+    ('<small>Création &amp; événements</small>', '<small>Creation &amp; events</small>', 1),
+    ('<small>Gestion du serveur</small>', '<small>Server management</small>', 1),
+    ('<small>Serveur communautaire</small>', '<small>Community server</small>', 1),
+    ('<small>Croissance du serveur</small>', '<small>Server growth</small>', 1),
 
     # --- FAQ ---
     ('<h2 class="title" data-split>Vos questions, <em>mes réponses</em>.</h2>', '<h2 class="title" data-split>Your questions, <em>my answers</em>.</h2>', 1),
@@ -858,7 +867,7 @@ def main():
         sys.exit("Traduction à mettre à jour :\n- " + "\n- ".join(errors))
 
     # Note sous le carrousel : les avis sont traduits
-    html, n = re.subn(r'(<div class="dchan js-dchan".*?<div class="dchan__input"[^>]*>.*?</div>\s*</div>)', r'\1\n        <p class="t-note">Reviews translated from French.</p>', html, count=1, flags=re.S)
+    html, n = re.subn(r'(<div class="dchan js-dchan".*?<div class="dchan__list"[^>]*>.*?</div>\s*</div>\s*</div>)', r'\1\n        <p class="t-note">Reviews translated from French.</p>', html, count=1, flags=re.S)
     if n != 1:
         sys.exit("Salon d'avis introuvable")
 

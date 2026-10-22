@@ -130,6 +130,7 @@
   const T = {
     fr: {
       locale: 'fr-FR', typing: "est en train d'écrire…", today: "Aujourd'hui à",
+      reviewsPause: 'Mettre en pause le défilement des avis', reviewsPlay: 'Reprendre le défilement des avis',
       copied: 'Adresse copiée !', linkCopied: 'Lien copié !', sending: 'Envoi en cours…',
       invalid: 'Merci de compléter les champs en rouge.', failed: "L'envoi n'a pas fonctionné. Écrivez-moi directement à",
       menuOpen: 'Ouvrir le menu', menuClose: 'Fermer le menu',
@@ -144,6 +145,7 @@
     },
     en: {
       locale: 'en-US', typing: 'is typing…', today: 'Today at',
+      reviewsPause: 'Pause the reviews', reviewsPlay: 'Resume the reviews',
       copied: 'Address copied!', linkCopied: 'Link copied!', sending: 'Sending…',
       invalid: 'Please fill in the fields in red.', failed: "Sending didn't work. Email me directly at",
       menuOpen: 'Open menu', menuClose: 'Close menu',
@@ -409,34 +411,101 @@
       .catch(() => {});
   }
 
-  /* ---------- Avis : salon Discord ---------- */
+  /* ---------- Avis : salon Discord, un avis à la fois ---------- */
   const dchan = $('.js-dchan');
   if (dchan) {
+    const msgs = $$('.dmsg', dchan);
+    const tabs = $$('[role="tab"]', dchan);
     const typing = $('.dchan__typing', dchan);
     const typingName = $('.js-dtyping', dchan);
-    // Les messages arrivent un par un, précédés de « … est en train d'écrire »
-    let queue = Promise.resolve();
-    const play = msgs => {
-      if (reduced) { msgs.forEach(m => m.classList.add('is-in')); return; }
-      queue = queue.then(async () => {
-        for (const m of msgs) {
-          typingName.textContent = `${m.dataset.name} ${T.typing}`;
-          typing.classList.add('is-on');
-          await wait(800);
-          typing.classList.remove('is-on');
-          m.classList.add('is-in');
-          await wait(450);
-        }
+    const num = $('.js-dchan-num', dchan);
+    const pauseBtn = $('.js-dchan-pause', dchan);
+    let current = -1;
+    let run = 0;
+    // Temps de lecture de chaque avis : environ 4 mots par seconde, entre 6 et 18 s
+    tabs.forEach((tab, i) => {
+      const words = $('.dmsg__text', msgs[i]).textContent.trim().split(/\s+/).length;
+      tab.style.setProperty('--dur', `${clamp(3 + words / 4, 6, 18).toFixed(1)}s`);
+    });
+    // L'avis arrive après « … est en train d'écrire », comme sur Discord
+    const show = async (i, focus = false) => {
+      i = (i + msgs.length) % msgs.length;
+      if (i === current) return;
+      const first = current < 0;
+      current = i;
+      const id = ++run;
+      tabs.forEach((tab, j) => {
+        tab.setAttribute('aria-selected', String(j === i));
+        tab.tabIndex = j === i ? 0 : -1;
       });
+      if (focus) tabs[i].focus();
+      num.textContent = i + 1;
+      msgs.forEach(m => m.classList.remove('is-in'));
+      if (!reduced) {
+        dchan.classList.add('is-typing');
+        typingName.textContent = `${msgs[i].dataset.name} ${T.typing}`;
+        typing.classList.add('is-on');
+        await wait(first ? 900 : 650);
+        if (id !== run) return;
+        typing.classList.remove('is-on');
+      }
+      dchan.classList.remove('is-typing');
+      msgs[i].classList.add('is-in');
     };
-    whenVisible(dchan, () => play($$('.dmsg:not(.dmsg--more)', dchan)));
-    // Avis supplémentaires sur demande
-    const more = $('.js-dchan-more', dchan);
-    more?.addEventListener('click', () => {
-      const extra = $$('.dmsg--more', dchan);
-      extra.forEach(m => m.classList.add('is-shown'));
-      more.remove();
-      play(extra);
+    const setPaused = paused => {
+      dchan.classList.toggle('is-paused', paused);
+      pauseBtn.setAttribute('aria-label', paused ? T.reviewsPlay : T.reviewsPause);
+    };
+    // Choisir un avis met le défilement en pause (le bouton le relance)
+    const choose = (i, focus) => { setPaused(true); show(i, focus); };
+
+    // Défilement automatique : la barre de l'avis affiché sert de minuteur. Elle s'arrête
+    // au survol, quand le salon a le focus ou quand il sort de l'écran.
+    whenVisible(dchan, () => {
+      show(0);
+      if (!reduced) dchan.classList.add('is-live');
+    });
+    dchan.addEventListener('animationend', e => { if (e.animationName === 'dchan-progress') show(current + 1); });
+    if (finePointer) {
+      dchan.addEventListener('mouseenter', () => dchan.classList.add('is-hold'));
+      dchan.addEventListener('mouseleave', () => dchan.classList.remove('is-hold'));
+    }
+    // (au clavier seulement, et pas sur le bouton pause, qui doit pouvoir relancer)
+    dchan.addEventListener('focusin', e => {
+      if (e.target !== pauseBtn && e.target.matches(':focus-visible')) dchan.classList.add('is-hold');
+    });
+    dchan.addEventListener('focusout', e => { if (!dchan.contains(e.relatedTarget)) dchan.classList.remove('is-hold'); });
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(([e]) => dchan.classList.toggle('is-off', !e.isIntersecting)).observe(dchan);
+    }
+
+    pauseBtn.addEventListener('click', () => {
+      const paused = !dchan.classList.contains('is-paused');
+      setPaused(paused);
+      if (!paused) dchan.classList.remove('is-hold');
+    });
+    $('.js-dchan-prev', dchan).addEventListener('click', () => choose(current - 1));
+    $('.js-dchan-next', dchan).addEventListener('click', () => choose(current + 1));
+    tabs.forEach((tab, i) => tab.addEventListener('click', () => choose(i)));
+    // Clavier : flèches, Début et Fin dans la liste des clients
+    $('[role="tablist"]', dchan).addEventListener('keydown', e => {
+      const to = { ArrowRight: current + 1, ArrowDown: current + 1, ArrowLeft: current - 1, ArrowUp: current - 1, Home: 0, End: msgs.length - 1 }[e.key];
+      if (to === undefined) return;
+      e.preventDefault();
+      choose(to, true);
+    });
+    // Mobile : glisser le doigt sur l'avis pour passer au suivant ou au précédent
+    const stage = $('.dchan__stage', dchan);
+    let startX = null;
+    let startY = 0;
+    stage.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') { startX = e.clientX; startY = e.clientY; } });
+    stage.addEventListener('pointercancel', () => { startX = null; });
+    stage.addEventListener('pointerup', e => {
+      if (startX === null) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      startX = null;
+      if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.5) choose(current + (dx < 0 ? 1 : -1));
     });
   }
 

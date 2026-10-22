@@ -716,32 +716,30 @@ html:not(.js) .plist__foot { display: none; }
 .project-cta__btn { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--text); color: #0a0b12; font-size: 26px; transition: transform .6s var(--ease); }
 .project-cta:hover .project-cta__btn { transform: rotate(45deg) scale(1.08); }
 
-/* ---------- Avis : salon Discord ---------- */
+/* ---------- Avis : salon Discord, un avis à la fois ---------- */
 .dchan {
   max-width: 980px;
+  display: grid; grid-template-columns: minmax(0, 1fr) 248px; grid-template-rows: auto 1fr auto;
+  grid-template-areas: "head members" "stage members" "bar members";
   border-radius: 24px; overflow: hidden;
   background: rgba(16, 18, 27, .82);
   border: 1px solid var(--line-2);
   box-shadow: 0 50px 100px -40px rgba(0, 0, 0, .8), 0 0 120px -50px rgba(139, 155, 255, .4);
 }
-.dchan__head { display: flex; align-items: center; gap: 14px; padding: 16px 22px; border-bottom: 1px solid var(--line); min-width: 0; }
+.dchan__head { grid-area: head; display: flex; align-items: center; gap: 14px; padding: 16px 22px; border-bottom: 1px solid var(--line); min-width: 0; }
 .dchan__name { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; white-space: nowrap; }
 .dchan__name svg { width: 18px; height: 18px; fill: none; stroke: var(--dim); stroke-width: 2; }
 .dchan__topic { padding-left: 14px; border-left: 1px solid var(--line-2); color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dchan__msgs { display: flex; flex-direction: column; gap: 6px; padding: 18px 10px 4px; }
-.dmsg {
-  display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px;
-  padding: 10px 12px; border-radius: 10px;
-  transition: background-color .3s;
+/* Les avis sont empilés au même endroit : le salon garde la hauteur du plus long, rien ne saute */
+.dchan__stage { grid-area: stage; display: flex; flex-direction: column; gap: 6px; padding: 18px 10px 4px; }
+.js .dchan__stage { display: grid; align-items: end; padding: 20px 12px 4px; touch-action: pan-y; }
+.dmsg { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; padding: 10px 12px; border-radius: 10px; }
+.js .dmsg {
+  grid-area: 1 / 1;
+  opacity: 0; visibility: hidden; transform: translateY(14px);
+  transition: opacity .3s, transform .3s var(--ease), visibility 0s .3s;
 }
-.dmsg:hover { background: rgba(255, 255, 255, .03); }
-.js .dmsg { opacity: 0; transform: translateY(14px); }
-.js .dmsg--more:not(.is-shown) { display: none; }
-.dchan__more { display: flex; align-items: center; gap: 8px; margin: 8px auto 2px; padding: 8px 16px; border-radius: 999px; border: 1px solid rgba(139, 155, 255, .28); background: rgba(139, 155, 255, .1); color: var(--accent); font-size: 13.5px; font-weight: 600; transition: background-color .3s, color .3s; }
-.dchan__more:hover { background: rgba(139, 155, 255, .2); color: var(--text); }
-.dchan__more .ico { transform: rotate(90deg); }
-html:not(.js) .dchan__more { display: none; }
-.js .dmsg.is-in { opacity: 1; transform: none; transition: opacity .6s var(--ease), transform .8s var(--ease), background-color .3s; }
+.js .dmsg.is-in { opacity: 1; visibility: visible; transform: none; transition: opacity .6s var(--ease), transform .8s var(--ease), visibility 0s; }
 .dmsg__av {
   --h: 232;
   grid-row: 1 / span 2; align-self: start; margin-top: 22px;
@@ -750,16 +748,18 @@ html:not(.js) .dchan__more { display: none; }
   font-family: var(--font-display); font-weight: 700; font-size: 17px;
   background: hsl(var(--h) 60% 64%); color: #0a0b12;
 }
-.dmsg__av img { width: 100%; height: 100%; object-fit: cover; }
+.dmsg__av img, .dmember__av img { width: 100%; height: 100%; object-fit: cover; }
 .dmsg__reply { display: flex; align-items: center; gap: 6px; margin: 0 0 4px -32px; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dmsg__reply b { color: var(--accent); font-weight: 600; }
 .dmsg__curve { width: 26px; height: 12px; margin-top: 8px; flex: none; border: 2px solid var(--line-2); border-right: 0; border-bottom: 0; border-top-left-radius: 8px; }
 .dmsg__name { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15.5px; }
 .dmsg__tag { font-size: 10px; font-weight: 700; letter-spacing: .03em; padding: 2px 6px; border-radius: 4px; background: rgba(139, 155, 255, .2); color: var(--accent); }
-.dmsg__text { margin-top: 4px; color: #d5d9e6; font-size: clamp(1rem, 1.3vw, 1.08rem); line-height: 1.6; }
+.dmsg__text { margin-top: 4px; color: #d5d9e6; font-size: clamp(.98rem, 1.2vw, 1.04rem); line-height: 1.6; }
+/* Barre du bas : « … est en train d'écrire » à gauche, commandes à droite */
+.dchan__bar { grid-area: bar; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 16px 16px 24px; }
 .dchan__typing {
-  display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 24px;
-  color: var(--dim); font-size: 12.5px;
+  display: flex; align-items: center; gap: 8px; min-width: 0;
+  color: var(--dim); font-size: 12.5px; white-space: nowrap; overflow: hidden;
   opacity: 0; transition: opacity .3s;
 }
 .dchan__typing.is-on { opacity: 1; }
@@ -767,7 +767,46 @@ html:not(.js) .dchan__more { display: none; }
 .dchan__typing i span { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); animation: bounce 1.2s infinite; }
 .dchan__typing i span:nth-child(2) { animation-delay: .15s; }
 .dchan__typing i span:nth-child(3) { animation-delay: .3s; }
-.dchan__input { margin: 0 18px 18px; padding: 13px 16px; border-radius: 10px; background: rgba(255, 255, 255, .05); color: var(--dim); font-size: 14.5px; }
+.dchan__ctrl { display: flex; align-items: center; gap: 6px; flex: none; }
+.dchan__count { margin-right: 6px; color: var(--dim); font-size: 13px; font-variant-numeric: tabular-nums; }
+.dchan__count b { color: var(--text); font-weight: 600; }
+.dchan__btn { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line-2); color: var(--muted); transition: background-color .25s, color .25s, border-color .25s; }
+.dchan__btn:hover { background: rgba(255, 255, 255, .06); border-color: rgba(139, 155, 255, .4); color: var(--text); }
+.dchan__btn .ico { width: 16px; height: 16px; }
+.dchan__btn--prev .ico { transform: rotate(180deg); }
+.dchan__play, .dchan.is-paused .dchan__pause { display: none; }
+.dchan.is-paused .dchan__play { display: inline; }
+/* Liste des clients, comme la liste des membres de Discord */
+.dchan__members { grid-area: members; padding: 18px 10px; border-left: 1px solid var(--line); background: rgba(255, 255, 255, .02); }
+.dchan__members-title { margin: 0 10px 10px; color: var(--dim); font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.dchan__list { display: flex; flex-direction: column; gap: 2px; }
+.dmember {
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 7px 10px; border-radius: 8px;
+  color: var(--muted); text-align: left;
+  transition: background-color .25s, color .25s;
+}
+.dmember:hover { background: rgba(255, 255, 255, .04); color: var(--text); }
+.dmember[aria-selected="true"] { background: rgba(139, 155, 255, .12); color: var(--text); }
+.dmember__av {
+  --h: 232;
+  width: 34px; height: 34px; flex: none; border-radius: 50%; overflow: hidden;
+  display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 700; font-size: 14px;
+  background: hsl(var(--h) 60% 64%); color: #0a0b12;
+  transition: box-shadow .3s;
+}
+.dmember__txt { display: grid; min-width: 0; line-height: 1.3; }
+.dmember__txt b { font-size: 14.5px; font-weight: 600; }
+.dmember__txt small { color: var(--dim); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* La barre de l'avis affiché se remplit pendant sa lecture ; à la fin, l'avis suivant arrive (main.js) */
+.dmember__bar { position: absolute; left: 10px; right: 10px; bottom: 0; height: 2px; border-radius: 2px; background: var(--grad); transform: scaleX(0); transform-origin: left; }
+.dchan.is-live:not(.is-typing) .dmember[aria-selected="true"] .dmember__bar { animation: dchan-progress var(--dur, 8s) linear forwards; animation-play-state: var(--play, running); }
+.dchan.is-paused, .dchan.is-hold, .dchan.is-off { --play: paused; }
+@keyframes dchan-progress { to { transform: none; } }
+html:not(.js) .dchan { display: block; }
+html:not(.js) .dchan__bar, html:not(.js) .dchan__members, .reduced .dchan__btn--pause { display: none; }
 
 /* ---------- Diagnostic express ---------- */
 .diag__grid { display: grid; grid-template-columns: .85fr 1.15fr; gap: clamp(40px, 6vw, 90px); align-items: center; }
@@ -1309,6 +1348,20 @@ a.copy { padding-right: 18px; }
   .recruit { max-width: 520px; rotate: 0deg; }
   .faq__head { position: static; }
 }
+@media (max-width: 760px) {
+  .dchan { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: "head" "stage" "bar" "members"; }
+  .dchan__members { padding: 12px 10px 14px; border-left: 0; border-top: 1px solid var(--line); }
+  .dchan__members-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .dchan__list { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; max-width: 360px; margin-inline: auto; }
+  .dmember { justify-content: center; padding: 5px 4px 9px; }
+  .dmember:hover, .dmember[aria-selected="true"] { background: none; }
+  .dmember__av { width: 100%; max-width: 38px; height: auto; aspect-ratio: 1; }
+  .dmember[aria-selected="true"] .dmember__av { box-shadow: 0 0 0 2px var(--bg-elev), 0 0 0 4px var(--accent); }
+  .dmember__txt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .dmember__bar { left: 22%; right: 22%; }
+  .dchan__count, .dchan__btn--prev, .js-dchan-next { display: none; }
+}
+
 @media (max-width: 640px) {
   .hero { padding-bottom: 120px; }
   .mock { grid-template-columns: 1fr; height: 360px; }
@@ -1335,11 +1388,13 @@ a.copy { padding-right: 18px; }
   .bot-card__body { gap: 12px; padding: 0 14px 14px; }
   .bot-card__avatar { width: 72px; height: 72px; margin-top: -32px; padding: 4px; }
   .share__btn { padding: 9px 14px; }
-  .dchan__msgs { padding: 12px 4px 2px; }
+  .js .dchan__stage { padding: 14px 4px 2px; }
   .dmsg { grid-template-columns: 36px minmax(0, 1fr); gap: 10px; padding: 10px 8px; }
   .dmsg__av { width: 36px; height: 36px; font-size: 14px; }
   .dmsg__reply { margin-left: -26px; }
   .dmsg__curve { width: 20px; }
+  .dmsg__text { font-size: 15px; line-height: 1.55; }
+  .dchan__bar { padding: 2px 12px 12px 18px; }
   .fab-cta {
     position: fixed; left: 16px; right: 16px; bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 95;
     display: flex; align-items: center; justify-content: center; gap: 10px;
