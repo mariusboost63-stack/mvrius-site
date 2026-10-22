@@ -473,6 +473,8 @@ body.glisse-creer, body.glisse-creer * { user-select: none; }
 .r-bloc h3 { font: 700 16px var(--f-titre); }
 .r-aide { margin: 4px 0 12px; color: var(--doux); font-size: 13.5px; }
 .r-boutons { display: flex; flex-wrap: wrap; gap: 8px; }
+.r-boutons--espace { margin-top: 14px; }
+.btn:disabled { opacity: .5; cursor: progress; }
 .cats { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 .cat-ligne { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 10px; }
 .cat-pastille { width: 30px; height: 30px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 3px rgba(255, 255, 255, .06); transition: transform .2s var(--ease); }

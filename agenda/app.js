@@ -25,6 +25,10 @@
   const COULEURS = ['#8b9bff', '#6ee7ff', '#c3a6ff', '#3ddc84', '#ff6b8b', '#f5b971', '#ffd166', '#f78fd8', '#9ba3ba'];
   const REPETITIONS = [['', 'Ne se répète pas'], ['jour', 'Chaque jour'], ['semaine', 'Chaque semaine'], ['2semaines', 'Toutes les 2 semaines'], ['mois', 'Chaque mois']];
   const STATUTS = [['confirme', 'Confirmé'], ['attente', 'En attente'], ['annule', 'Annulé']];
+  // Rappels Discord, en minutes avant le début (pour une journée entière, le début est minuit)
+  const RAPPELS = [['', 'Pas de rappel'], ['0', "À l'heure"], ['5', '5 min avant'], ['15', '15 min avant'], ['30', '30 min avant'], ['60', '1 h avant'], ['120', '2 h avant'], ['1440', '1 jour avant']];
+  const RAPPELS_JOURNEE = [['', 'Pas de rappel'], ['-480', 'Le jour même à 8:00'], ['-540', 'Le jour même à 9:00'], ['360', 'La veille à 18:00']];
+  const rappelParDefaut = journee => (journee ? '-540' : '15');
   const PAS = { jour: 1, semaine: 7, '2semaines': 14 };
   const DATE = /^\d{4}-\d{2}-\d{2}$/;
   const HEURE = /^\d{2}:\d{2}$/;
@@ -111,7 +115,7 @@
   const vueEffective = () => (petit.matches && etat.vue === 'semaine' ? 'jour' : etat.vue);
 
   /* ---------- Données ---------- */
-  const vide = () => ({ format: 1, categories: clone(CATEGORIES), rendezvous: [] });
+  const vide = () => ({ format: 1, categories: clone(CATEGORIES), rendezvous: [], reglages: {} });
   function normaliser(d) {
     d = d && typeof d === 'object' ? d : {};
     const cats = Array.isArray(d.categories) && d.categories.length
@@ -119,7 +123,8 @@
       : clone(CATEGORIES);
     const rdv = (Array.isArray(d.rendezvous) ? d.rendezvous : [])
       .filter(r => r && r.id && DATE.test(r.date) && (r.journee || (HEURE.test(r.debut) && HEURE.test(r.fin))));
-    return { format: 1, categories: cats, rendezvous: rdv };
+    const reglages = d.reglages && typeof d.reglages === 'object' && !Array.isArray(d.reglages) ? d.reglages : {};
+    return { format: 1, categories: cats, rendezvous: rdv, reglages };
   }
   // Un changement = une opération rejouable : en cas de conflit avec un autre appareil,
   // on relit le fichier sur GitHub et on rejoue les opérations par-dessus.
@@ -134,6 +139,8 @@
       if (i >= 0) { const r = d.rendezvous[i]; r.exceptions = [...new Set([...(r.exceptions || []), op.date])].sort(); }
     } else if (op.type === 'categories') {
       d.categories = clone(op.categories);
+    } else if (op.type === 'reglages') {
+      d.reglages = { ...d.reglages, ...clone(op.reglages) };
     }
   }
   let cacheDonnees = null;
@@ -284,6 +291,7 @@
     if (op.type === 'enregistrer') return `${op.nouveau ? 'Ajout' : 'Modification'} : ${r.titre}${date}`;
     if (op.type === 'supprimer') return `Suppression : ${op.titre || 'rendez-vous'}`;
     if (op.type === 'sauter') return `Occurrence retirée : ${op.titre || 'rendez-vous'} (${op.date})`;
+    if (op.type === 'reglages') return 'Réglages mis à jour';
     return 'Catégories mises à jour';
   }
 
@@ -781,6 +789,7 @@
     champs.debut.value = v.journee ? '09:00' : v.debut;
     champs.fin.value = v.journee ? '10:00' : v.fin;
     champs.dateFin.value = v.dateFin || v.date;
+    remplirRappels(!!v.journee, v.rappel === undefined ? rappelParDefaut(!!v.journee) : v.rappel === null ? '' : String(v.rappel));
     champs.frequence.value = (v.repetition && v.repetition.frequence) || '';
     champs.jusquau.value = (v.repetition && v.repetition.jusquau) || '';
     (form.querySelector(`input[name="statut"][value="${v.statut || 'confirme'}"]`) || form.querySelector('input[name="statut"]')).checked = true;
@@ -796,8 +805,15 @@
     fiche.showModal();
     if (!r) champs.titre.focus();
   }
+  function remplirRappels(journee, valeur) {
+    const liste = journee ? RAPPELS_JOURNEE : RAPPELS;
+    champs.rappel.innerHTML = liste.map(([v, t]) => `<option value="${v}">${t}</option>`).join('');
+    champs.rappel.value = liste.some(([v]) => v === valeur) ? valeur : rappelParDefaut(journee);
+    champs.rappel.dataset.journee = String(journee);
+  }
   function majFiche() {
     const journee = champs.journee.checked;
+    if (champs.rappel.dataset.journee !== String(journee)) remplirRappels(journee, rappelParDefaut(journee));
     $$('[data-horaire]', form).forEach(el => { el.hidden = journee; });
     $('[data-l-debut]', form).textContent = journee ? 'Du' : 'Début';
     $('[data-l-fin]', form).textContent = journee ? 'Au' : 'Fin';
@@ -862,6 +878,7 @@
       dateFin,
       repetition: champs.frequence.value ? { frequence: champs.frequence.value, jusquau: champs.jusquau.value || null } : null,
       exceptions: champs.frequence.value && avant && avant.repetition ? (avant.exceptions || []) : [],
+      rappel: champs.rappel.value === '' ? null : Number(champs.rappel.value),
       statut: (form.querySelector('input[name="statut"]:checked') || {}).value || 'confirme',
       avec: champs.avec.value.trim(),
       lieu: champs.lieu.value.trim(),
@@ -1134,11 +1151,27 @@
   /* ---------- Réglages ---------- */
   const reglages = $('#reglages');
   let brouillon = null;
+  const resumeActuel = () => ({ actif: false, heure: '08:00', ...((donnees().reglages || {}).resume || {}) });
   function ouvrirReglages() {
     brouillon = clone(categories());
     rendreCategoriesEdit();
+    $('#r-resume').checked = !!resumeActuel().actif;
     reglages.showModal();
   }
+  // Message privé de test : vérifie le bot de bout en bout
+  $('#r-test').addEventListener('click', async () => {
+    const bouton = $('#r-test');
+    bouton.disabled = true;
+    try {
+      const rep = await fetch(`${SERVEUR}/rappels/test`, { method: 'POST', headers: { Authorization: `Bearer ${etat.session ? etat.session.jeton : ''}` } });
+      const corps = await rep.json().catch(() => ({}));
+      toast(rep.ok ? 'Message envoyé : regarde tes messages privés Discord.' : (rep.status === 401 ? 'Ta session a expiré. Reconnecte-toi avec Discord.' : corps.message || 'Le message n\'a pas pu partir.'), null, rep.ok ? 4000 : 9000);
+    } catch (e) {
+      toast("Impossible de joindre le serveur de l'agenda.", null, 6000);
+    } finally {
+      bouton.disabled = false;
+    }
+  });
   function rendreCategoriesEdit() {
     const compte = id => donnees().rendezvous.filter(r => r.categorie === id).length;
     $('#cats-edit').innerHTML = brouillon.map((c, i) => {
@@ -1177,10 +1210,14 @@
   $('#reglages-form').addEventListener('submit', e => {
     e.preventDefault();
     const propres = brouillon.map(c => ({ ...c, nom: c.nom.trim() || 'Sans nom' }));
+    const resume = { ...resumeActuel(), actif: $('#r-resume').checked };
     reglages.close();
-    if (JSON.stringify(propres) !== JSON.stringify(categories())) {
-      operation({ type: 'categories', categories: propres });
-      toast('Catégories enregistrées');
+    const ops = [];
+    if (JSON.stringify(propres) !== JSON.stringify(categories())) ops.push({ type: 'categories', categories: propres });
+    if (JSON.stringify(resume) !== JSON.stringify(resumeActuel())) ops.push({ type: 'reglages', reglages: { resume } });
+    if (ops.length) {
+      operation(ops);
+      toast('Réglages enregistrés');
     }
   });
 

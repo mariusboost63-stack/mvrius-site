@@ -19,9 +19,9 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="preload" href="../assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="../assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="app.css?v=2">
+  <link rel="stylesheet" href="app.css?v=3">
   <script src="config.js?v=2" defer></script>
-  <script src="app.js?v=2" defer></script>
+  <script src="app.js?v=3" defer></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -145,6 +145,7 @@
         </div>
         <label class="interrupteur"><input type="checkbox" name="journee"><span aria-hidden="true"></span>Toute la journée</label>
         <div class="f-ligne">
+          <label class="champ"><span>Rappel sur Discord</span><select name="rappel"></select></label>
           <label class="champ"><span>Répétition</span><select name="frequence"></select></label>
           <label class="champ" data-jusquau hidden><span>Jusqu'au (facultatif)</span><input type="date" name="jusquau"></label>
         </div>
@@ -195,6 +196,14 @@
           <p class="r-aide">Clique sur une pastille pour changer sa couleur.</p>
           <div class="cats" id="cats-edit"></div>
           <button class="btn btn--ghost btn--petit" type="button" id="cat-ajout"><svg class="i"><use href="#i-plus"/></svg>Ajouter une catégorie</button>
+        </section>
+        <section class="r-bloc">
+          <h3>Rappels Discord</h3>
+          <p class="r-aide">Le bot de ton application Discord t'envoie un message privé avant chaque rendez-vous. Le moment du rappel se choisit dans chaque fiche.</p>
+          <label class="interrupteur"><input type="checkbox" id="r-resume"><span aria-hidden="true"></span>Résumé de ma journée chaque matin à 8:00</label>
+          <div class="r-boutons r-boutons--espace">
+            <button class="btn btn--ghost btn--petit" type="button" id="r-test"><svg class="i i--plein" aria-hidden="true"><use href="#b-discord"/></svg>Envoyer un message test</button>
+          </div>
         </section>
         <section class="r-bloc">
           <h3>Sauvegarde</h3>

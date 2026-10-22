@@ -54,9 +54,16 @@ par changement).
   `.workers.dev`, sinon il faut l'ajouter à `connect-src` dans `agenda/index.html`.
 - **Variables du Worker** (Cloudflare › Settings › Variables and Secrets) : `DISCORD_CLIENT_ID`,
   `DISCORD_CLIENT_SECRET` (secret), `DISCORD_ID_AUTORISE`, `GITHUB_TOKEN` (secret, jeton limité à
-  `agenda-donnees` avec « Contents : Read and write »). Changer l'un des secrets déconnecte tous
+  `agenda-donnees` avec « Contents : Read and write »), `DISCORD_BOT_TOKEN` (secret, rappels). Changer l'un des secrets déconnecte tous
   les appareils.
 - **Application Discord** : redirection OAuth2 `https://<worker>/retour`, scope `identify`.
+- **Rappels en message privé** : le bot de l'application Discord (`DISCORD_BOT_TOKEN`, secret)
+  écrit au compte autorisé. Il doit partager un serveur avec ce compte (invitation :
+  `https://discord.com/oauth2/authorize?client_id=<DISCORD_CLIENT_ID>&scope=bot&permissions=0`).
+  Cron Trigger du Worker : `*/5 * * * *`. Le moment du rappel est dans chaque fiche (`rappel`,
+  en minutes avant le début ; absent = 15 min, ou 9:00 le jour même pour une journée entière ;
+  `null` = aucun). Le résumé du matin se règle dans Réglages (`reglages.resume`). Le bouton
+  « Envoyer un message test » des réglages vérifie tout de bout en bout.
 - Après un changement de `agenda/app.js` ou `agenda/app.css`, augmenter `?v=` dans `agenda/index.html`.
 
 ## Avant chaque publication
