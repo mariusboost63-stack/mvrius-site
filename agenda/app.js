@@ -149,9 +149,18 @@
   const categorie = id => categories().find(c => c.id === id) || { id, nom: 'Sans catégorie', couleur: '#9ba3ba' };
   const trouver = id => donnees().rendezvous.find(r => r.id === id);
 
+  // Dernier jour d'un rendez-vous : il peut durer plusieurs jours (journées entières ou horaires)
+  const jourDeFin = r => (DATE.test(r.dateFin) && r.dateFin > r.date ? r.dateFin : r.date);
+  const etendue = r => ecart(r.date, jourDeFin(r));
+  // Instants en minutes : une fin à « 00:00 » veut dire minuit, à la fin de ce jour-là
+  const BASE = '2000-01-01';
+  const instantDebut = (d, h) => ecart(BASE, d) * 1440 + minutes(h);
+  const instantFin = (d, h) => ecart(BASE, d) * 1440 + (minutes(h) || 1440);
+  const finDepuis = total => { const j = Math.ceil(total / 1440) - 1; return [decale(BASE, j), heure(total - j * 1440)]; };
+
   // Dates des occurrences d'un rendez-vous entre « de » et « a » (inclus)
   function occurrences(r, de, a) {
-    const duree = r.journee ? Math.max(0, ecart(r.date, DATE.test(r.dateFin) ? r.dateFin : r.date)) : 0;
+    const duree = etendue(r);
     const res = [];
     const garder = d => { if (d <= a && decale(d, duree) >= de) res.push(d); };
     const rep = r.repetition;
@@ -181,10 +190,19 @@
     return res;
   }
   function inst(r, d) {
-    if (r.journee) return { r, date: d, fin: decale(d, Math.max(0, ecart(r.date, DATE.test(r.dateFin) ? r.dateFin : r.date))), debut: -1, finM: 1440 };
+    const dernier = decale(d, etendue(r));
+    if (r.journee) return { r, date: d, fin: dernier, debut: -1, finM: 1440 };
     const debut = minutes(r.debut);
     const fin = minutes(r.fin) || 1440; // « 00:00 » en fin = minuit
+    // Sur plusieurs jours : « longue » s'il dure 24 h ou plus (affiché avec les journées entières)
+    if (dernier !== d) return { r, date: d, fin: dernier, debut, finM: fin, plusieurs: true, longue: etendue(r) * 1440 + fin - debut >= 1440 };
     return { r, date: d, fin: d, debut, finM: fin > debut ? fin : debut + 30 };
+  }
+  // Pas encore terminé (liste et « À venir »)
+  function pasFini(i) {
+    const auj = aujourdhui();
+    if (i.fin !== auj) return i.fin > auj;
+    return i.r.journee || i.finM > maintenant();
   }
   function instances(de, a, toutes = false) {
     const res = [];
@@ -515,20 +533,28 @@
     fermer();
     return tries;
   }
-  const libelleHoraire = r => (r.journee ? 'Toute la journée' : `${r.debut} – ${r.fin}`);
+  const jourCourt = d => fmt(d, { weekday: 'short', day: 'numeric', month: 'short' });
+  function libelleHoraire(i) {
+    const r = i.r;
+    if (r.journee) return i.fin === i.date ? 'Toute la journée' : `Du ${jourCourt(i.date)} au ${jourCourt(i.fin)}`;
+    return i.fin === i.date ? `${r.debut} – ${r.fin}` : `${jourCourt(i.date)} ${r.debut} → ${jourCourt(i.fin)} ${r.fin}`;
+  }
   function blocEv(i) {
     const c = categorie(i.r.categorie);
     const duree = i.finM - i.debut;
-    const label = `${libelleHoraire(i.r)}, ${i.r.titre}${i.r.avec ? `, avec ${i.r.avec}` : ''}`;
-    return `<button type="button" class="ev statut-${esc(i.r.statut || 'confirme')}${duree < 45 ? ' ev--court' : ''}" data-id="${esc(i.r.id)}" data-date="${i.date}" style="--c:${couleurSure(c.couleur)};--d:${i.debut};--l:${duree};--col:${i.col};--tot:${i.total}" aria-label="${esc(label)}">`
+    const label = `${libelleHoraire(i)}, ${i.r.titre}${i.r.avec ? `, avec ${i.r.avec}` : ''}`;
+    return `<button type="button" class="ev statut-${esc(i.r.statut || 'confirme')}${duree < 45 ? ' ev--court' : ''}${i.plusieurs ? ' ev--plusieurs' : ''}" data-id="${esc(i.r.id)}" data-date="${i.date}" style="--c:${couleurSure(c.couleur)};--d:${i.debut};--l:${duree};--col:${i.col};--tot:${i.total}" aria-label="${esc(label)}">`
       + `<span class="ev-titre">${i.r.repetition ? icone('repete') : ''}${esc(i.r.titre)}</span>`
-      + `<span class="ev-heure">${i.r.debut} – ${i.r.fin}${i.r.avec ? ` · ${esc(i.r.avec)}` : ''}</span>`
+      + `<span class="ev-heure">${i.r.debut} ${i.plusieurs ? '→' : '–'} ${i.r.fin}${i.r.avec ? ` · ${esc(i.r.avec)}` : ''}</span>`
       + '<span class="ev-poignee" aria-hidden="true"></span></button>';
   }
-  function puce(i, avecHeure) {
+  // d : jour où la pastille est affichée (heure de début le premier jour, heure de fin le dernier)
+  function puce(i, avecHeure, d) {
     const c = categorie(i.r.categorie);
-    return `<button type="button" class="puce${i.r.journee ? ' puce--jour' : ''} statut-${esc(i.r.statut || 'confirme')}" data-id="${esc(i.r.id)}" data-date="${i.date}" style="--c:${couleurSure(c.couleur)}" aria-label="${esc(`${libelleHoraire(i.r)}, ${i.r.titre}`)}">`
-      + `${avecHeure && !i.r.journee ? `<time>${i.r.debut}</time>` : ''}<span>${esc(i.r.titre)}</span></button>`;
+    let h = '';
+    if (avecHeure && !i.r.journee) h = !i.plusieurs || !d || d === i.date ? i.r.debut : d === i.fin ? `→ ${i.r.fin}` : '';
+    return `<button type="button" class="puce${i.r.journee || i.plusieurs ? ' puce--jour' : ''} statut-${esc(i.r.statut || 'confirme')}" data-id="${esc(i.r.id)}" data-date="${i.date}" style="--c:${couleurSure(c.couleur)}" aria-label="${esc(`${libelleHoraire(i)}, ${i.r.titre}`)}">`
+      + `${h ? `<time>${h}</time>` : ''}<span>${esc(i.r.titre)}</span></button>`;
   }
   function rendreGrille(jours) {
     const de = jours[0];
@@ -536,9 +562,14 @@
     const auj = aujourdhui();
     const liste = instances(de, a);
     const tete = jours.map(d => `<button type="button" class="g-jour${d === auj ? ' is-auj' : ''}" data-aller="${d}" aria-label="${esc(maj1(fmt(d, { weekday: 'long', day: 'numeric', month: 'long' })))}"><span>${esc(fmt(d, { weekday: 'short' }).replace('.', ''))}</span><b>${jour(d).getDate()}</b></button>`).join('');
-    const journee = jours.map(d => `<div class="g-jt" data-date="${d}">${liste.filter(i => i.r.journee && i.date <= d && i.fin >= d).map(i => puce(i)).join('')}</div>`).join('');
+    // En haut : journées entières et rendez-vous de 24 h ou plus ; dans la grille : le reste,
+    // découpé jour par jour s'il passe minuit (ex. 22:00 → 02:00)
+    const enHaut = i => i.r.journee || i.longue;
+    const journee = jours.map(d => `<div class="g-jt" data-date="${d}">${liste.filter(i => enHaut(i) && i.date <= d && i.fin >= d).map(i => puce(i, true, d)).join('')}</div>`).join('');
+    const morceaux = d => liste.filter(i => !enHaut(i) && i.date <= d && i.fin >= d)
+      .map(i => (i.plusieurs ? { ...i, debut: i.date === d ? i.debut : 0, finM: i.fin === d ? i.finM : 1440 } : i));
     const heures = Array.from({ length: 23 }, (_, h) => `<span style="--d:${(h + 1) * 60}">${pad(h + 1)}:00</span>`).join('');
-    const colonnes = jours.map(d => `<div class="g-col${d === auj ? ' is-auj' : ''}" data-date="${d}">${placer(liste.filter(i => !i.r.journee && i.date === d)).map(blocEv).join('')}${d === auj ? `<div class="maintenant" style="--d:${maintenant()}"></div>` : ''}</div>`).join('');
+    const colonnes = jours.map(d => `<div class="g-col${d === auj ? ' is-auj' : ''}" data-date="${d}">${placer(morceaux(d)).map(blocEv).join('')}${d === auj ? `<div class="maintenant" style="--d:${maintenant()}"></div>` : ''}</div>`).join('');
     return `<div class="grille" style="--n:${jours.length}">`
       + `<div class="g-tete"><div class="g-coin"></div>${tete}<div class="g-coin g-coin--jt">Journée</div>${journee}</div>`
       + `<div class="g-corps"><div class="g-heures" aria-hidden="true">${heures}</div>${colonnes}</div></div>`;
@@ -562,7 +593,7 @@
       const nom = maj1(fmt(d, { weekday: 'long', day: 'numeric', month: 'long' }));
       cases += `<div class="m-case${hors ? ' is-hors' : ''}${d === auj ? ' is-auj' : ''}${d === etat.curseur ? ' is-choisi' : ''}" data-date="${d}">`
         + `<button type="button" class="m-num" data-aller="${d}" aria-label="${esc(nom)}${ici.length ? `, ${ici.length} rendez-vous` : ''}">${jour(d).getDate()}</button>`
-        + `<div class="m-evs">${ici.slice(0, 3).map(i => puce(i, true)).join('')}${ici.length > 3 ? `<button type="button" class="m-plus" data-aller="${d}">+${ici.length - 3} autre${ici.length > 4 ? 's' : ''}</button>` : ''}</div>`
+        + `<div class="m-evs">${ici.slice(0, 3).map(i => puce(i, true, d)).join('')}${ici.length > 3 ? `<button type="button" class="m-plus" data-aller="${d}">+${ici.length - 3} autre${ici.length > 4 ? 's' : ''}</button>` : ''}</div>`
         + `<div class="m-points" aria-hidden="true">${ici.slice(0, 4).map(i => `<i style="--c:${couleurSure(categorie(i.r.categorie).couleur)}"></i>`).join('')}</div></div>`;
     }
     const tete = ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'].map(j => `<span>${j}</span>`).join('');
@@ -584,9 +615,10 @@
       r.repetition && `<span>${icone('repete')}${esc((REPETITIONS.find(x => x[0] === r.repetition.frequence) || ['', ''])[1])}</span>`,
       !r.avec && !r.lieu && !r.repetition && `<span>${esc(c.nom)}</span>`,
     ].filter(Boolean).join('');
+    const finCourte = esc(fmt(i.fin, { day: 'numeric', month: 'short' }));
     const heureTxt = r.journee
-      ? `Journée${i.fin !== i.date ? `<small>→ ${esc(fmt(i.fin, { day: 'numeric', month: 'short' }))}</small>` : ''}`
-      : `${r.debut}<small>${r.fin}</small>`;
+      ? `Journée${i.fin !== i.date ? `<small>→ ${finCourte}</small>` : ''}`
+      : i.plusieurs ? `${r.debut}<small>→ ${finCourte} ${r.fin}</small>` : `${r.debut}<small>${r.fin}</small>`;
     const badge = r.statut === 'attente' ? '<span class="l-badge l-badge--attente">En attente</span>' : r.statut === 'annule' ? '<span class="l-badge l-badge--annule">Annulé</span>' : '';
     return `<button type="button" class="l-ev statut-${esc(r.statut || 'confirme')}" data-id="${esc(r.id)}" data-date="${i.date}" style="--c:${couleurSure(c.couleur)}">`
       + `<span class="l-heure">${heureTxt}</span><span class="l-barre"></span>`
@@ -599,10 +631,7 @@
     const a = decale(auj, q ? 730 : 180);
     let liste = instances(de, a, !!q);
     if (q) liste = liste.filter(i => sansAccents(`${i.r.titre} ${i.r.avec} ${i.r.lieu} ${i.r.notes} ${categorie(i.r.categorie).nom}`).includes(q));
-    else {
-      const m = maintenant();
-      liste = liste.filter(i => (i.r.journee ? i.fin >= auj : i.date > auj || i.finM > m));
-    }
+    else liste = liste.filter(pasFini);
     if (!liste.length) {
       return q
         ? `<div class="liste"><div class="vide"><span class="vide-icone">${icone('loupe')}</span><h3>Aucun résultat</h3><p>Aucun rendez-vous ne correspond à «&nbsp;${esc(etat.recherche)}&nbsp;».</p></div></div>`
@@ -656,12 +685,12 @@
   function rendreAvenir() {
     if (!etat.distant) return;
     const auj = aujourdhui();
-    const m = maintenant();
-    const liste = instances(auj, decale(auj, 60))
-      .filter(i => i.r.statut !== 'annule' && (i.r.journee ? i.fin >= auj : i.date > auj || i.finM > m))
-      .slice(0, 5);
+    const liste = instances(auj, decale(auj, 60)).filter(i => i.r.statut !== 'annule' && pasFini(i)).slice(0, 5);
+    const libelle = i => (i.date < auj
+      ? `En cours · fin ${quand(i.fin).toLowerCase()}${i.r.journee ? '' : ` à ${i.r.fin}`}`
+      : `${quand(i.date)}${i.r.journee ? '' : ` · ${i.r.debut}`}`);
     $('#avenir').innerHTML = liste.length
-      ? liste.map(i => `<li><button type="button" class="av" data-id="${esc(i.r.id)}" data-date="${i.date}" style="--c:${couleurSure(categorie(i.r.categorie).couleur)}"><span><small>${esc(quand(i.date < auj ? auj : i.date))}${i.r.journee ? '' : ` · ${i.r.debut}`}</small><b>${esc(i.r.titre)}</b></span></button></li>`).join('')
+      ? liste.map(i => `<li><button type="button" class="av" data-id="${esc(i.r.id)}" data-date="${i.date}" style="--c:${couleurSure(categorie(i.r.categorie).couleur)}"><span><small>${esc(libelle(i))}</small><b>${esc(i.r.titre)}</b></span></button></li>`).join('')
       : '<li class="av-vide">Rien de prévu pour l\'instant.</li>';
   }
   function rendreFiltres() {
@@ -759,6 +788,7 @@
     champs.lieu.value = v.lieu || '';
     champs.notes.value = v.notes || '';
     form.dataset.debut = champs.debut.value;
+    form.dataset.date = champs.date.value;
     $('[data-serie]', form).hidden = !(r && r.repetition);
     $$('[data-action]', form).forEach(b => { b.hidden = !r; });
     $('#f-erreur').textContent = '';
@@ -769,7 +799,8 @@
   function majFiche() {
     const journee = champs.journee.checked;
     $$('[data-horaire]', form).forEach(el => { el.hidden = journee; });
-    $('[data-journee]', form).hidden = !journee;
+    $('[data-l-debut]', form).textContent = journee ? 'Du' : 'Début';
+    $('[data-l-fin]', form).textContent = journee ? 'Au' : 'Fin';
     $('[data-jusquau]', form).hidden = !champs.frequence.value;
     const lieu = champs.lieu.value.trim();
     const lien = $('#f-lien');
@@ -778,17 +809,22 @@
   }
   form.addEventListener('input', majFiche);
   form.addEventListener('change', e => {
-    // Changer l'heure de début décale la fin d'autant (la durée reste la même)
-    if (e.target === champs.debut) {
-      const avant = form.dataset.debut;
-      const apres = champs.debut.value;
-      if (HEURE.test(avant) && HEURE.test(apres) && HEURE.test(champs.fin.value)) {
-        const duree = (minutes(champs.fin.value) || 1440) - minutes(avant);
-        if (duree > 0) champs.fin.value = heure(Math.min(minutes(apres) + duree, 1440));
+    // Changer le début (date ou heure) décale la fin d'autant : la durée reste la même
+    if (e.target === champs.date || e.target === champs.debut) {
+      const [dAvant, hAvant] = [form.dataset.date, form.dataset.debut];
+      const [d, h] = [champs.date.value, champs.debut.value];
+      if (DATE.test(dAvant) && DATE.test(d) && DATE.test(champs.dateFin.value)) {
+        if (!champs.journee.checked && HEURE.test(hAvant) && HEURE.test(h) && HEURE.test(champs.fin.value)) {
+          const duree = instantFin(champs.dateFin.value, champs.fin.value) - instantDebut(dAvant, hAvant);
+          if (duree > 0) [champs.dateFin.value, champs.fin.value] = finDepuis(instantDebut(d, h) + duree);
+        } else if (d !== dAvant) {
+          champs.dateFin.value = decale(champs.dateFin.value, ecart(dAvant, d));
+        }
       }
-      form.dataset.debut = apres;
+      form.dataset.date = d;
+      form.dataset.debut = h;
     }
-    if (e.target === champs.date && champs.dateFin.value < champs.date.value) champs.dateFin.value = champs.date.value;
+    if (DATE.test(champs.date.value) && champs.dateFin.value < champs.date.value) champs.dateFin.value = champs.date.value;
     majFiche();
   });
   form.addEventListener('keydown', e => {
@@ -799,17 +835,20 @@
     const titre = champs.titre.value.trim();
     const journee = champs.journee.checked;
     const date = champs.date.value;
+    let dateFin = DATE.test(champs.dateFin.value) ? champs.dateFin.value : date;
     let erreur = '';
     let fautif = null;
     if (!titre) { erreur = 'Donne un titre au rendez-vous.'; fautif = champs.titre; }
     else if (!DATE.test(date)) { erreur = 'Choisis une date.'; fautif = champs.date; }
+    else if (dateFin < date) { erreur = 'La date de fin doit être après la date de début.'; fautif = champs.dateFin; }
     else if (!journee && (!HEURE.test(champs.debut.value) || !HEURE.test(champs.fin.value))) { erreur = 'Indique une heure de début et de fin.'; fautif = champs.debut; }
-    else if (!journee && (minutes(champs.fin.value) || 1440) <= minutes(champs.debut.value)) { erreur = 'La fin doit être après le début.'; fautif = champs.fin; }
-    else if (journee && champs.dateFin.value && champs.dateFin.value < date) { erreur = 'La date de fin doit être après la date de début.'; fautif = champs.dateFin; }
+    else if (!journee && instantFin(dateFin, champs.fin.value) <= instantDebut(date, champs.debut.value)) { erreur = 'La fin doit être après le début.'; fautif = champs.fin; }
     else if (champs.frequence.value && champs.jusquau.value && champs.jusquau.value < date) { erreur = 'La fin de la répétition doit être après la date du rendez-vous.'; fautif = champs.jusquau; }
     $('#f-erreur').textContent = erreur;
     if (erreur) { fautif.focus(); return; }
 
+    // Fin à minuit pile le lendemain : c'est la fin du jour d'avant (« 00:00 » = minuit)
+    if (!journee && champs.fin.value === '00:00' && dateFin > date) dateFin = decale(dateFin, -1);
     const avant = ficheEtat.r;
     const instant = new Date().toISOString();
     const rdv = {
@@ -820,7 +859,7 @@
       journee,
       debut: journee ? null : champs.debut.value,
       fin: journee ? null : champs.fin.value,
-      dateFin: journee ? (champs.dateFin.value || date) : null,
+      dateFin,
       repetition: champs.frequence.value ? { frequence: champs.frequence.value, jusquau: champs.jusquau.value || null } : null,
       exceptions: champs.frequence.value && avant && avant.repetition ? (avant.exceptions || []) : [],
       statut: (form.querySelector('input[name="statut"]:checked') || {}).value || 'confirme',
@@ -902,7 +941,7 @@
     const evEl = e.target.closest('.ev');
     if (evEl) {
       const r = trouver(evEl.dataset.id);
-      if (!r) return;
+      if (!r || etendue(r) > 0) return;
       const i = inst(r, evEl.dataset.date);
       glisse = {
         mode: e.target.closest('.ev-poignee') ? 'taille' : 'deplacer',
@@ -994,11 +1033,11 @@
     const quandTxt = `${quand(date).toLowerCase() === "aujourd'hui" ? "aujourd'hui" : `le ${fmt(date, { weekday: 'short', day: 'numeric', month: 'short' })}`} à ${heure(debut)}`;
     if (r.repetition) {
       // Une occurrence d'une série déplacée devient un rendez-vous à part
-      const copie = { ...clone(r), id: nouvelId(), date, debut: heure(debut), fin: heure(fin), repetition: null, exceptions: [], cree: instant, modifie: instant };
+      const copie = { ...clone(r), id: nouvelId(), date, dateFin: date, debut: heure(debut), fin: heure(fin), repetition: null, exceptions: [], cree: instant, modifie: instant };
       operation([{ type: 'sauter', id: r.id, date: ancienneDate, titre: r.titre }, { type: 'enregistrer', rdv: copie, nouveau: true }]);
       toast(`Cette occurrence est déplacée ${quandTxt}`, { texte: 'Annuler', faire: () => operation([{ type: 'supprimer', id: copie.id, titre: copie.titre }, { type: 'enregistrer', rdv: avant }]) });
     } else {
-      operation({ type: 'enregistrer', rdv: { ...clone(r), date, debut: heure(debut), fin: heure(fin), modifie: instant } });
+      operation({ type: 'enregistrer', rdv: { ...clone(r), date, dateFin: date, debut: heure(debut), fin: heure(fin), modifie: instant } });
       toast(`Déplacé ${quandTxt}`, { texte: 'Annuler', faire: () => operation({ type: 'enregistrer', rdv: avant }) });
     }
   }
@@ -1173,9 +1212,9 @@
     for (const r of liste) {
       L.push('BEGIN:VEVENT', `UID:${r.id}@agenda.mvriuus.fr`, `DTSTAMP:${stamp}`);
       if (r.journee) {
-        L.push(`DTSTART;VALUE=DATE:${sansTirets(r.date)}`, `DTEND;VALUE=DATE:${sansTirets(decale(r.dateFin || r.date, 1))}`);
+        L.push(`DTSTART;VALUE=DATE:${sansTirets(r.date)}`, `DTEND;VALUE=DATE:${sansTirets(decale(jourDeFin(r), 1))}`);
       } else {
-        L.push(`DTSTART;TZID=Europe/Paris:${dt(r.date, r.debut)}`, `DTEND;TZID=Europe/Paris:${dt(minutes(r.fin) === 0 ? decale(r.date, 1) : r.date, r.fin)}`);
+        L.push(`DTSTART;TZID=Europe/Paris:${dt(r.date, r.debut)}`, `DTEND;TZID=Europe/Paris:${dt(minutes(r.fin) === 0 ? decale(jourDeFin(r), 1) : jourDeFin(r), r.fin)}`);
       }
       L.push(`SUMMARY:${txt(r.titre)}`);
       if (r.lieu) L.push(`LOCATION:${txt(r.lieu)}`);
