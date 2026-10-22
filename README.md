@@ -16,6 +16,7 @@ liens/index.html        → page « Liens » à mettre dans les bios des réseau
 conseils/                → liste et articles « Conseils », générés depuis tools/articles/ (modifier le texte là-bas)
 sitemap.xml, robots.txt  → pour Google, générés par tools/build.py
 diagnostic/<score>/      → pages d'arrivée des scores partagés du diagnostic, générées par tools/build.py
+agenda/                  → agenda privé (connexion Discord, voir « Agenda privé » plus bas)
 404.html                → page « introuvable »
 site.webmanifest        → nom et icônes quand le site est ajouté à l'écran d'accueil
 assets/css/style.css    → styles et animations
@@ -38,6 +39,25 @@ assets/img/             → photo de profil, logos et visuels des projets, image
 - **Bots Arvenis** : l'article des bots affiche les photos et bannières hébergées par Discord,
   remises à jour depuis `api.arvenis.fr/profiles`. Si elles ne chargent pas, les logos de
   `assets/img/bots/` prennent le relais.
+
+## Agenda privé (`/agenda/`)
+
+Agenda personnel de Mvrius, non référencé (`noindex`, `robots.txt`). La page ne contient aucun
+rendez-vous : ils sont dans le dépôt **privé** `agenda-donnees` (fichier `agenda.json`, un commit
+par changement).
+
+- **Connexion** : avec Discord, un seul compte accepté. Elle passe par un Cloudflare Worker
+  (`tools/agenda-worker.js`) qui vérifie le compte, donne une session signée de 30 jours et lit
+  ou écrit `agenda.json` avec sa propre clé GitHub. Ni la clé GitHub ni le secret Discord ne
+  vont dans le navigateur.
+- **Adresse du Worker** : `agenda/config.js` (`window.AGENDA_SERVEUR`). Elle doit finir par
+  `.workers.dev`, sinon il faut l'ajouter à `connect-src` dans `agenda/index.html`.
+- **Variables du Worker** (Cloudflare › Settings › Variables and Secrets) : `DISCORD_CLIENT_ID`,
+  `DISCORD_CLIENT_SECRET` (secret), `DISCORD_ID_AUTORISE`, `GITHUB_TOKEN` (secret, jeton limité à
+  `agenda-donnees` avec « Contents : Read and write »). Changer l'un des secrets déconnecte tous
+  les appareils.
+- **Application Discord** : redirection OAuth2 `https://<worker>/retour`, scope `identify`.
+- Après un changement de `agenda/app.js` ou `agenda/app.css`, augmenter `?v=` dans `agenda/index.html`.
 
 ## Avant chaque publication
 

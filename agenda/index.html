@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://cdn.discordapp.com; connect-src https://*.workers.dev; manifest-src 'self'; base-uri 'none'; object-src 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>Agenda · Mvrius</title>
+  <meta name="description" content="Agenda privé de Mvrius.">
+  <meta name="theme-color" content="#07080c">
+  <meta name="color-scheme" content="dark">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Agenda">
+  <link rel="icon" href="icone.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icone-180.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preload" href="../assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="../assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="app.css?v=1">
+  <script src="config.js?v=1" defer></script>
+  <script src="app.js?v=1" defer></script>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs><linearGradient id="g-logo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b9bff"/><stop offset=".5" stop-color="#c3a6ff"/><stop offset="1" stop-color="#6ee7ff"/></linearGradient></defs>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
+    <symbol id="i-gauche" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+    <symbol id="i-droite" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-loupe" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-plus-options" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></symbol>
+    <symbol id="i-fermer" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-repete" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></symbol>
+    <symbol id="i-horloge" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-personne" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+    <symbol id="i-lieu" viewBox="0 0 24 24"><path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+    <symbol id="i-note" viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M9 9h6M9 13h6M9 17h3"/></symbol>
+    <symbol id="i-corbeille" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+    <symbol id="i-copie" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16V5a1 1 0 0 1 1-1h11"/></symbol>
+    <symbol id="i-calendrier" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+    <symbol id="i-telecharger" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5"/><path d="M4 19h16"/></symbol>
+    <symbol id="i-cadenas" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+    <symbol id="i-reglages" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+    <symbol id="i-clavier" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></symbol>
+    <symbol id="i-lien" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></symbol>
+    <symbol id="i-sortie" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+    <symbol id="b-discord" viewBox="0 0 24 24"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.211.375-.445.865-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.058a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .078-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.1.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.331c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.332-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.332-.946 2.418-2.157 2.418z"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+  </svg>
+
+  <!-- Connexion : rien ne s'affiche sans la clé d'accès -->
+  <div class="connexion" id="connexion" hidden>
+    <div class="c-carte">
+      <svg class="c-logo" viewBox="0 0 64 64" aria-hidden="true">
+        <rect width="64" height="64" rx="18" fill="#10121b"/>
+        <rect x="14" y="17" width="36" height="32" rx="7" fill="none" stroke="url(#g-logo)" stroke-width="4.5"/>
+        <path d="M14 28h36M24 12v9M40 12v9" fill="none" stroke="url(#g-logo)" stroke-width="4.5" stroke-linecap="round"/>
+      </svg>
+      <h1>Ton agenda <em>privé</em>.</h1>
+      <p class="c-intro">Connecte-toi avec ton compte Discord. Seul le compte de Mvrius peut ouvrir cet agenda.</p>
+      <div class="c-chargement" role="status"><span class="c-roue" aria-hidden="true"></span>Ouverture de ton agenda…</div>
+      <a class="btn btn--discord btn--large" id="c-discord" href="#"><svg class="i i--plein" aria-hidden="true"><use href="#b-discord"/></svg>Se connecter avec Discord</a>
+      <p class="c-erreur" id="c-erreur" role="alert"></p>
+      <p class="c-note"><svg class="i" aria-hidden="true"><use href="#i-cadenas"/></svg>Tes rendez-vous sont dans un dépôt privé. Cette page n'en contient aucun.</p>
+    </div>
+  </div>
+
+  <div class="app" id="app" hidden>
+    <header class="barre" id="barre">
+      <button class="icone-btn b-cote" id="ouvrir-cote" type="button" aria-label="Afficher le calendrier et les catégories" aria-expanded="false"><svg class="i"><use href="#i-menu"/></svg></button>
+      <a class="b-logo" href="./" aria-label="Agenda, accueil">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="#10121b"/><rect x="14" y="17" width="36" height="32" rx="7" fill="none" stroke="url(#g-logo)" stroke-width="5"/><path d="M14 28h36M24 12v9M40 12v9" fill="none" stroke="url(#g-logo)" stroke-width="5" stroke-linecap="round"/></svg>
+        <span>Agenda</span>
+      </a>
+      <div class="b-nav" id="b-nav">
+        <button class="btn btn--ghost" id="aujourdhui" type="button">Aujourd'hui</button>
+        <button class="icone-btn" id="prec" type="button" aria-label="Période précédente"><svg class="i"><use href="#i-gauche"/></svg></button>
+        <button class="icone-btn" id="suiv" type="button" aria-label="Période suivante"><svg class="i"><use href="#i-droite"/></svg></button>
+      </div>
+      <h1 class="b-periode" id="periode" aria-live="polite"></h1>
+      <label class="b-recherche">
+        <svg class="i" aria-hidden="true"><use href="#i-loupe"/></svg>
+        <input type="search" id="recherche" placeholder="Rechercher" aria-label="Rechercher un rendez-vous" autocomplete="off">
+      </label>
+      <button class="icone-btn b-loupe" id="loupe" type="button" aria-label="Rechercher"><svg class="i"><use href="#i-loupe"/></svg></button>
+      <div class="b-vues" role="group" aria-label="Affichage">
+        <button type="button" data-vue="jour" aria-pressed="false">Jour</button>
+        <button type="button" data-vue="semaine" aria-pressed="false">Semaine</button>
+        <button type="button" data-vue="mois" aria-pressed="false">Mois</button>
+        <button type="button" data-vue="liste" aria-pressed="false">Liste</button>
+      </div>
+      <button class="b-synchro" id="synchro" type="button" data-etat="ok"><i aria-hidden="true"></i><span>À jour</span></button>
+      <div class="b-menu">
+        <button class="icone-btn b-compte" id="menu" type="button" aria-label="Compte et options" aria-haspopup="true" aria-expanded="false"><svg class="i"><use href="#i-plus-options"/></svg></button>
+        <div class="menu" id="menu-liste" hidden>
+          <div class="menu-compte" id="menu-compte"></div>
+          <button type="button" data-menu="reglages"><svg class="i"><use href="#i-reglages"/></svg>Réglages et catégories</button>
+          <button type="button" data-menu="ics"><svg class="i"><use href="#i-calendrier"/></svg>Exporter vers un autre calendrier (.ics)</button>
+          <button type="button" data-menu="json"><svg class="i"><use href="#i-telecharger"/></svg>Télécharger une sauvegarde (.json)</button>
+          <button type="button" data-menu="raccourcis"><svg class="i"><use href="#i-clavier"/></svg>Raccourcis clavier</button>
+          <hr>
+          <button type="button" class="danger" data-menu="deconnexion"><svg class="i"><use href="#i-sortie"/></svg>Se déconnecter</button>
+        </div>
+      </div>
+      <button class="btn btn--primaire b-nouveau" id="nouveau" type="button"><svg class="i"><use href="#i-plus"/></svg>Nouveau</button>
+    </header>
+
+    <aside class="cote" id="cote" aria-label="Calendrier et catégories">
+      <div class="mini" id="mini"></div>
+      <section class="bloc">
+        <h2>À venir</h2>
+        <ol class="avenir" id="avenir"></ol>
+      </section>
+      <section class="bloc">
+        <h2>Catégories</h2>
+        <ul class="filtres" id="filtres"></ul>
+        <button class="lien-discret" type="button" data-menu="reglages">Modifier les catégories</button>
+      </section>
+    </aside>
+    <div class="voile" id="voile"></div>
+
+    <main class="vue" id="vue"></main>
+
+    <button class="fab" id="fab" type="button" aria-label="Nouveau rendez-vous"><svg class="i"><use href="#i-plus"/></svg></button>
+  </div>
+
+  <!-- Fiche d'un rendez-vous -->
+  <dialog class="dialogue" id="fiche" aria-labelledby="fiche-titre">
+    <form id="fiche-form" novalidate>
+      <header class="f-tete">
+        <h2 id="fiche-titre">Nouveau rendez-vous</h2>
+        <button class="icone-btn" type="button" data-fermer aria-label="Fermer"><svg class="i"><use href="#i-fermer"/></svg></button>
+      </header>
+      <div class="f-corps">
+        <input class="f-nom" name="titre" placeholder="Titre du rendez-vous" aria-label="Titre du rendez-vous" maxlength="120" autocomplete="off" required>
+        <fieldset class="f-choix" id="f-cats"><legend class="sr">Catégorie</legend></fieldset>
+        <div class="f-ligne">
+          <label class="champ"><span>Date</span><input type="date" name="date" required></label>
+          <label class="champ" data-horaire><span>Début</span><input type="time" name="debut" step="300"></label>
+          <label class="champ" data-horaire><span>Fin</span><input type="time" name="fin" step="300"></label>
+          <label class="champ" data-journee hidden><span>Jusqu'au</span><input type="date" name="dateFin"></label>
+        </div>
+        <label class="interrupteur"><input type="checkbox" name="journee"><span aria-hidden="true"></span>Toute la journée</label>
+        <div class="f-ligne">
+          <label class="champ"><span>Répétition</span><select name="frequence"></select></label>
+          <label class="champ" data-jusquau hidden><span>Jusqu'au (facultatif)</span><input type="date" name="jusquau"></label>
+        </div>
+        <p class="f-info" data-serie hidden><svg class="i" aria-hidden="true"><use href="#i-repete"/></svg><span>Ce rendez-vous se répète&nbsp;: tes changements s'appliquent à toute la série.</span></p>
+        <fieldset class="f-choix f-choix--statut" id="f-statut"><legend class="f-legende">Statut</legend></fieldset>
+        <label class="champ"><span>Avec</span><input name="avec" placeholder="Nom, pseudo Discord…" maxlength="120" autocomplete="off"></label>
+        <label class="champ">
+          <span>Lieu ou lien <a class="f-lien" id="f-lien" target="_blank" rel="noopener noreferrer" hidden>Ouvrir<svg class="i" aria-hidden="true"><use href="#i-lien"/></svg></a></span>
+          <input name="lieu" placeholder="Adresse, salon vocal, lien de visio…" maxlength="300" autocomplete="off">
+        </label>
+        <label class="champ"><span>Notes</span><textarea name="notes" rows="3" maxlength="4000" placeholder="Ordre du jour, infos utiles…"></textarea></label>
+        <p class="f-erreur" id="f-erreur" role="alert"></p>
+      </div>
+      <footer class="f-pied">
+        <button class="icone-btn icone-btn--danger" type="button" data-action="supprimer" aria-label="Supprimer" title="Supprimer"><svg class="i"><use href="#i-corbeille"/></svg></button>
+        <button class="icone-btn" type="button" data-action="dupliquer" aria-label="Dupliquer" title="Dupliquer"><svg class="i"><use href="#i-copie"/></svg></button>
+        <button class="icone-btn" type="button" data-action="ics" aria-label="Ajouter à un autre calendrier (.ics)" title="Ajouter à un autre calendrier (.ics)"><svg class="i"><use href="#i-calendrier"/></svg></button>
+        <span class="espace"></span>
+        <button class="btn btn--ghost f-annuler" type="button" data-fermer>Annuler</button>
+        <button class="btn btn--primaire" type="submit">Enregistrer</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- Supprimer un rendez-vous qui se répète -->
+  <dialog class="dialogue dialogue--petit" id="serie" aria-labelledby="serie-titre">
+    <form method="dialog" class="d-simple">
+      <h2 id="serie-titre">Supprimer un rendez-vous qui se répète</h2>
+      <p id="serie-texte"></p>
+      <div class="d-boutons">
+        <button class="btn btn--ghost" value="une" id="serie-une">Seulement celui-ci</button>
+        <button class="btn btn--danger" value="serie">Toute la série</button>
+        <button class="btn btn--lien" value="">Annuler</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Réglages -->
+  <dialog class="dialogue" id="reglages" aria-labelledby="reglages-titre">
+    <form id="reglages-form" novalidate>
+      <header class="f-tete">
+        <h2 id="reglages-titre">Réglages</h2>
+        <button class="icone-btn" type="button" data-fermer aria-label="Fermer"><svg class="i"><use href="#i-fermer"/></svg></button>
+      </header>
+      <div class="f-corps">
+        <section class="r-bloc">
+          <h3>Catégories</h3>
+          <p class="r-aide">Clique sur une pastille pour changer sa couleur.</p>
+          <div class="cats" id="cats-edit"></div>
+          <button class="btn btn--ghost btn--petit" type="button" id="cat-ajout"><svg class="i"><use href="#i-plus"/></svg>Ajouter une catégorie</button>
+        </section>
+        <section class="r-bloc">
+          <h3>Sauvegarde</h3>
+          <p class="r-aide">Tes rendez-vous sont enregistrés dans le dépôt privé <code>mariusboost63-stack/agenda-donnees</code>, avec l'historique de chaque changement.</p>
+          <div class="r-boutons">
+            <button class="btn btn--ghost btn--petit" type="button" data-menu="json"><svg class="i"><use href="#i-telecharger"/></svg>Sauvegarde (.json)</button>
+            <button class="btn btn--ghost btn--petit" type="button" data-menu="ics"><svg class="i"><use href="#i-calendrier"/></svg>Exporter (.ics)</button>
+          </div>
+        </section>
+        <section class="r-bloc">
+          <h3>Connexion</h3>
+          <p class="r-aide">Seul ton compte Discord peut ouvrir l'agenda. La session dure 30 jours sur chaque appareil. Déconnecte-toi sur un appareil partagé.</p>
+          <button class="btn btn--danger btn--petit" type="button" data-menu="deconnexion"><svg class="i"><use href="#i-sortie"/></svg>Se déconnecter</button>
+        </section>
+      </div>
+      <footer class="f-pied">
+        <span class="espace"></span>
+        <button class="btn btn--ghost" type="button" data-fermer>Annuler</button>
+        <button class="btn btn--primaire" type="submit">Enregistrer</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+</body>
+</html>
