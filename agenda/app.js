@@ -1165,7 +1165,7 @@
     try {
       const rep = await fetch(`${SERVEUR}/rappels/test`, { method: 'POST', headers: { Authorization: `Bearer ${etat.session ? etat.session.jeton : ''}` } });
       const corps = await rep.json().catch(() => ({}));
-      toast(rep.ok ? 'Message envoyé : regarde tes messages privés Discord.' : (rep.status === 401 ? 'Ta session a expiré. Reconnecte-toi avec Discord.' : corps.message || 'Le message n\'a pas pu partir.'), null, rep.ok ? 4000 : 9000);
+      toast(rep.ok ? `Message envoyé : regarde tes MP Discord. ${corps.prochain || ''}` : (rep.status === 401 ? 'Ta session a expiré. Reconnecte-toi avec Discord.' : corps.message || 'Le message n\'a pas pu partir.'), null, rep.ok ? 4000 : 9000);
     } catch (e) {
       toast("Impossible de joindre le serveur de l'agenda.", null, 6000);
     } finally {

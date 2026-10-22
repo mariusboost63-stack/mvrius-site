@@ -47,9 +47,11 @@ export default {
       return cors(json({ message: 'Erreur du serveur.' }, 500), origine);
     }
   },
-  // Cron Trigger : rappels dus depuis le passage précédent
+  // Cron Trigger : rappels dus depuis le passage précédent (le résultat apparaît dans les logs)
   async scheduled(evenement, env, ctx) {
-    ctx.waitUntil(envoyerRappels(evenement.scheduledTime, env, env.PAGE || PAGE_PAR_DEFAUT));
+    ctx.waitUntil(envoyerRappels(evenement.scheduledTime, env, env.PAGE || PAGE_PAR_DEFAUT)
+      .then(n => console.log(`Rappels : ${n} message(s) envoyé(s)`))
+      .catch(e => console.error(`Rappels : échec — ${e.message}`)));
   },
 };
 
@@ -217,9 +219,15 @@ async function envoyerRappels(t, env, page) {
   for (const r of donnees.rendezvous || []) {
     const avant = rappelDe(r);
     if (avant === null || r.statut === 'annule' || !DATE.test(r.date)) continue;
+    const modifie = Date.parse(r.modifie || '') || 0;
     for (const d of debuts(r, decale(auj, -2), decale(auj, 3))) {
-      const instant = parisVersUtc(d, r.journee ? '00:00' : r.debut) - avant * 60000;
+      const debut = parisVersUtc(d, r.journee ? '00:00' : r.debut);
+      const instant = debut - avant * 60000;
       if (instant > apres && instant <= t) messages.push(messageRappel(r, d, avant, donnees, page, auj));
+      // Créé ou modifié après l'heure de son rappel, mais pas encore commencé : rappel tout de suite
+      else if (instant <= apres && debut > t && modifie > instant && modifie > apres && modifie <= t) {
+        messages.push(messageRappel(r, d, Math.max(1, Math.round((debut - t) / 60000)), donnees, page, auj));
+      }
     }
   }
   // Résumé du matin
@@ -231,8 +239,28 @@ async function envoyerRappels(t, env, page) {
       if (message) messages.push(message);
     }
   }
+  if (!messages.length) return 0;
+  // Discord demande qu'un bot se soit connecté au Gateway avant d'envoyer des messages
+  await connecterBot(env).catch(() => {});
   for (const m of messages) await envoyerMp(env, m);
   return messages.length;
+}
+
+// Prochain rappel prévu (pour le message test)
+function prochainRappel(donnees, t) {
+  const auj = jourParis(t);
+  let prochain = null;
+  for (const r of donnees.rendezvous || []) {
+    const avant = rappelDe(r);
+    if (avant === null || r.statut === 'annule' || !DATE.test(r.date)) continue;
+    for (const d of debuts(r, auj, decale(auj, 8))) {
+      const instant = parisVersUtc(d, r.journee ? '00:00' : r.debut) - avant * 60000;
+      if (instant > t && (!prochain || instant < prochain.instant)) prochain = { r, instant };
+    }
+  }
+  if (!prochain) return 'Aucun rappel prévu dans les 7 prochains jours.';
+  const p = morceaux(prochain.instant);
+  return `Prochain rappel : « ${prochain.r.titre || 'Rendez-vous'} », ${jourTexte(jourParis(prochain.instant))} à ${p.hour}:${p.minute}.`;
 }
 
 async function rappelTest(req, env, page) {
@@ -243,15 +271,16 @@ async function rappelTest(req, env, page) {
   try {
     // Discord demande qu'un bot se soit connecté au moins une fois avant d'envoyer des messages
     await connecterBot(env);
+    const prochain = prochainRappel(await lireAgenda(env), Date.now());
     await envoyerMp(env, {
       embeds: [{
         title: 'Les rappels de ton agenda fonctionnent ✅',
-        description: 'Tu recevras ici un message avant chaque rendez-vous.',
+        description: `Tu recevras ici un message avant chaque rendez-vous.\n\n${prochain}`,
         url: page,
         color: 0x8b9bff,
       }],
     });
-    return json({ ok: true }, 200);
+    return json({ ok: true, prochain }, 200);
   } catch (e) {
     return json({ message: e.message }, 502);
   }
