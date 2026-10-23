@@ -822,7 +822,7 @@ async function reserver(req, env, page, ctx) {
   // On fait comme si tout allait bien.
   if (c.site || (c.rempli !== undefined && !(Number(c.rempli) >= 3000))) return json({ ok: true }, 200);
   if (!nom) return json({ message: 'Indiquez votre nom ou votre pseudo.' }, 400);
-  if (!email && !discord) return json({ message: 'Indiquez une adresse e-mail ou un pseudo Discord pour que je puisse vous répondre.' }, 400);
+  if (!email && !discord) return json({ message: 'Indiquez une adresse e-mail ou un pseudo Discord pour que je puisse vous contacter.' }, 400);
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ message: "Cette adresse e-mail n'a pas l'air valide." }, 400);
   if (!DATE.test(c.date) || !HEURE.test(c.heure)) return json({ message: 'Choisissez un créneau.' }, 400);
   const t = Date.now();
@@ -853,7 +853,7 @@ async function reserver(req, env, page, ctx) {
   });
   if (!resultat) {
     const messages = {
-      ferme: 'Les réservations sont fermées pour le moment. Écrivez-moi via le formulaire de contact.',
+      ferme: "Je n'ai pas de disponibilités pour le moment. Écrivez-moi via le formulaire de contact.",
       pris: "Ce créneau vient d'être pris ou n'est plus disponible. Choisissez-en un autre.",
       plein: 'Beaucoup de demandes sont déjà en attente. Écrivez-moi via le formulaire de contact.',
     };

@@ -857,7 +857,7 @@ def build_reservation_page(version):
             <label class="field field--full"><textarea name="message" rows="4" maxlength="1500" placeholder=" "></textarea><span>Quelques mots sur votre serveur (facultatif)</span></label>
             <input class="quote__honey" type="text" name="site" tabindex="-1" autocomplete="off" aria-hidden="true">
           </div>
-          <p class="resa__aide">Un e-mail ou un pseudo Discord suffit pour que je vous réponde. Ces informations servent uniquement à organiser l'appel (<a href="../mentions-legales/">mentions légales</a>).</p>
+          <p class="resa__aide">Un e-mail ou un pseudo Discord suffit&nbsp;: je vous contacte une fois le rendez-vous validé. Ces informations servent uniquement à organiser l'appel (<a href="../mentions-legales/">mentions légales</a>).</p>
           <div class="quote__foot">
             <button class="btn btn--primary btn--lg quote__submit" type="submit"><span class="quote__spinner" aria-hidden="true"></span><span class="quote__label">Envoyer la demande</span><svg class="ico"><use href="#i-arrow-right"/></svg></button>
             <p class="quote__status resa__erreur js-resa-erreur" role="alert"></p>
@@ -868,16 +868,15 @@ def build_reservation_page(version):
           <span class="resa__pastille" aria-hidden="true"><svg class="ico"><use href="#i-check"/></svg></span>
           <h2>Demande envoyée&nbsp;!</h2>
           <p><b class="js-resa-ok-recap"></b></p>
-          <p>Je vous confirme le rendez-vous <span class="js-resa-ok-contact"></span>, en général dans la journée.</p>
+          <p>Elle est en attente de validation, en général dans la journée. Une fois le rendez-vous validé, je vous contacte <span class="js-resa-ok-contact"></span>.</p>
           <a class="btn btn--ghost btn--sm" href="../"><span>Retour à l'accueil</span></a>
         </div>
 
         <div class="resa__etat js-resa-ferme" hidden>
-          <h2 class="js-resa-ferme-texte"></h2>
+          <h2>Je n'ai pas de disponibilités pour le moment.</h2>
           <p>Vous pouvez m'écrire directement&nbsp;: je vous réponds rapidement.</p>
           <div class="resa__boutons">
             <a class="btn btn--primary btn--sm" href="../#contact"><span>Me contacter</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
-            <button class="btn btn--ghost btn--sm js-resa-recharger" type="button"><span>Réessayer</span></button>
           </div>
         </div>
       </div>
@@ -886,8 +885,8 @@ def build_reservation_page(version):
         <h2>Comment ça se passe&nbsp;?</h2>
         <ol>
           <li><b>Vous choisissez un créneau</b> qui vous arrange.</li>
-          <li><b>Je confirme</b> par e-mail ou sur Discord, en général dans la journée.</li>
-          <li><b>On s'appelle</b> sur Discord ou en visio&nbsp;: votre serveur, vos objectifs, mes conseils.</li>
+          <li><b>Je valide votre demande</b>, en général dans la journée. Je ne vous contacte qu'une fois le rendez-vous validé.</li>
+          <li><b>On s'appelle sur Discord</b>&nbsp;: votre serveur, vos objectifs, mes conseils.</li>
         </ol>
         <p>Vous préférez écrire&nbsp;? <a href="../#contact">Demandez un devis</a>.</p>
       </aside>

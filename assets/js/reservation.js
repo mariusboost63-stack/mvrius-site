@@ -2,7 +2,8 @@
    Mvrius — page « Réserver un appel » (rendez-vous/)
    Les créneaux libres viennent du serveur de l'agenda (tools/agenda-worker.js) :
    il ne renvoie que des heures libres, jamais le contenu de l'agenda. Une demande
-   arrive « En attente » dans l'agenda, et Mvrius la confirme par e-mail ou Discord.
+   arrive « En attente » dans l'agenda : Mvrius ne contacte la personne qu'une fois
+   le rendez-vous validé.
    ========================================================================== */
 (() => {
   'use strict';
@@ -21,28 +22,27 @@
   function montrer(nom) {
     blocs.forEach(b => { $(`.js-resa-${b}`).hidden = b !== nom; });
   }
-  function fermer(message) {
-    $('.js-resa-ferme-texte').textContent = message;
-    montrer('ferme');
-  }
+  // Réservations fermées, aucune plage horaire, tout est pris ou serveur injoignable :
+  // toujours le même message (« pas de disponibilités »), jamais d'erreur
+  const fermer = () => montrer('ferme');
   const recap = () => `${maj1(fmt(etat.jour, { weekday: 'long', day: 'numeric', month: 'long' }))} à ${etat.heure.replace(':', ' h ')} · ${etat.duree} min`;
 
   async function charger() {
-    if (!SERVEUR) { fermer('La prise de rendez-vous en ligne arrive bientôt.'); return; }
+    if (!SERVEUR) { fermer(); return; }
     montrer('chargement');
     try {
       const rep = await fetch(`${SERVEUR}/reservation/creneaux`, { cache: 'no-store' });
       const corps = await rep.json();
-      if (!rep.ok || !corps.actif) { fermer('Les réservations sont fermées pour le moment.'); return; }
+      if (!rep.ok || !corps.actif) { fermer(); return; }
       etat.jours = corps.jours || [];
       etat.duree = corps.duree || 30;
       document.querySelectorAll('.js-resa-duree').forEach(el => { el.textContent = etat.duree; });
-      if (!etat.jours.length) { fermer('Tous les créneaux des prochains jours sont déjà pris.'); return; }
+      if (!etat.jours.length) { fermer(); return; }
       if (!etat.jours.some(j => j.date === etat.jour)) etat.jour = etat.jours[0].date;
       afficherJours();
       montrer('choix');
     } catch (e) {
-      fermer("Les créneaux n'ont pas pu être chargés. Réessayez dans un instant.");
+      fermer();
     }
   }
 
@@ -75,8 +75,7 @@
       $('.js-resa-form input[name="nom"]').focus();
       return;
     }
-    if (e.target.closest('.js-resa-changer')) { montrer('choix'); return; }
-    if (e.target.closest('.js-resa-recharger')) charger();
+    if (e.target.closest('.js-resa-changer')) montrer('choix');
   });
 
   const form = $('.js-resa-form');
@@ -86,7 +85,7 @@
     const erreur = $('.js-resa-erreur');
     form.classList.add('was-validated');
     if (!c.nom.trim()) { erreur.textContent = 'Indiquez votre nom ou votre pseudo.'; form.nom.focus(); return; }
-    if (!c.email.trim() && !c.discord.trim()) { erreur.textContent = 'Indiquez une adresse e-mail ou un pseudo Discord pour que je puisse vous répondre.'; form.email.focus(); return; }
+    if (!c.email.trim() && !c.discord.trim()) { erreur.textContent = 'Indiquez une adresse e-mail ou un pseudo Discord pour que je puisse vous contacter.'; form.email.focus(); return; }
     if (c.email.trim() && !form.email.checkValidity()) { erreur.textContent = "Cette adresse e-mail n'a pas l'air valide."; form.email.focus(); return; }
     erreur.textContent = '';
     const bouton = $('button[type="submit"]', form);
@@ -102,7 +101,7 @@
       const corps = await rep.json().catch(() => ({}));
       if (rep.ok) {
         $('.js-resa-ok-recap').textContent = recap();
-        $('.js-resa-ok-contact').textContent = c.email.trim() ? `par e-mail (${c.email.trim()})` : `sur Discord (${c.discord.trim()})`;
+        $('.js-resa-ok-contact').textContent = c.discord.trim() ? `sur Discord (${c.discord.trim()})` : `par e-mail (${c.email.trim()})`;
         form.reset();
         form.classList.remove('was-validated');
         montrer('ok');
