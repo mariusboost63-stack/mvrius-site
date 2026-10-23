@@ -19,9 +19,9 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="preload" href="../assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="../assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="app.css?v=3">
+  <link rel="stylesheet" href="app.css?v=4">
   <script src="config.js?v=2" defer></script>
-  <script src="app.js?v=4" defer></script>
+  <script src="app.js?v=5" defer></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -48,6 +48,7 @@
     <symbol id="i-lien" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></symbol>
     <symbol id="i-sortie" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
     <symbol id="b-discord" viewBox="0 0 24 24"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.211.375-.445.865-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.058a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .078-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.1.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.331c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.332-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.332-.946 2.418-2.157 2.418z"/></symbol>
+    <symbol id="i-coche" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 12 3 3 5-6"/></symbol>
     <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
   </svg>
 
@@ -76,7 +77,7 @@
         <span>Agenda</span>
       </a>
       <div class="b-nav" id="b-nav">
-        <button class="btn btn--ghost" id="aujourdhui" type="button">Aujourd'hui</button>
+        <button class="btn btn--ghost" id="aujourdhui" type="button" aria-label="Aujourd'hui"><span class="v-large">Aujourd'hui</span><span class="v-petit">Auj.</span></button>
         <button class="icone-btn" id="prec" type="button" aria-label="Période précédente"><svg class="i"><use href="#i-gauche"/></svg></button>
         <button class="icone-btn" id="suiv" type="button" aria-label="Période suivante"><svg class="i"><use href="#i-droite"/></svg></button>
       </div>
@@ -88,7 +89,7 @@
       <button class="icone-btn b-loupe" id="loupe" type="button" aria-label="Rechercher"><svg class="i"><use href="#i-loupe"/></svg></button>
       <div class="b-vues" role="group" aria-label="Affichage">
         <button type="button" data-vue="jour" aria-pressed="false">Jour</button>
-        <button type="button" data-vue="semaine" aria-pressed="false">Semaine</button>
+        <button type="button" data-vue="semaine" aria-pressed="false"><span class="v-large">Semaine</span><span class="v-petit">3 jours</span></button>
         <button type="button" data-vue="mois" aria-pressed="false">Mois</button>
         <button type="button" data-vue="liste" aria-pressed="false">Liste</button>
       </div>
@@ -115,6 +116,10 @@
         <ol class="avenir" id="avenir"></ol>
       </section>
       <section class="bloc">
+        <h2>Tâches <span class="bloc-quand" id="taches-quand"></span></h2>
+        <div id="taches-cote"></div>
+      </section>
+      <section class="bloc">
         <h2>Catégories</h2>
         <ul class="filtres" id="filtres"></ul>
         <button class="lien-discret" type="button" data-menu="reglages">Modifier les catégories</button>
@@ -136,6 +141,7 @@
       </header>
       <div class="f-corps">
         <input class="f-nom" name="titre" placeholder="Titre du rendez-vous" aria-label="Titre du rendez-vous" maxlength="120" autocomplete="off" required>
+        <div class="f-demande" id="f-demande" hidden></div>
         <fieldset class="f-choix" id="f-cats"><legend class="sr">Catégorie</legend></fieldset>
         <div class="f-ligne f-quand">
           <label class="champ"><span data-l-debut>Début</span><input type="date" name="date" required></label>
@@ -144,8 +150,8 @@
           <label class="champ" data-horaire><span>Heure</span><input type="time" name="fin" step="300" aria-label="Heure de fin"></label>
         </div>
         <label class="interrupteur"><input type="checkbox" name="journee"><span aria-hidden="true"></span>Toute la journée</label>
+        <fieldset class="f-choix f-choix--rappels" id="f-rappels"><legend class="f-legende">Rappels sur Discord</legend></fieldset>
         <div class="f-ligne">
-          <label class="champ"><span>Rappel sur Discord</span><select name="rappel"></select></label>
           <label class="champ"><span>Répétition</span><select name="frequence"></select></label>
           <label class="champ" data-jusquau hidden><span>Jusqu'au (facultatif)</span><input type="date" name="jusquau"></label>
         </div>
@@ -157,6 +163,11 @@
           <input name="lieu" placeholder="Adresse, salon vocal, lien de visio…" maxlength="300" autocomplete="off">
         </label>
         <label class="champ"><span>Notes</span><textarea name="notes" rows="3" maxlength="4000" placeholder="Ordre du jour, infos utiles…"></textarea></label>
+        <div class="champ f-check">
+          <span id="f-check-titre">Liste à cocher</span>
+          <ul class="f-check-liste" id="f-check" aria-labelledby="f-check-titre"></ul>
+          <input class="f-check-ajout" id="f-check-ajout" placeholder="Ajouter un élément puis Entrée…" maxlength="200" autocomplete="off" aria-label="Ajouter un élément à la liste">
+        </div>
         <p class="f-erreur" id="f-erreur" role="alert"></p>
       </div>
       <footer class="f-pied">
@@ -198,12 +209,37 @@
           <button class="btn btn--ghost btn--petit" type="button" id="cat-ajout"><svg class="i"><use href="#i-plus"/></svg>Ajouter une catégorie</button>
         </section>
         <section class="r-bloc">
+          <h3>Heures de travail</h3>
+          <p class="r-aide">En dehors de ces horaires et de ces jours, l'agenda est grisé.</p>
+          <fieldset class="f-choix r-jours" id="r-jours"><legend class="sr">Jours travaillés</legend></fieldset>
+          <div class="r-ligne">
+            <label class="champ"><span>De</span><input type="time" id="r-t-debut" step="900"></label>
+            <label class="champ"><span>À</span><input type="time" id="r-t-fin" step="900"></label>
+          </div>
+          <label class="interrupteur"><input type="checkbox" id="r-t-griser"><span aria-hidden="true"></span>Griser les heures hors travail</label>
+          <label class="interrupteur"><input type="checkbox" id="r-t-semaine"><span aria-hidden="true"></span>Vue Semaine : seulement les jours travaillés</label>
+        </section>
+        <section class="r-bloc">
+          <h3>Réservation d'appels</h3>
+          <p class="r-aide">Tes clients réservent un créneau libre sur <a href="../rendez-vous/" target="_blank" rel="noopener">mvriuus.fr/rendez-vous</a>. Ils ne voient jamais tes rendez-vous, seulement les créneaux libres. Chaque demande arrive « En attente » et tu reçois un MP pour la confirmer.</p>
+          <label class="interrupteur"><input type="checkbox" id="r-resa-actif"><span aria-hidden="true"></span>Ouvrir les réservations</label>
+          <div class="r-plages" id="r-plages"></div>
+          <div class="r-ligne r-ligne--4">
+            <label class="champ"><span>Durée d'un appel</span><select id="r-resa-duree"><option value="15">15 min</option><option value="20">20 min</option><option value="30">30 min</option><option value="45">45 min</option><option value="60">1 h</option></select></label>
+            <label class="champ"><span>Pause après</span><select id="r-resa-pause"><option value="0">Aucune</option><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="30">30 min</option></select></label>
+            <label class="champ"><span>Délai minimum</span><select id="r-resa-delai"><option value="1">1 h avant</option><option value="3">3 h avant</option><option value="12">12 h avant</option><option value="24">24 h avant</option><option value="48">48 h avant</option></select></label>
+            <label class="champ"><span>Réservable sur</span><select id="r-resa-horizon"><option value="7">7 jours</option><option value="14">14 jours</option><option value="30">30 jours</option><option value="60">60 jours</option></select></label>
+          </div>
+        </section>
+        <section class="r-bloc">
           <h3>Rappels Discord</h3>
           <p class="r-aide">Le bot de ton application Discord t'envoie un message privé avant chaque rendez-vous. Le moment du rappel se choisit dans chaque fiche.</p>
           <label class="interrupteur"><input type="checkbox" id="r-resume"><span aria-hidden="true"></span>Résumé de ma journée chaque matin à 8:00</label>
           <div class="r-boutons r-boutons--espace">
             <button class="btn btn--ghost btn--petit" type="button" id="r-test"><svg class="i i--plein" aria-hidden="true"><use href="#b-discord"/></svg>Envoyer un message test</button>
+            <button class="btn btn--ghost btn--petit" type="button" id="r-commandes"><svg class="i" aria-hidden="true"><use href="#i-clavier"/></svg>Installer les commandes Discord</button>
           </div>
+          <p class="r-aide r-aide--apres">Commandes&nbsp;: <code>/rdv</code>, <code>/tache</code>, <code>/aujourdhui</code>, <code>/demain</code>, <code>/semaine</code>, <code>/prochain</code>. Réinstalle-les après avoir changé tes catégories.</p>
         </section>
         <section class="r-bloc">
           <h3>Sauvegarde</h3>

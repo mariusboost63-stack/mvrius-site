@@ -1079,6 +1079,9 @@ html:not(.js) .faq__more { display: none; }
 .contact__title { font-family: var(--font-display); font-weight: 700; font-size: clamp(2.6rem, 7.6vw, 6.6rem); line-height: 1; letter-spacing: -.045em; max-width: 1000px; text-wrap: balance; }
 .contact__title em { font-size: 1.06em; }
 .contact__lead { margin-top: 28px; color: var(--muted); font-size: clamp(1.05rem, 1.5vw, 1.25rem); }
+.contact__alt { margin-top: 12px; color: var(--muted); }
+.contact__alt a { color: var(--text); font-weight: 600; text-decoration: underline; text-decoration-color: rgba(139, 155, 255, .6); text-underline-offset: 4px; transition: text-decoration-color .3s; }
+.contact__alt a:hover { text-decoration-color: var(--accent); }
 .ico--fill { fill: currentColor; stroke: none; }
 .copy {
   position: relative;
@@ -1425,3 +1428,74 @@ a.copy { padding-right: 18px; }
    les animations sont affichées pour tous, même si l'appareil demande à les réduire) */
 html.reduced { scroll-behavior: auto; }
 .reduced *, .reduced *::before, .reduced *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; transition-delay: 0s !important; }
+
+/* ---------- Réserver un appel (rendez-vous/) ---------- */
+.resa__hero { padding-bottom: clamp(24px, 4vw, 40px); }
+.resa__hero .section__lead { max-width: 640px; }
+.resa { display: grid; grid-template-columns: minmax(0, 1fr) 300px; align-items: start; gap: clamp(24px, 4vw, 48px); padding-bottom: clamp(80px, 10vw, 140px); }
+.resa__carte {
+  min-width: 0; padding: clamp(22px, 3vw, 34px);
+  border-radius: 26px; border: 1px solid var(--line-2);
+  background: linear-gradient(160deg, rgba(139, 155, 255, .08), transparent 40%), var(--bg-elev);
+  box-shadow: 0 50px 100px -50px rgba(0, 0, 0, .8);
+}
+.resa__titre { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; font: 700 1.25rem/1.2 var(--font-display); letter-spacing: -.02em; }
+.resa__titre span { width: 28px; height: 28px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--grad); color: #0a0b12; font-size: 14px; }
+.resa__titre small { margin-left: auto; font: 500 14px var(--font-body); color: var(--muted); letter-spacing: 0; }
+.resa__jours { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 14px; margin-bottom: 18px; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.resa__jour {
+  flex: none; width: 92px; padding: 12px 8px; scroll-snap-align: start;
+  display: grid; justify-items: center; gap: 2px;
+  border-radius: 16px; border: 1px solid var(--line-2); background: rgba(255, 255, 255, .03);
+  color: var(--muted); transition: border-color .3s, background-color .3s, color .3s, transform .3s var(--ease);
+}
+.resa__jour span, .resa__jour small { font-size: 12.5px; text-transform: capitalize; }
+.resa__jour b { font: 700 1.6rem/1.1 var(--font-display); color: var(--text); }
+.resa__jour i { margin-top: 4px; font-style: normal; font-size: 11.5px; color: var(--dim); }
+.resa__jour:hover { border-color: rgba(255, 255, 255, .3); transform: translateY(-2px); }
+.resa__jour[aria-pressed="true"] { border-color: transparent; background: var(--grad); color: #0a0b12; }
+.resa__jour[aria-pressed="true"] b, .resa__jour[aria-pressed="true"] i { color: #0a0b12; }
+.resa__heures { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
+.resa__heure {
+  padding: 12px 10px; border-radius: 12px; border: 1px solid var(--line-2); background: rgba(255, 255, 255, .03);
+  color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums;
+  transition: border-color .3s, background-color .3s, transform .3s var(--ease);
+}
+.resa__heure:hover { border-color: var(--accent); background: rgba(139, 155, 255, .1); transform: translateY(-2px); }
+.resa__note { margin-top: 16px; font-size: 13.5px; color: var(--dim); }
+.resa__note span { color: #ffb4b4; }
+.resa__choisi { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; padding: 14px 16px; border-radius: 14px; border: 1px solid rgba(61, 220, 132, .35); background: rgba(61, 220, 132, .08); }
+.resa__choisi .ico { color: var(--online); }
+.resa__choisi p { flex: 1; min-width: 0; font-weight: 600; }
+.resa__changer { color: var(--accent); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.resa__champs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.resa__aide { margin-top: 14px; font-size: 13.5px; color: var(--dim); }
+.resa__aide a { color: var(--muted); text-decoration: underline; }
+.resa__erreur:not(:empty) { color: #ff8a8a; }
+.resa__etat { display: grid; justify-items: start; gap: 12px; }
+.resa__etat[hidden] { display: none; }
+.js-resa-chargement { display: flex; align-items: center; gap: 12px; color: var(--muted); }
+.resa__roue { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--line-2); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+.resa__etat h2 { font: 700 clamp(1.4rem, 2.6vw, 1.9rem)/1.15 var(--font-display); letter-spacing: -.02em; }
+.resa__etat p { color: var(--muted); }
+.resa__etat--ok b { color: var(--text); }
+.resa__pastille { width: 56px; height: 56px; display: grid; place-items: center; border-radius: 50%; background: var(--grad); color: #0a0b12; box-shadow: 0 16px 40px -12px rgba(139, 155, 255, .7); }
+.resa__pastille .ico { width: 26px; height: 26px; }
+.resa__boutons { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+.resa__infos { padding: 26px; border-radius: 22px; border: 1px solid var(--line); background: rgba(255, 255, 255, .02); }
+.resa__infos h2 { margin-bottom: 14px; font: 700 1.15rem var(--font-display); }
+.resa__infos ol { display: grid; gap: 14px; counter-reset: etape; }
+.resa__infos li { position: relative; padding-left: 38px; color: var(--muted); counter-increment: etape; }
+.resa__infos li::before { content: counter(etape); position: absolute; left: 0; top: 0; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line-2); font-size: 13px; font-weight: 600; color: var(--text); }
+.resa__infos b { color: var(--text); font-weight: 600; }
+.resa__infos > p { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+.resa__infos a { color: var(--accent); }
+@media (max-width: 960px) {
+  .resa { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .resa__champs { grid-template-columns: 1fr; }
+  .resa__jour { width: 80px; }
+  .resa__heures { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .resa__titre small { display: none; }
+}

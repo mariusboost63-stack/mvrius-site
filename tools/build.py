@@ -35,6 +35,7 @@ ARTICLES = [
 SITE = "https://mvriuus.fr/"
 # Pages légales (textes dans tools/pages/<nom>.html)
 PAGES = ["mentions-legales", "cgu"]
+RESA = "rendez-vous"  # page « Réserver un appel » (créneaux venant du serveur de l'agenda)
 # Icônes utilisées seulement dans les articles (ajoutées au sprite de l'accueil)
 ARTICLE_ICONS = (
     '      <symbol id="b-x" viewBox="0 0 24 24"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></symbol>\n'
@@ -352,6 +353,8 @@ T = [
     ('<a href="staff/">Rejoindre l\'équipe</a>\n', '<a href="../staff/" hreflang="fr">Join the team (FR)</a>\n', 1),
     ('Retour en haut <svg', 'Back to top <svg', 1),
     ('Mvrius. Tous droits réservés.', 'Mvrius. All rights reserved.', 1),
+    ('<p class="contact__alt" data-reveal>Vous préférez en parler de vive voix&nbsp;? <a href="rendez-vous/">Réservez un appel</a></p>',
+     '<p class="contact__alt" data-reveal>Prefer to talk it through? <a href="../rendez-vous/" hreflang="fr">Book a call (in French)</a></p>', 1),
     ('<a href="mentions-legales/">Mentions légales</a> · <a href="cgu/">CGU</a> · ',
      '<a href="../mentions-legales/" hreflang="fr">Legal notice (FR)</a> · <a href="../cgu/" hreflang="fr">Terms of use (FR)</a> · ', 1),
     ('Conçu avec soin · Hébergé sur GitHub Pages', 'Crafted with care · Hosted on GitHub Pages', 1),
@@ -395,7 +398,7 @@ def ld_block(data):
 
 def stamp():
     assets = ROOT / "assets"
-    digest = hashlib.md5((assets / "css" / "style.css").read_bytes() + (assets / "js" / "main.js").read_bytes())
+    digest = hashlib.md5((assets / "css" / "style.css").read_bytes() + (assets / "js" / "main.js").read_bytes() + (assets / "js" / "reservation.js").read_bytes())
     version = digest.hexdigest()[:8]
     for page in STAMPED:
         path = ROOT / page
@@ -420,7 +423,7 @@ def page_parts(home, prefix):
         block = block.replace('href="#top" class="footer__top"', 'href="#main" class="footer__top"')
         block = block.replace('href="#top"', f'href="{prefix}"')
         block = re.sub(r'href="#(' + "|".join(SECTIONS) + r')"', rf'href="{prefix}#\1"', block)
-        return re.sub(r'(href|src)="(assets/|staff/|liens/|en/|mentions-legales/|cgu/)', rf'\1="{prefix}\2', block)
+        return re.sub(r'(href|src)="(assets/|staff/|liens/|en/|mentions-legales/|cgu/|rendez-vous/)', rf'\1="{prefix}\2', block)
 
     return sprite, fix(nav), fix(footer)
 
@@ -802,6 +805,104 @@ def build_legal_pages(version):
     print(f"Pages légales : {len(PAGES)}")
 
 
+def build_reservation_page(version):
+    """Page « Réserver un appel » : créneaux libres et formulaire (assets/js/reservation.js)."""
+    home = SRC.read_text(encoding="utf-8")
+    sprite, nav, footer = page_parts(home, "../")
+    url = f"{SITE}{RESA}/"
+    head = doc_head("Réserver un appel", "Choisissez un créneau libre pour parler de votre serveur Discord avec Mvrius : gratuit et sans engagement.", url, version, "../")
+    head = head.replace("</head>", f'  <script src="../agenda/config.js?v={version}" defer></script>\n  <script src="../assets/js/reservation.js?v={version}" defer></script>\n</head>', 1)
+    sujets = ["Création de serveur", "Restructuration", "Gestion &amp; modération", "Réseaux sociaux", "Autre"]
+    options = "".join(f'<option value="{x}">{x}</option>' for x in sujets)
+    page = head + f"""<body class="page-article page-resa">
+  <!-- Page générée par tools/build.py (build_reservation_page) -->
+{sprite}{nav}
+  <main id="main">
+    <header class="article__hero resa__hero">
+      <div class="hero__bg" aria-hidden="true">
+        <div class="aurora"><span></span><span></span><span></span></div>
+        <div class="gridlines"></div>
+      </div>
+      <div class="container article__head">
+        <a class="article__back" href="../"><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg>Retour à l'accueil</a>
+        <p class="eyebrow" data-reveal>Prendre rendez-vous</p>
+        <h1 class="article__title" data-split>Réservez un <em>appel</em>.</h1>
+        <p class="section__lead" data-reveal>Choisissez un créneau de <span class="js-resa-duree">30</span>&nbsp;minutes pour parler de votre serveur Discord&nbsp;: vos objectifs, votre organisation, votre projet. C'est gratuit et sans engagement.</p>
+      </div>
+    </header>
+
+    <section class="container resa">
+      <div class="resa__carte js-resa" data-reveal>
+        <div class="resa__etat js-resa-chargement" role="status"><span class="resa__roue" aria-hidden="true"></span>Chargement des créneaux libres…</div>
+
+        <div class="js-resa-choix" hidden>
+          <h2 class="resa__titre"><span>1</span>Choisissez un jour</h2>
+          <div class="resa__jours js-resa-jours" role="group" aria-label="Jours disponibles"></div>
+          <h2 class="resa__titre"><span>2</span>Choisissez une heure <small class="js-resa-jour-texte"></small></h2>
+          <div class="resa__heures js-resa-heures" role="group" aria-label="Heures disponibles"></div>
+          <p class="resa__note">Heures de Paris. <span class="js-resa-info" role="status"></span></p>
+        </div>
+
+        <form class="resa__form js-resa-form" hidden novalidate>
+          <div class="resa__choisi">
+            <svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>
+            <p class="js-resa-recap"></p>
+            <button class="resa__changer js-resa-changer" type="button">Changer</button>
+          </div>
+          <div class="resa__champs">
+            <label class="field field--full"><input name="nom" type="text" required maxlength="80" placeholder=" " autocomplete="name"><span>Nom ou pseudo</span></label>
+            <label class="field"><input name="email" type="email" maxlength="120" placeholder=" " autocomplete="email"><span>E-mail</span></label>
+            <label class="field"><input name="discord" type="text" maxlength="60" placeholder=" " autocomplete="off"><span>Pseudo Discord</span></label>
+            <label class="field field--select field--full"><select name="sujet">{options}</select><span>Sujet</span></label>
+            <label class="field field--full"><textarea name="message" rows="4" maxlength="1500" placeholder=" "></textarea><span>Quelques mots sur votre serveur (facultatif)</span></label>
+            <input class="quote__honey" type="text" name="site" tabindex="-1" autocomplete="off" aria-hidden="true">
+          </div>
+          <p class="resa__aide">Un e-mail ou un pseudo Discord suffit pour que je vous réponde. Ces informations servent uniquement à organiser l'appel (<a href="../mentions-legales/">mentions légales</a>).</p>
+          <div class="quote__foot">
+            <button class="btn btn--primary btn--lg quote__submit" type="submit"><span class="quote__spinner" aria-hidden="true"></span><span class="quote__label">Envoyer la demande</span><svg class="ico"><use href="#i-arrow-right"/></svg></button>
+            <p class="quote__status resa__erreur js-resa-erreur" role="alert"></p>
+          </div>
+        </form>
+
+        <div class="resa__etat resa__etat--ok js-resa-ok" hidden>
+          <span class="resa__pastille" aria-hidden="true"><svg class="ico"><use href="#i-check"/></svg></span>
+          <h2>Demande envoyée&nbsp;!</h2>
+          <p><b class="js-resa-ok-recap"></b></p>
+          <p>Je vous confirme le rendez-vous <span class="js-resa-ok-contact"></span>, en général dans la journée.</p>
+          <a class="btn btn--ghost btn--sm" href="../"><span>Retour à l'accueil</span></a>
+        </div>
+
+        <div class="resa__etat js-resa-ferme" hidden>
+          <h2 class="js-resa-ferme-texte"></h2>
+          <p>Vous pouvez m'écrire directement&nbsp;: je vous réponds rapidement.</p>
+          <div class="resa__boutons">
+            <a class="btn btn--primary btn--sm" href="../#contact"><span>Me contacter</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
+            <button class="btn btn--ghost btn--sm js-resa-recharger" type="button"><span>Réessayer</span></button>
+          </div>
+        </div>
+      </div>
+
+      <aside class="resa__infos" data-reveal>
+        <h2>Comment ça se passe&nbsp;?</h2>
+        <ol>
+          <li><b>Vous choisissez un créneau</b> qui vous arrange.</li>
+          <li><b>Je confirme</b> par e-mail ou sur Discord, en général dans la journée.</li>
+          <li><b>On s'appelle</b> sur Discord ou en visio&nbsp;: votre serveur, vos objectifs, mes conseils.</li>
+        </ol>
+        <p>Vous préférez écrire&nbsp;? <a href="../#contact">Demandez un devis</a>.</p>
+      </aside>
+    </section>
+  </main>
+
+{footer}</body>
+</html>
+"""
+    out = ROOT / RESA / "index.html"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(page, encoding="utf-8")
+    print("Page de réservation : OK")
+
+
 def build_sitemap(data):
     """sitemap.xml (pages publiques) et robots.txt."""
     last = max(meta["date"] for meta, _ in data.values())
@@ -811,7 +912,7 @@ def build_sitemap(data):
     urls = [(SITE, None, alt), (f"{SITE}en/", None, alt), (f"{SITE}conseils/", last, "")]
     urls += [(f"{SITE}conseils/{slug}/", meta["date"], "") for slug, (meta, _) in data.items()]
     urls += [(f"{SITE}staff/", None, ""), (f"{SITE}liens/", None, "")]
-    urls += [(f"{SITE}{slug}/", None, "") for slug in PAGES]
+    urls += [(f"{SITE}{slug}/", None, "") for slug in PAGES + [RESA]]
     rows = "\n".join(f"  <url>\n    <loc>{loc}</loc>" + (f"\n    <lastmod>{mod}</lastmod>" if mod else "") + f"{extra}\n  </url>"
                      for loc, mod, extra in urls)
     (ROOT / "sitemap.xml").write_text(
@@ -845,6 +946,7 @@ def main():
     build_sitemap(build_articles(version))
     build_diag_pages(version)
     build_legal_pages(version)
+    build_reservation_page(version)
     html = SRC.read_text(encoding="utf-8")
 
     # Données structurées en anglais (remplacées d'abord : elles reprennent les textes de la FAQ)

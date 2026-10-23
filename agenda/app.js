@@ -25,10 +25,19 @@
   const COULEURS = ['#8b9bff', '#6ee7ff', '#c3a6ff', '#3ddc84', '#ff6b8b', '#f5b971', '#ffd166', '#f78fd8', '#9ba3ba'];
   const REPETITIONS = [['', 'Ne se répète pas'], ['jour', 'Chaque jour'], ['semaine', 'Chaque semaine'], ['2semaines', 'Toutes les 2 semaines'], ['mois', 'Chaque mois']];
   const STATUTS = [['confirme', 'Confirmé'], ['attente', 'En attente'], ['annule', 'Annulé']];
-  // Rappels Discord, en minutes avant le début (pour une journée entière, le début est minuit)
-  const RAPPELS = [['', 'Pas de rappel'], ['0', "À l'heure"], ['5', '5 min avant'], ['15', '15 min avant'], ['30', '30 min avant'], ['60', '1 h avant'], ['120', '2 h avant'], ['1440', '1 jour avant']];
-  const RAPPELS_JOURNEE = [['', 'Pas de rappel'], ['-480', 'Le jour même à 8:00'], ['-540', 'Le jour même à 9:00'], ['360', 'La veille à 18:00']];
-  const rappelParDefaut = journee => (journee ? '-540' : '15');
+  // Rappels Discord, en minutes avant le début (pour une journée entière, le début est minuit).
+  // Plusieurs rappels possibles par rendez-vous ; sans réglage : 15 min avant (9:00 pour une journée).
+  const RAPPELS = [['0', "À l'heure"], ['5', '5 min'], ['15', '15 min'], ['30', '30 min'], ['60', '1 h'], ['120', '2 h'], ['1440', '1 jour'], ['2880', '2 jours']];
+  const RAPPELS_JOURNEE = [['-480', 'Le jour même à 8:00'], ['-540', 'Le jour même à 9:00'], ['360', 'La veille à 18:00'], ['2340', '2 jours avant à 9:00']];
+  const rappelDefaut = journee => (journee ? -540 : 15);
+  const rappelsDe = r => (Array.isArray(r.rappels) ? r.rappels.filter(Number.isFinite)
+    : r.rappel === undefined ? [rappelDefaut(r.journee)] : Number.isFinite(r.rappel) ? [r.rappel] : []);
+  const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+  const TRAVAIL_DEFAUT = { jours: [1, 2, 3, 4, 5], debut: '09:00', fin: '18:00', griser: true, semaineTravail: false };
+  const RESA_DEFAUT = {
+    actif: false, duree: 30, pause: 10, delai: 24, horizon: 14,
+    plages: { 1: [['10:00', '12:00'], ['14:00', '18:00']], 2: [['10:00', '12:00'], ['14:00', '18:00']], 3: [['10:00', '12:00'], ['14:00', '18:00']], 4: [['10:00', '12:00'], ['14:00', '18:00']], 5: [['10:00', '12:00'], ['14:00', '18:00']] },
+  };
   const PAS = { jour: 1, semaine: 7, '2semaines': 14 };
   const DATE = /^\d{4}-\d{2}-\d{2}$/;
   const HEURE = /^\d{2}:\d{2}$/;
@@ -112,10 +121,11 @@
     recherche: '',
   };
   if (!['jour', 'semaine', 'mois', 'liste'].includes(etat.vue)) etat.vue = 'semaine';
-  const vueEffective = () => (petit.matches && etat.vue === 'semaine' ? 'jour' : etat.vue);
+  // Sur téléphone, la semaine devient une vue de 3 jours
+  const vueEffective = () => (petit.matches && etat.vue === 'semaine' ? 'trois' : etat.vue);
 
   /* ---------- Données ---------- */
-  const vide = () => ({ format: 1, categories: clone(CATEGORIES), rendezvous: [], reglages: {} });
+  const vide = () => ({ format: 1, categories: clone(CATEGORIES), rendezvous: [], taches: [], reglages: {} });
   function normaliser(d) {
     d = d && typeof d === 'object' ? d : {};
     const cats = Array.isArray(d.categories) && d.categories.length
@@ -123,12 +133,21 @@
       : clone(CATEGORIES);
     const rdv = (Array.isArray(d.rendezvous) ? d.rendezvous : [])
       .filter(r => r && r.id && DATE.test(r.date) && (r.journee || (HEURE.test(r.debut) && HEURE.test(r.fin))));
+    const taches = (Array.isArray(d.taches) ? d.taches : []).filter(t => t && t.id && typeof t.titre === 'string' && DATE.test(t.date));
     const reglages = d.reglages && typeof d.reglages === 'object' && !Array.isArray(d.reglages) ? d.reglages : {};
-    return { format: 1, categories: cats, rendezvous: rdv, reglages };
+    return { format: 1, categories: cats, rendezvous: rdv, taches, reglages };
   }
   // Un changement = une opération rejouable : en cas de conflit avec un autre appareil,
   // on relit le fichier sur GitHub et on rejoue les opérations par-dessus.
   function appliquer(d, op) {
+    if (op.type === 'tache' || op.type === 'supprimerTache') {
+      d.taches = d.taches || [];
+      const k = d.taches.findIndex(t => t.id === (op.tache ? op.tache.id : op.id));
+      if (op.type === 'supprimerTache') { if (k >= 0) d.taches.splice(k, 1); }
+      else if (k >= 0) d.taches[k] = clone(op.tache);
+      else d.taches.push(clone(op.tache));
+      return;
+    }
     const i = d.rendezvous.findIndex(r => r.id === (op.rdv ? op.rdv.id : op.id));
     if (op.type === 'enregistrer') {
       if (i >= 0) d.rendezvous[i] = clone(op.rdv);
@@ -155,6 +174,9 @@
   const categories = () => donnees().categories;
   const categorie = id => categories().find(c => c.id === id) || { id, nom: 'Sans catégorie', couleur: '#9ba3ba' };
   const trouver = id => donnees().rendezvous.find(r => r.id === id);
+  const travail = () => ({ ...TRAVAIL_DEFAUT, ...((donnees().reglages || {}).travail || {}) });
+  const reservation = () => ({ ...RESA_DEFAUT, ...((donnees().reglages || {}).reservation || {}) });
+  const jourIso = d => jour(d).getDay() || 7; // 1 = lundi … 7 = dimanche
 
   // Dernier jour d'un rendez-vous : il peut durer plusieurs jours (journées entières ou horaires)
   const jourDeFin = r => (DATE.test(r.dateFin) && r.dateFin > r.date ? r.dateFin : r.date);
@@ -292,6 +314,8 @@
     if (op.type === 'supprimer') return `Suppression : ${op.titre || 'rendez-vous'}`;
     if (op.type === 'sauter') return `Occurrence retirée : ${op.titre || 'rendez-vous'} (${op.date})`;
     if (op.type === 'reglages') return 'Réglages mis à jour';
+    if (op.type === 'tache') return `${op.nouveau ? 'Tâche ajoutée' : op.tache.fait ? 'Tâche faite' : 'Tâche modifiée'} : ${op.tache.titre}`;
+    if (op.type === 'supprimerTache') return `Tâche supprimée : ${op.titre || ''}`;
     return 'Catégories mises à jour';
   }
 
@@ -459,7 +483,7 @@
     if (!etat.distant || app.hidden) return;
     const v = etat.recherche ? 'liste' : vueEffective();
     $('#periode').innerHTML = titrePeriode(v);
-    $$('.b-vues button').forEach(b => b.setAttribute('aria-pressed', String(!etat.recherche && b.dataset.vue === vueEffective())));
+    $$('.b-vues button').forEach(b => b.setAttribute('aria-pressed', String(!etat.recherche && b.dataset.vue === etat.vue)));
     $('#b-nav').classList.toggle('sans-fleches', v === 'liste');
 
     const ancienne = $('.grille', vueEl);
@@ -468,7 +492,8 @@
     const hautListe = ancienneListe && vueEl.dataset.vue === v && !sens ? ancienneListe.scrollTop : 0;
     let html;
     if (v === 'jour') html = rendreGrille([etat.curseur]);
-    else if (v === 'semaine') { const l = lundiDe(etat.curseur); html = rendreGrille(Array.from({ length: 7 }, (_, k) => decale(l, k))); }
+    else if (v === 'semaine') html = rendreGrille(joursSemaine());
+    else if (v === 'trois') html = rendreGrille([0, 1, 2].map(k => decale(etat.curseur, k)));
     else if (v === 'mois') html = rendreMois();
     else html = rendreListe();
     vueEl.innerHTML = html;
@@ -505,6 +530,13 @@
         : `${fmt(l, { day: 'numeric', month: 'short' })} – ${fmt(d, { day: 'numeric', month: 'short' })}`;
       return `${esc(txt)} <small>sem. ${semaineIso(l)}</small>`;
     }
+    if (v === 'trois') {
+      const d = decale(c, 2);
+      const txt = jour(c).getMonth() === jour(d).getMonth()
+        ? `${jour(c).getDate()} – ${jour(d).getDate()} ${fmt(d, { month: 'short' })}`
+        : `${fmt(c, { day: 'numeric', month: 'short' })} – ${fmt(d, { day: 'numeric', month: 'short' })}`;
+      return esc(txt);
+    }
     if (v === 'mois') return `${esc(maj1(fmt(c, { month: 'long' })))} <small>${jour(c).getFullYear()}</small>`;
     return 'À venir';
   }
@@ -516,12 +548,20 @@
     if (jours.includes(aujourdhui())) m = maintenant() - 90;
     else {
       const premiers = $$('.ev', grille).map(e => Number(e.style.getPropertyValue('--d')));
-      m = premiers.length ? Math.min(...premiers, 8 * 60) - 30 : 7.5 * 60;
+      m = Math.min(...premiers, minutes(travail().debut)) - 30;
     }
     return Math.max(0, m) * H / 60;
   }
 
   /* ---------- Vues Jour et Semaine ---------- */
+  // Jours de la semaine affichée (seulement les jours travaillés si le réglage est activé)
+  function joursSemaine() {
+    const l = lundiDe(etat.curseur);
+    const tous = Array.from({ length: 7 }, (_, k) => decale(l, k));
+    const t = travail();
+    const ouvres = t.semaineTravail ? tous.filter(d => t.jours.includes(jourIso(d))) : tous;
+    return ouvres.length ? ouvres : tous;
+  }
   function placer(liste) {
     // Rendez-vous qui se chevauchent : côte à côte, en colonnes
     const tries = liste.slice().sort((a, b) => a.debut - b.debut || b.finM - a.finM);
@@ -569,7 +609,11 @@
     const a = jours[jours.length - 1];
     const auj = aujourdhui();
     const liste = instances(de, a);
-    const tete = jours.map(d => `<button type="button" class="g-jour${d === auj ? ' is-auj' : ''}" data-aller="${d}" aria-label="${esc(maj1(fmt(d, { weekday: 'long', day: 'numeric', month: 'long' })))}"><span>${esc(fmt(d, { weekday: 'short' }).replace('.', ''))}</span><b>${jour(d).getDate()}</b></button>`).join('');
+    const t = travail();
+    const repos = d => !t.jours.includes(jourIso(d));
+    // Heures hors travail grisées (journée entière grisée les jours de repos)
+    const horaires = d => (t.griser ? ` a-horaires" style="--td:${repos(d) ? 1440 : minutes(t.debut)};--tf:${repos(d) ? 1440 : minutes(t.fin) || 1440}` : '');
+    const tete = jours.map(d => `<button type="button" class="g-jour${d === auj ? ' is-auj' : ''}${t.griser && repos(d) ? ' is-repos' : ''}" data-aller="${d}" aria-label="${esc(maj1(fmt(d, { weekday: 'long', day: 'numeric', month: 'long' })))}"><span>${esc(fmt(d, { weekday: 'short' }).replace('.', ''))}</span><b>${jour(d).getDate()}</b></button>`).join('');
     // En haut : journées entières et rendez-vous de 24 h ou plus ; dans la grille : le reste,
     // découpé jour par jour s'il passe minuit (ex. 22:00 → 02:00)
     const enHaut = i => i.r.journee || i.longue;
@@ -577,7 +621,7 @@
     const morceaux = d => liste.filter(i => !enHaut(i) && i.date <= d && i.fin >= d)
       .map(i => (i.plusieurs ? { ...i, debut: i.date === d ? i.debut : 0, finM: i.fin === d ? i.finM : 1440 } : i));
     const heures = Array.from({ length: 23 }, (_, h) => `<span style="--d:${(h + 1) * 60}">${pad(h + 1)}:00</span>`).join('');
-    const colonnes = jours.map(d => `<div class="g-col${d === auj ? ' is-auj' : ''}" data-date="${d}">${placer(morceaux(d)).map(blocEv).join('')}${d === auj ? `<div class="maintenant" style="--d:${maintenant()}"></div>` : ''}</div>`).join('');
+    const colonnes = jours.map(d => `<div class="g-col${d === auj ? ' is-auj' : ''}${horaires(d)}" data-date="${d}">${placer(morceaux(d)).map(blocEv).join('')}${d === auj ? `<div class="maintenant" style="--d:${maintenant()}"></div>` : ''}</div>`).join('');
     return `<div class="grille" style="--n:${jours.length}">`
       + `<div class="g-tete"><div class="g-coin"></div>${tete}<div class="g-coin g-coin--jt">Journée</div>${journee}</div>`
       + `<div class="g-corps"><div class="g-heures" aria-hidden="true">${heures}</div>${colonnes}</div></div>`;
@@ -621,6 +665,8 @@
       r.avec && `<span>${icone('personne')}${esc(r.avec)}</span>`,
       r.lieu && `<span>${icone('lieu')}${esc(r.lieu)}</span>`,
       r.repetition && `<span>${icone('repete')}${esc((REPETITIONS.find(x => x[0] === r.repetition.frequence) || ['', ''])[1])}</span>`,
+      Array.isArray(r.checklist) && r.checklist.length && `<span>${icone('coche')}${r.checklist.filter(x => x.fait).length}/${r.checklist.length}</span>`,
+      r.source === 'reservation' && `<span>${icone('calendrier')}Réservé en ligne</span>`,
       !r.avec && !r.lieu && !r.repetition && `<span>${esc(c.nom)}</span>`,
     ].filter(Boolean).join('');
     const finCourte = esc(fmt(i.fin, { day: 'numeric', month: 'short' }));
@@ -640,7 +686,9 @@
     let liste = instances(de, a, !!q);
     if (q) liste = liste.filter(i => sansAccents(`${i.r.titre} ${i.r.avec} ${i.r.lieu} ${i.r.notes} ${categorie(i.r.categorie).nom}`).includes(q));
     else liste = liste.filter(pasFini);
+    const taches = q ? '' : `<section class="l-jour l-taches"><h3 class="l-date">Tâches du jour</h3>${blocTaches(auj)}</section>`;
     if (!liste.length) {
+      if (!q) return `<div class="liste">${taches}<div class="vide"><span class="vide-icone">${icone('calendrier')}</span><h3>Rien de prévu</h3><p>Ton agenda est libre pour les six prochains mois. Ajoute ton premier rendez-vous&nbsp;!</p><button type="button" class="btn btn--primaire" data-nouveau="${auj}">${icone('plus')}Nouveau rendez-vous</button></div></div>`;
       return q
         ? `<div class="liste"><div class="vide"><span class="vide-icone">${icone('loupe')}</span><h3>Aucun résultat</h3><p>Aucun rendez-vous ne correspond à «&nbsp;${esc(etat.recherche)}&nbsp;».</p></div></div>`
         : `<div class="liste"><div class="vide"><span class="vide-icone">${icone('calendrier')}</span><h3>Rien de prévu</h3><p>Ton agenda est libre pour les six prochains mois. Ajoute ton premier rendez-vous&nbsp;!</p><button type="button" class="btn btn--primaire" data-nouveau="${auj}">${icone('plus')}Nouveau rendez-vous</button></div></div>`;
@@ -652,7 +700,7 @@
       if (!groupes.has(d)) groupes.set(d, []);
       groupes.get(d).push(i);
     });
-    let html = '';
+    let html = taches;
     for (const [d, items] of groupes) {
       const rel = d === auj ? "Aujourd'hui" : d === decale(auj, 1) ? 'Demain' : '';
       const annee = jour(d).getFullYear() !== jour(auj).getFullYear() ? ` ${jour(d).getFullYear()}` : '';
@@ -666,8 +714,57 @@
   function rendreCote() {
     rendreMini();
     rendreAvenir();
+    $('#taches-quand').textContent = `· ${etat.curseur === aujourdhui() ? "aujourd'hui" : fmt(etat.curseur, { weekday: 'short', day: 'numeric', month: 'short' })}`;
+    $('#taches-cote').innerHTML = blocTaches(etat.curseur);
     rendreFiltres();
   }
+
+  /* ---------- Tâches ---------- */
+  // Tâches d'un jour ; aujourd'hui, celles des jours passés pas encore faites sont reportées
+  function tachesDu(d) {
+    const auj = aujourdhui();
+    const toutes = donnees().taches || [];
+    const liste = toutes.filter(t => t.date === d || (d === auj && !t.fait && t.date < auj));
+    return liste.sort((a, b) => Number(a.fait) - Number(b.fait) || (a.date < b.date ? -1 : a.date > b.date ? 1 : 0) || String(a.cree).localeCompare(String(b.cree)));
+  }
+  function blocTaches(d) {
+    const items = tachesDu(d).map(t => `<li class="t-item${t.fait ? ' is-fait' : ''}">`
+      + `<label class="t-coche"><input type="checkbox" data-tache-coche="${esc(t.id)}"${t.fait ? ' checked' : ''}><span class="t-case" aria-hidden="true"></span><span class="t-texte">${esc(t.titre)}</span>`
+      + `${!t.fait && t.date < d ? `<small class="t-retard">${esc(fmt(t.date, { day: 'numeric', month: 'short' }))}</small>` : ''}</label>`
+      + `<button type="button" class="t-suppr" data-tache-suppr="${esc(t.id)}" aria-label="Supprimer la tâche ${esc(t.titre)}">${icone('fermer')}</button></li>`).join('');
+    return `<div class="taches"><ul class="t-liste">${items}</ul>`
+      + `<form class="t-ajout" data-tache-ajout="${d}"><input type="text" maxlength="200" placeholder="Ajouter une tâche…" aria-label="Ajouter une tâche" autocomplete="off"></form></div>`;
+  }
+  document.addEventListener('change', e => {
+    const c = e.target.closest('[data-tache-coche]');
+    if (!c) return;
+    const t = (donnees().taches || []).find(x => x.id === c.dataset.tacheCoche);
+    if (!t) return;
+    // Une tâche reportée qu'on coche passe à aujourd'hui (elle reste visible, barrée)
+    const date = c.checked && t.date < aujourdhui() ? aujourdhui() : t.date;
+    operation({ type: 'tache', tache: { ...clone(t), date, fait: c.checked, faitLe: c.checked ? new Date().toISOString() : null } });
+  });
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-tache-suppr]');
+    if (!b) return;
+    const t = (donnees().taches || []).find(x => x.id === b.dataset.tacheSuppr);
+    if (!t) return;
+    const avant = clone(t);
+    operation({ type: 'supprimerTache', id: t.id, titre: t.titre });
+    toast('Tâche supprimée', { texte: 'Annuler', faire: () => operation({ type: 'tache', tache: avant }) });
+  });
+  document.addEventListener('submit', e => {
+    const f = e.target.closest('[data-tache-ajout]');
+    if (!f) return;
+    e.preventDefault();
+    const champ = $('input', f);
+    const titre = champ.value.trim();
+    if (!titre) return;
+    const dans = f.closest('#cote') ? '#cote' : '#vue';
+    operation({ type: 'tache', nouveau: true, tache: { id: nouvelId(), titre, date: f.dataset.tacheAjout, fait: false, faitLe: null, cree: new Date().toISOString() } });
+    const nouveau = $(`${dans} [data-tache-ajout="${f.dataset.tacheAjout}"] input`);
+    if (nouveau) nouveau.focus();
+  });
   function rendreMini() {
     const base = jour(etat.mini || etat.curseur);
     const premier = new Date(base.getFullYear(), base.getMonth(), 1);
@@ -677,7 +774,7 @@
     instances(de, a).forEach(i => { for (let d = i.date < de ? de : i.date; d <= i.fin && d <= a; d = decale(d, 1)) avecRdv.add(d); });
     const v = vueEffective();
     const selDe = v === 'semaine' ? lundiDe(etat.curseur) : etat.curseur;
-    const selA = v === 'semaine' ? decale(selDe, 6) : etat.curseur;
+    const selA = v === 'semaine' ? decale(selDe, 6) : v === 'trois' ? decale(selDe, 2) : etat.curseur;
     const auj = aujourdhui();
     let jours = '';
     for (let k = 0; k < 42; k++) {
@@ -718,6 +815,7 @@
     if (v === 'liste' || etat.recherche) return;
     if (v === 'jour') etat.curseur = decale(etat.curseur, sens);
     else if (v === 'semaine') etat.curseur = decale(etat.curseur, 7 * sens);
+    else if (v === 'trois') etat.curseur = decale(etat.curseur, 3 * sens);
     else {
       const d = jour(etat.curseur);
       const dernier = new Date(d.getFullYear(), d.getMonth() + sens + 1, 0).getDate();
@@ -750,6 +848,7 @@
     const v = vueEffective();
     if (v === 'jour') return d === etat.curseur;
     if (v === 'semaine') { const l = lundiDe(etat.curseur); return d >= l && d <= decale(l, 6); }
+    if (v === 'trois') return d >= etat.curseur && d <= decale(etat.curseur, 2);
     if (v === 'mois') return d.slice(0, 7) === etat.curseur.slice(0, 7);
     return d >= aujourdhui();
   }
@@ -789,7 +888,10 @@
     champs.debut.value = v.journee ? '09:00' : v.debut;
     champs.fin.value = v.journee ? '10:00' : v.fin;
     champs.dateFin.value = v.dateFin || v.date;
-    remplirRappels(!!v.journee, v.rappel === undefined ? rappelParDefaut(!!v.journee) : v.rappel === null ? '' : String(v.rappel));
+    remplirRappels(!!v.journee, r ? rappelsDe(r) : [rappelDefaut(!!v.journee)]);
+    ficheEtat.checklist = clone(Array.isArray(v.checklist) ? v.checklist : []);
+    rendreChecklist();
+    rendreDemande(r);
     champs.frequence.value = (v.repetition && v.repetition.frequence) || '';
     champs.jusquau.value = (v.repetition && v.repetition.jusquau) || '';
     (form.querySelector(`input[name="statut"][value="${v.statut || 'confirme'}"]`) || form.querySelector('input[name="statut"]')).checked = true;
@@ -805,15 +907,50 @@
     fiche.showModal();
     if (!r) champs.titre.focus();
   }
-  function remplirRappels(journee, valeur) {
+  // Rappels : pastilles à cocher (aucune cochée = pas de rappel)
+  function remplirRappels(journee, valeurs) {
     const liste = journee ? RAPPELS_JOURNEE : RAPPELS;
-    champs.rappel.innerHTML = liste.map(([v, t]) => `<option value="${v}">${t}</option>`).join('');
-    champs.rappel.value = liste.some(([v]) => v === valeur) ? valeur : rappelParDefaut(journee);
-    champs.rappel.dataset.journee = String(journee);
+    const zone = $('#f-rappels');
+    zone.innerHTML = `<legend class="f-legende">Rappels sur Discord${journee ? '' : ' <small>avant le début</small>'}</legend>`
+      + liste.map(([v, t]) => `<label class="choix" style="--c:#8b9bff"><input type="checkbox" name="rappels" value="${v}"${valeurs.includes(Number(v)) ? ' checked' : ''}><span>${t}</span></label>`).join('');
+    zone.dataset.journee = String(journee);
+  }
+  // Liste à cocher (ordre du jour)
+  function rendreChecklist() {
+    $('#f-check').innerHTML = ficheEtat.checklist.map((x, k) => `<li class="t-item${x.fait ? ' is-fait' : ''}"><label class="t-coche"><input type="checkbox" data-check="${k}"${x.fait ? ' checked' : ''}><span class="t-case" aria-hidden="true"></span><span class="t-texte">${esc(x.t)}</span></label><button type="button" class="t-suppr" data-check-suppr="${k}" aria-label="Retirer « ${esc(x.t)} »">${icone('fermer')}</button></li>`).join('');
+  }
+  $('#f-check-ajout').addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const t = e.target.value.trim();
+    if (!t) return;
+    ficheEtat.checklist.push({ t, fait: false });
+    e.target.value = '';
+    rendreChecklist();
+  });
+  $('#f-check').addEventListener('change', e => {
+    const c = e.target.closest('[data-check]');
+    if (c) { ficheEtat.checklist[Number(c.dataset.check)].fait = c.checked; rendreChecklist(); }
+  });
+  $('#f-check').addEventListener('click', e => {
+    const b = e.target.closest('[data-check-suppr]');
+    if (b) { ficheEtat.checklist.splice(Number(b.dataset.checkSuppr), 1); rendreChecklist(); }
+  });
+  // Demande arrivée par la page de réservation : coordonnées de la personne
+  function rendreDemande(r) {
+    const zone = $('#f-demande');
+    const d = r && r.demande;
+    zone.hidden = !d;
+    if (!d) return;
+    const recue = Date.parse(d.recue) ? new Date(d.recue).toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : '';
+    const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email || '') ? `<a href="mailto:${esc(d.email)}">${esc(d.email)}</a>` : '';
+    zone.innerHTML = `${icone('calendrier')}<div><b>Réservé en ligne par ${esc(d.nom || '?')}</b>${recue ? ` <small>le ${esc(recue)}</small>` : ''}`
+      + `<span>${[email, d.discord && `Discord : ${esc(d.discord)}`, d.sujet && esc(d.sujet)].filter(Boolean).join(' · ')}</span>`
+      + `${r.statut === 'attente' ? '<small>Passe le statut à « Confirmé », puis préviens la personne.</small>' : ''}</div>`;
   }
   function majFiche() {
     const journee = champs.journee.checked;
-    if (champs.rappel.dataset.journee !== String(journee)) remplirRappels(journee, rappelParDefaut(journee));
+    if ($('#f-rappels').dataset.journee !== String(journee)) remplirRappels(journee, [rappelDefaut(journee)]);
     $$('[data-horaire]', form).forEach(el => { el.hidden = journee; });
     $('[data-l-debut]', form).textContent = journee ? 'Du' : 'Début';
     $('[data-l-fin]', form).textContent = journee ? 'Au' : 'Fin';
@@ -868,6 +1005,7 @@
     const avant = ficheEtat.r;
     const instant = new Date().toISOString();
     const rdv = {
+      ...(avant || {}), // garde les champs ajoutés par le serveur (demande de réservation, relance…)
       id: avant ? avant.id : nouvelId(),
       titre,
       categorie: (form.querySelector('input[name="categorie"]:checked') || {}).value || categories()[0].id,
@@ -878,7 +1016,8 @@
       dateFin,
       repetition: champs.frequence.value ? { frequence: champs.frequence.value, jusquau: champs.jusquau.value || null } : null,
       exceptions: champs.frequence.value && avant && avant.repetition ? (avant.exceptions || []) : [],
-      rappel: champs.rappel.value === '' ? null : Number(champs.rappel.value),
+      rappels: $$('#f-rappels input:checked').map(c => Number(c.value)).sort((a, b) => b - a),
+      checklist: ficheEtat.checklist.filter(x => x.t),
       statut: (form.querySelector('input[name="statut"]:checked') || {}).value || 'confirme',
       avec: champs.avec.value.trim(),
       lieu: champs.lieu.value.trim(),
@@ -886,6 +1025,8 @@
       cree: avant ? avant.cree : instant,
       modifie: instant,
     };
+    delete rdv.rappel; // ancien réglage à un seul rappel
+    if (avant && (avant.date !== rdv.date || avant.debut !== rdv.debut)) delete rdv.relance;
     fiche.close();
     if (!avant && !visible(rdv.date)) { etat.curseur = rdv.date; etat.mini = null; }
     operation({ type: 'enregistrer', rdv, nouveau: !avant });
@@ -900,7 +1041,9 @@
     const r = ficheEtat.r;
     if (action.dataset.action === 'supprimer') { fiche.close(); supprimer(r, ficheEtat.occurrence); }
     else if (action.dataset.action === 'dupliquer') {
-      ficheEtat = { r: null, occurrence: null };
+      ficheEtat = { r: null, occurrence: null, checklist: ficheEtat.checklist.map(x => ({ t: x.t, fait: false })) };
+      rendreChecklist();
+      rendreDemande(null);
       $('#fiche-titre').textContent = 'Nouveau rendez-vous (copie)';
       $('[data-serie]', form).hidden = true;
       $$('[data-action]', form).forEach(b => { b.hidden = true; });
@@ -970,25 +1113,22 @@
       glisse = { mode: 'creer', col, minA, date: col.dataset.date, depart, debut: depart, fin: depart + 15, x0: e.clientX, y0: e.clientY, actif: false };
     }
   });
-  vueEl.addEventListener('pointermove', e => {
-    const g = glisse;
-    if (!g) return;
-    if (!g.actif) {
-      if (Math.hypot(e.clientX - g.x0, e.clientY - g.y0) < 5) return;
-      g.actif = true;
-      vueEl.setPointerCapture(e.pointerId);
-      document.body.classList.add(`glisse-${g.mode}`);
-      if (g.el) g.el.classList.add('is-glisse');
-      else {
-        g.fantome = document.createElement('div');
-        g.fantome.className = 'fantome';
-        g.col.append(g.fantome);
-      }
+  function demarrerGlisse(g, pointeur) {
+    g.actif = true;
+    if (pointeur !== undefined) vueEl.setPointerCapture(pointeur);
+    document.body.classList.add(`glisse-${g.mode}`);
+    if (g.el) g.el.classList.add('is-glisse');
+    else {
+      g.fantome = document.createElement('div');
+      g.fantome.className = 'fantome';
+      g.col.append(g.fantome);
     }
+  }
+  function bougerGlisse(g, x, y) {
     if (g.mode === 'deplacer') {
-      const cible = $$('.g-col', vueEl).find(c => { const b = c.getBoundingClientRect(); return e.clientX >= b.left && e.clientX < b.right; }) || g.col;
+      const cible = $$('.g-col', vueEl).find(c => { const b = c.getBoundingClientRect(); return x >= b.left && x < b.right; }) || g.col;
       const duree = g.i.finM - g.i.debut;
-      g.debut = clamp(g.minA(e.clientY, cible) - g.prise, 0, 1440 - duree);
+      g.debut = clamp(g.minA(y, cible) - g.prise, 0, 1440 - duree);
       g.fin = g.debut + duree;
       g.date = cible.dataset.date;
       if (g.el.parentNode !== cible) cible.append(g.el);
@@ -996,10 +1136,10 @@
       g.el.style.setProperty('--col', 0);
       g.el.style.setProperty('--tot', 1);
     } else if (g.mode === 'taille') {
-      g.fin = clamp(g.minA(e.clientY, g.col), g.i.debut + 15, 1440);
+      g.fin = clamp(g.minA(y, g.col), g.i.debut + 15, 1440);
       g.el.style.setProperty('--l', g.fin - g.i.debut);
     } else {
-      const m = g.minA(e.clientY, g.col);
+      const m = g.minA(y, g.col);
       g.debut = Math.min(g.depart, m);
       g.fin = Math.max(g.depart + 15, m, g.debut + 15);
       g.fantome.style.setProperty('--d', g.debut);
@@ -1008,8 +1148,31 @@
       return;
     }
     $('.ev-heure', g.el).textContent = `${heure(g.debut)} – ${heure(g.fin)}`;
+  }
+  function finirGlisse(g) {
+    document.body.classList.remove('glisse-deplacer', 'glisse-taille', 'glisse-creer');
+    if (!g.actif) return; // simple clic : géré par l'événement « click »
+    ignorerClic = true;
+    setTimeout(() => { ignorerClic = false; }, 0);
+    if (g.mode === 'creer') {
+      g.fantome.remove();
+      ouvrirFiche({ nouveau: { date: g.date, debut: heure(g.debut), fin: heure(g.fin) } });
+      return;
+    }
+    if (g.date === g.i.date && g.debut === g.i.debut && g.fin === g.i.finM) { rendre(); return; }
+    deplacer(g.r, g.i.date, g.date, g.debut, g.fin);
+  }
+  vueEl.addEventListener('pointermove', e => {
+    const g = glisse;
+    if (!g || g.tactile) return;
+    if (!g.actif) {
+      if (Math.hypot(e.clientX - g.x0, e.clientY - g.y0) < 5) return;
+      demarrerGlisse(g, e.pointerId);
+    }
+    bougerGlisse(g, e.clientX, e.clientY);
   });
   vueEl.addEventListener('pointerup', e => {
+    if (glisse && glisse.tactile) return;
     if (balayage) {
       const dx = e.clientX - balayage.x;
       const dy = e.clientY - balayage.y;
@@ -1024,26 +1187,64 @@
     }
     const g = glisse;
     glisse = null;
-    if (!g) return;
-    document.body.classList.remove('glisse-deplacer', 'glisse-taille', 'glisse-creer');
-    if (!g.actif) return; // simple clic : géré par l'événement « click »
-    ignorerClic = true;
-    setTimeout(() => { ignorerClic = false; }, 0);
-    if (g.mode === 'creer') {
-      g.fantome.remove();
-      ouvrirFiche({ nouveau: { date: g.date, debut: heure(g.debut), fin: heure(g.fin) } });
-      return;
-    }
-    if (g.date === g.i.date && g.debut === g.i.debut && g.fin === g.i.finM) { rendre(); return; }
-    deplacer(g.r, g.i.date, g.date, g.debut, g.fin);
+    if (g) finirGlisse(g);
   });
   vueEl.addEventListener('pointercancel', () => {
     balayage = null;
-    if (!glisse) return;
+    if (!glisse || glisse.tactile) return;
     glisse = null;
     document.body.classList.remove('glisse-deplacer', 'glisse-taille', 'glisse-creer');
     rendre();
   });
+  // Au doigt : appui long (0,45 s) sur un rendez-vous, puis glisser pour le déplacer
+  let appui = null;
+  const annulerAppui = () => { if (appui) { clearTimeout(appui.minuteur); appui = null; } };
+  vueEl.addEventListener('touchstart', e => {
+    annulerAppui();
+    const evEl = e.touches.length === 1 && e.target.closest('.ev');
+    if (!evEl) return;
+    const r = trouver(evEl.dataset.id);
+    if (!r || etendue(r) > 0) return;
+    const col = evEl.closest('.g-col');
+    const t = e.touches[0];
+    const depart = { x: t.clientX, y: t.clientY };
+    appui = {
+      ...depart,
+      minuteur: setTimeout(() => {
+        const H = hauteurHeure();
+        const minA = (y, c) => clamp(caleSur((y - c.getBoundingClientRect().top) / H * 60, 15), 0, 1440);
+        const i = inst(r, evEl.dataset.date);
+        glisse = { mode: 'deplacer', tactile: true, r, i, el: evEl, col, minA, x0: depart.x, y0: depart.y, actif: false, date: i.date, debut: i.debut, fin: i.finM, prise: minA(depart.y, col) - i.debut };
+        balayage = null;
+        demarrerGlisse(glisse);
+        if (navigator.vibrate) navigator.vibrate(12);
+      }, 450),
+    };
+  }, { passive: true });
+  vueEl.addEventListener('touchmove', e => {
+    if (!appui) return;
+    const t = e.touches[0];
+    if (glisse && glisse.tactile) {
+      e.preventDefault(); // pas de défilement pendant le déplacement
+      bougerGlisse(glisse, t.clientX, t.clientY);
+    } else if (Math.hypot(t.clientX - appui.x, t.clientY - appui.y) > 10) annulerAppui();
+  }, { passive: false });
+  vueEl.addEventListener('touchend', e => {
+    annulerAppui();
+    if (!glisse || !glisse.tactile) return;
+    e.preventDefault();
+    const g = glisse;
+    glisse = null;
+    finirGlisse(g);
+  });
+  vueEl.addEventListener('touchcancel', () => {
+    annulerAppui();
+    if (!glisse || !glisse.tactile) return;
+    glisse = null;
+    document.body.classList.remove('glisse-deplacer');
+    rendre();
+  });
+  vueEl.addEventListener('contextmenu', e => { if (e.target.closest('.ev')) e.preventDefault(); });
   function deplacer(r, ancienneDate, date, debut, fin) {
     const avant = clone(r);
     const instant = new Date().toISOString();
@@ -1156,8 +1357,52 @@
     brouillon = clone(categories());
     rendreCategoriesEdit();
     $('#r-resume').checked = !!resumeActuel().actif;
+    // Heures de travail
+    const t = travail();
+    $('#r-jours').innerHTML = '<legend class="sr">Jours travaillés</legend>' + JOURS.map((nom, k) => `<label class="choix" style="--c:#8b9bff"><input type="checkbox" value="${k + 1}"${t.jours.includes(k + 1) ? ' checked' : ''}><span>${nom.slice(0, 3)}.</span></label>`).join('');
+    $('#r-t-debut').value = t.debut;
+    $('#r-t-fin').value = t.fin;
+    $('#r-t-griser').checked = !!t.griser;
+    $('#r-t-semaine').checked = !!t.semaineTravail;
+    // Réservation : deux plages par jour au plus
+    const resa = reservation();
+    $('#r-resa-actif').checked = !!resa.actif;
+    $('#r-plages').innerHTML = JOURS.map((nom, k) => {
+      const p = (resa.plages && resa.plages[k + 1]) || [];
+      const champ = (n, cote) => `<input type="time" step="900" data-p="${n}${cote}" value="${(p[n] && p[n][cote === 'd' ? 0 : 1]) || ''}" aria-label="${nom}, plage ${n + 1}, ${cote === 'd' ? 'début' : 'fin'}">`;
+      return `<div class="r-plage" data-jour="${k + 1}"><label class="choix" style="--c:#3ddc84"><input type="checkbox" data-plage-actif${p.length ? ' checked' : ''}><span>${nom}</span></label>`
+        + `<span class="r-plage-h">${champ(0, 'd')}<i>–</i>${champ(0, 'f')}</span><span class="r-plage-h">${champ(1, 'd')}<i>–</i>${champ(1, 'f')}</span></div>`;
+    }).join('');
+    $('#r-resa-duree').value = String(resa.duree);
+    $('#r-resa-pause').value = String(resa.pause);
+    $('#r-resa-delai').value = String(resa.delai);
+    $('#r-resa-horizon').value = String(resa.horizon);
     reglages.showModal();
   }
+  function lirePlages() {
+    const plages = {};
+    $$('#r-plages .r-plage').forEach(ligne => {
+      if (!$('[data-plage-actif]', ligne).checked) return;
+      const liste = [0, 1].map(n => [$(`[data-p="${n}d"]`, ligne).value, $(`[data-p="${n}f"]`, ligne).value])
+        .filter(([a, b]) => HEURE.test(a) && HEURE.test(b) && minutes(a) < (minutes(b) || 1440));
+      if (liste.length) plages[ligne.dataset.jour] = liste;
+    });
+    return plages;
+  }
+  // Commandes /rdv, /tache… : enregistrées auprès de Discord par le serveur
+  $('#r-commandes').addEventListener('click', async () => {
+    const bouton = $('#r-commandes');
+    bouton.disabled = true;
+    try {
+      const rep = await fetch(`${SERVEUR}/commandes/installer`, { method: 'POST', headers: { Authorization: `Bearer ${etat.session ? etat.session.jeton : ''}` } });
+      const corps = await rep.json().catch(() => ({}));
+      toast(rep.ok ? 'Commandes installées : tape / dans ta conversation avec le bot.' : (rep.status === 401 ? 'Ta session a expiré. Reconnecte-toi avec Discord.' : corps.message || "L'installation n'a pas fonctionné."), null, rep.ok ? 5000 : 9000);
+    } catch (e) {
+      toast("Impossible de joindre le serveur de l'agenda.", null, 6000);
+    } finally {
+      bouton.disabled = false;
+    }
+  });
   // Message privé de test : vérifie le bot de bout en bout
   $('#r-test').addEventListener('click', async () => {
     const bouton = $('#r-test');
@@ -1211,10 +1456,31 @@
     e.preventDefault();
     const propres = brouillon.map(c => ({ ...c, nom: c.nom.trim() || 'Sans nom' }));
     const resume = { ...resumeActuel(), actif: $('#r-resume').checked };
+    const jours = $$('#r-jours input:checked').map(c => Number(c.value));
+    const [tDebut, tFin] = [$('#r-t-debut').value, $('#r-t-fin').value];
+    const t = {
+      jours,
+      debut: HEURE.test(tDebut) ? tDebut : TRAVAIL_DEFAUT.debut,
+      fin: HEURE.test(tFin) && minutes(tFin) > minutes(tDebut) ? tFin : TRAVAIL_DEFAUT.fin,
+      griser: $('#r-t-griser').checked,
+      semaineTravail: $('#r-t-semaine').checked,
+    };
+    const resa = {
+      actif: $('#r-resa-actif').checked,
+      plages: lirePlages(),
+      duree: Number($('#r-resa-duree').value),
+      pause: Number($('#r-resa-pause').value),
+      delai: Number($('#r-resa-delai').value),
+      horizon: Number($('#r-resa-horizon').value),
+    };
     reglages.close();
     const ops = [];
     if (JSON.stringify(propres) !== JSON.stringify(categories())) ops.push({ type: 'categories', categories: propres });
-    if (JSON.stringify(resume) !== JSON.stringify(resumeActuel())) ops.push({ type: 'reglages', reglages: { resume } });
+    const changes = {};
+    if (JSON.stringify(resume) !== JSON.stringify(resumeActuel())) changes.resume = resume;
+    if (JSON.stringify(t) !== JSON.stringify(travail())) changes.travail = t;
+    if (JSON.stringify(resa) !== JSON.stringify(reservation())) changes.reservation = resa;
+    if (Object.keys(changes).length) ops.push({ type: 'reglages', reglages: changes });
     if (ops.length) {
       operation(ops);
       toast('Réglages enregistrés');
