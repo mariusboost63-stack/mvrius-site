@@ -499,7 +499,7 @@ def doc_head(title, description, url, version, prefix, og_type="website", ld=Non
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{title} — Mvrius</title>
   <meta name="description" content="{description}">
-  <meta name="theme-color" content="#07080c">{robots}
+  <meta name="theme-color" content="#0e0b08">{robots}
   <link rel="canonical" href="{url}">
 
   <meta property="og:type" content="{og_type}">

@@ -912,7 +912,7 @@
     const liste = journee ? RAPPELS_JOURNEE : RAPPELS;
     const zone = $('#f-rappels');
     zone.innerHTML = `<legend class="f-legende">Rappels sur Discord${journee ? '' : ' <small>avant le début</small>'}</legend>`
-      + liste.map(([v, t]) => `<label class="choix" style="--c:#8b9bff"><input type="checkbox" name="rappels" value="${v}"${valeurs.includes(Number(v)) ? ' checked' : ''}><span>${t}</span></label>`).join('');
+      + liste.map(([v, t]) => `<label class="choix" style="--c:#e8b46a"><input type="checkbox" name="rappels" value="${v}"${valeurs.includes(Number(v)) ? ' checked' : ''}><span>${t}</span></label>`).join('');
     zone.dataset.journee = String(journee);
   }
   // Liste à cocher (ordre du jour)
@@ -1359,7 +1359,7 @@
     $('#r-resume').checked = !!resumeActuel().actif;
     // Heures de travail
     const t = travail();
-    $('#r-jours').innerHTML = '<legend class="sr">Jours travaillés</legend>' + JOURS.map((nom, k) => `<label class="choix" style="--c:#8b9bff"><input type="checkbox" value="${k + 1}"${t.jours.includes(k + 1) ? ' checked' : ''}><span>${nom.slice(0, 3)}.</span></label>`).join('');
+    $('#r-jours').innerHTML = '<legend class="sr">Jours travaillés</legend>' + JOURS.map((nom, k) => `<label class="choix" style="--c:#e8b46a"><input type="checkbox" value="${k + 1}"${t.jours.includes(k + 1) ? ' checked' : ''}><span>${nom.slice(0, 3)}.</span></label>`).join('');
     $('#r-t-debut').value = t.debut;
     $('#r-t-fin').value = t.fin;
     $('#r-t-griser').checked = !!t.griser;

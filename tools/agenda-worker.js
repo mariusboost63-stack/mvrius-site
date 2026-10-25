@@ -325,7 +325,7 @@ async function rappelTest(req, env, page) {
     await connecterBot(env);
     const prochain = prochainRappel(await lireAgenda(env), Date.now());
     await envoyerMp(env, {
-      embeds: [{ title: 'Les rappels de ton agenda fonctionnent ✅', description: `Tu recevras ici un message avant chaque rendez-vous.\n\n${prochain}`, url: page, color: 0x8b9bff }],
+      embeds: [{ title: 'Les rappels de ton agenda fonctionnent ✅', description: `Tu recevras ici un message avant chaque rendez-vous.\n\n${prochain}`, url: page, color: 0xe8b46a }],
     });
     return json({ ok: true, prochain }, 200);
   } catch (e) {
@@ -369,7 +369,7 @@ async function connecterBot(env) {
 }
 
 /* ---------- Messages ---------- */
-const COULEUR_PAR_DEFAUT = 0x8b9bff;
+const COULEUR_PAR_DEFAUT = 0xe8b46a;
 const couleurDe = (donnees, r) => {
   const c = (donnees.categories || []).find(x => x.id === r.categorie);
   return c && /^#[0-9a-f]{6}$/i.test(c.couleur) ? parseInt(c.couleur.slice(1), 16) : COULEUR_PAR_DEFAUT;
