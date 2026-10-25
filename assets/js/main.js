@@ -10,6 +10,16 @@
   const finePointer = matchMedia('(hover: hover) and (pointer: fine)').matches;
   const wide = matchMedia('(min-width: 961px)');
 
+  /* ---------- Mode allégé (ordinateurs modestes) ---------- */
+  // Quand la page manque de fluidité, les effets décoratifs les plus coûteux sont coupés (classe « lite »,
+  // voir style.css). La mesure est faite une fois, après l'intro, et son résultat est gardé une semaine.
+  const LITE_KEY = 'mv-lite';
+  let liteMemo = null;
+  try { liteMemo = JSON.parse(localStorage.getItem(LITE_KEY) || 'null'); } catch (e) { /* stockage indisponible */ }
+  if (!liteMemo || typeof liteMemo.t !== 'number' || Date.now() - liteMemo.t > 7 * 864e5) liteMemo = null;
+  if (liteMemo?.lite || (navigator.deviceMemory || 8) <= 2 || (navigator.hardwareConcurrency || 8) <= 2) root.classList.add('lite');
+  const lite = () => root.classList.contains('lite');
+
   const $ = (s, c = document) => c.querySelector(s);
   const $$ = (s, c = document) => [...c.querySelectorAll(s)];
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -76,7 +86,56 @@
     });
   }
   const loader = $('.loader');
-  const startIntro = () => root.classList.add('is-ready');
+  const startIntro = () => {
+    root.classList.add('is-ready');
+    setTimeout(measureSmoothness, 400);
+  };
+
+  // Le mode allégé est retenu une semaine ; un ordinateur fluide est re-mesuré à chaque visite.
+  function rememberLite() {
+    try { localStorage.setItem(LITE_KEY, JSON.stringify({ lite: true, t: Date.now() })); } catch (e) { /* stockage indisponible */ }
+  }
+
+  // Fluidité mesurée pendant 2,5 s, au moment où l'intro s'anime : si plus d'une image sur quatre
+  // met plus de 34 ms (moins de 30 images par seconde), on passe en mode allégé.
+  function measureSmoothness() {
+    if (liteMemo || lite() || reduced || document.hidden) return;
+    const frames = [];
+    let last = 0;
+    const start = performance.now();
+    const tick = t => {
+      if (document.hidden) return; // onglet masqué : mesure faussée, on réessaiera à la prochaine visite
+      if (last) frames.push(t - last);
+      last = t;
+      if (t - start < 2500) { requestAnimationFrame(tick); return; }
+      if (frames.length < 20) return;
+      if (frames.filter(d => d > 34).length / frames.length > .25) {
+        rememberLite();
+        enableLite();
+      }
+    };
+    requestAnimationFrame(tick);
+  }
+
+  // Pendant l'utilisation (défilement, souris), la boucle d'animation note la durée de ses images :
+  // si plus d'une sur cinq dépasse 34 ms, on passe aussi en mode allégé.
+  const usage = { prev: 0, n: 0, slow: 0 };
+  function noteFrame(t) {
+    if (lite() || reduced) return;
+    // Seulement les images qui se suivent (la boucle était active), pas la reprise après un repos
+    if (usage.prev && t - usage.prev < 250) {
+      usage.n++;
+      if (t - usage.prev > 34) usage.slow++;
+      if (usage.n >= 120) {
+        if (usage.slow / usage.n > .2) {
+          rememberLite();
+          enableLite();
+        }
+        usage.n = usage.slow = 0;
+      }
+    }
+    usage.prev = t;
+  }
 
   if (loader && getComputedStyle(loader).display !== 'none') {
     // La barre et le titre sont animés en CSS : ils restent fluides même pendant le chargement.
@@ -276,14 +335,17 @@
   const preview = $('.js-ppreview');
   const pv = { x: 0, y: 0, s: 0, target: 0 };
   if (preview && finePointer && !reduced) {
+    root.classList.add('has-preview');
     const strip = $('.ppreview__strip', preview);
     $$('.prow').forEach(row => {
       row.addEventListener('pointerenter', e => {
+        if (lite()) return;
         if (pv.s < .05) { pv.x = e.clientX; pv.y = e.clientY; }
         pv.target = 1;
         strip.style.transform = `translateY(${-row.dataset.preview * 100}%)`;
+        wake();
       });
-      row.addEventListener('pointerleave', () => { pv.target = 0; });
+      row.addEventListener('pointerleave', () => { pv.target = 0; wake(); });
     });
   }
 
@@ -707,14 +769,30 @@
   });
 
   /* ---------- Bandeau défilant ---------- */
+  // Animé par le navigateur (Web Animations) : il reste fluide même quand la page est occupée.
+  // Le défilement de la page ne fait que changer sa vitesse et son sens (boucle plus bas).
   const marquee = $('.js-marquee');
-  let mq = { x: 0, period: 0, dir: -1 };
-  if (marquee && !reduced) {
+  const marqueeWrap = marquee?.closest('.marquee-wrap');
+  let mqAnim = null;
+  let mqRate = 1;
+  let mqDir = 1;
+  let buildMarquee = () => {};
+  if (marquee && !reduced && marquee.animate) {
     const n = marquee.children.length;
     marquee.innerHTML += marquee.innerHTML;
-    const measure = () => { mq.period = marquee.children[n].offsetLeft - marquee.children[0].offsetLeft; };
-    measure();
-    mq.measure = measure;
+    buildMarquee = () => {
+      const period = marquee.children[n].offsetLeft - marquee.children[0].offsetLeft;
+      if (!period) return;
+      const duration = period / 33 * 1000; // 33 px par seconde au repos
+      const progress = mqAnim ? (mqAnim.currentTime % mqAnim.effect.getTiming().duration) / mqAnim.effect.getTiming().duration : 0;
+      mqAnim?.cancel();
+      mqAnim = marquee.animate([{ transform: 'translate3d(0, 0, 0)' }, { transform: `translate3d(${-period}px, 0, 0)` }], { duration, iterations: Infinity });
+      // Très loin dans la boucle : le bandeau peut repartir en arrière (défilement vers le haut) sans jamais s'arrêter
+      mqAnim.currentTime = duration * (1000 + progress);
+      mqAnim.playbackRate = mqRate;
+      if (marqueeWrap?.classList.contains('is-off')) mqAnim.pause();
+    };
+    buildMarquee();
   }
 
   /* ---------- Navigation ---------- */
@@ -751,40 +829,35 @@
   }
 
   /* ---------- Effets au pointeur ---------- */
+  // Les mouvements de la souris sont seulement notés ici : la boucle d'animation (plus bas) applique
+  // les changements une fois par image, et se met au repos dès que tout est immobile.
   const hero = $('.hero');
   const mock = $('.mock');
   const chips = $$('.chip');
-  const cursor = $('.cursor');
-  const cursorLabel = $('.cursor__label');
-  const ptr = { x: -200, y: -200, rx: -200, ry: -200, hx: 0, hy: 0, cx: 0, cy: 0 };
+  const spot = $('.hero__spot');
+  const ptr = { x: -200, y: -200, hx: 0, hy: 0, cx: 0, cy: 0, heroX: null, heroY: null };
+  let spotlightNext = null;
 
-  if (finePointer && !reduced && cursor) {
-    root.classList.add('has-cursor');
-    addEventListener('pointermove', e => { ptr.x = e.clientX; ptr.y = e.clientY; }, { passive: true });
-    document.addEventListener('pointerover', e => {
-      const t = e.target.closest('a, button, [data-cursor]');
-      const labelled = t && t.closest('[data-cursor]');
-      cursor.classList.toggle('is-hover', !!t && !labelled);
-      cursor.classList.toggle('is-label', !!labelled);
-      cursorLabel.textContent = labelled ? labelled.dataset.cursor : '';
-    });
-    document.documentElement.addEventListener('pointerleave', () => cursor.classList.add('is-hidden'));
-    document.documentElement.addEventListener('pointerenter', () => cursor.classList.remove('is-hidden'));
+  if (finePointer && !reduced) {
+    addEventListener('pointermove', e => {
+      ptr.x = e.clientX;
+      ptr.y = e.clientY;
+      if (pv.target || pv.s > .001) wake();
+    }, { passive: true });
 
     hero?.addEventListener('pointermove', e => {
-      const r = hero.getBoundingClientRect();
-      ptr.hx = (e.clientX - r.left) / r.width - .5;
-      ptr.hy = (e.clientY - r.top) / r.height - .5;
-      hero.style.setProperty('--sx', e.clientX - r.left + 'px');
-      hero.style.setProperty('--sy', e.clientY - r.top + 'px');
-    });
-    hero?.addEventListener('pointerleave', () => { ptr.hx = 0; ptr.hy = 0; });
+      if (lite()) return;
+      ptr.heroX = e.clientX;
+      ptr.heroY = e.clientY;
+      wake();
+    }, { passive: true });
+    hero?.addEventListener('pointerleave', () => { ptr.hx = 0; ptr.hy = 0; wake(); });
 
     $$('.spotlight').forEach(el => el.addEventListener('pointermove', e => {
-      const r = el.getBoundingClientRect();
-      el.style.setProperty('--mx', e.clientX - r.left + 'px');
-      el.style.setProperty('--my', e.clientY - r.top + 'px');
-    }));
+      if (lite()) return;
+      spotlightNext = { el, x: e.clientX, y: e.clientY };
+      wake();
+    }, { passive: true }));
 
     $$('.magnetic').forEach(el => {
       el.addEventListener('pointermove', e => {
@@ -795,6 +868,15 @@
       });
       el.addEventListener('pointerleave', () => { el.style.transform = ''; });
     });
+  }
+
+  // Passage en mode allégé en cours de visite : on remet les effets au pointeur au repos
+  function enableLite() {
+    root.classList.add('lite');
+    mock?.style.removeProperty('transform');
+    chips.forEach(c => { c.style.transform = ''; });
+    pv.target = 0;
+    pv.s = 0;
   }
 
   /* ---------- Maquette Discord animée ---------- */
@@ -880,27 +962,32 @@
   }
 
   /* ---------- Boucle d'animation ---------- */
+  // Une seule boucle pour tout ce qui suit le défilement ou la souris. Elle ne tourne que lorsqu'il y a
+  // quelque chose à animer, puis se met au repos : rien ne tourne quand la page est immobile.
   const progressBar = $('.progress span');
   const prose = $('.js-prose');
   // La position de défilement et la hauteur d'écran sont mises en cache : la boucle ne force
   // aucun calcul de mise en page tant que rien ne bouge.
   let scrollTop = scrollY;
   let vh = innerHeight;
-  addEventListener('scroll', () => { scrollTop = scrollY; }, { passive: true });
-  // Le bandeau ne défile et l'accueil ne s'anime que lorsqu'ils sont à l'écran
-  const onScreen = new Set([hero, marquee]);
+  let raf = 0;
+  function wake() { if (!raf) raf = requestAnimationFrame(frame); }
+  addEventListener('scroll', () => { scrollTop = scrollY; wake(); }, { passive: true });
+
+  // Ce qui est hors de l'écran est mis en pause (classe « is-off » : aurore, orbites, bandeau…)
+  const onScreen = new Set([hero]);
   if ('IntersectionObserver' in window) {
     const vis = new IntersectionObserver(entries => entries.forEach(e => {
       onScreen[e.isIntersecting ? 'add' : 'delete'](e.target);
-      if (e.target === hero) hero.classList.toggle('is-off', !e.isIntersecting);
+      e.target.classList.toggle('is-off', !e.isIntersecting);
+      if (e.target === marqueeWrap && mqAnim) e.isIntersecting ? mqAnim.play() : mqAnim.pause();
     }));
-    [hero, marquee].forEach(el => el && vis.observe(el));
+    [hero, marqueeWrap, ...$$('main > section, main > header, .hero__bg, .recruit')].forEach(el => el && vis.observe(el));
   }
   let lastY = -1;
   let navY = scrollY;
   let vel = 0;
   let prevY = scrollY;
-  let lastT = performance.now();
   let dirty = true;
 
   function onScroll(y, vh) {
@@ -935,9 +1022,16 @@
   }
 
   function frame(t) {
-    const dt = Math.min(64, t - lastT);
-    lastT = t;
+    raf = 0;
+    noteFrame(t);
+    let more = false;
     const y = scrollTop;
+
+    // Lectures d'abord (positions), écritures ensuite : pas de calcul de mise en page forcé
+    let heroRect = null;
+    let spotlightRect = null;
+    if (ptr.heroX !== null && hero) heroRect = hero.getBoundingClientRect();
+    if (spotlightNext) spotlightRect = spotlightNext.el.getBoundingClientRect();
 
     if (y !== lastY || dirty) {
       onScroll(y, vh);
@@ -945,23 +1039,36 @@
       dirty = false;
     }
 
+    // Vitesse de défilement lissée : elle accélère le bandeau et inverse son sens
     vel = lerp(vel, y - prevY, .12);
     prevY = y;
-
-    if (mq.period && onScreen.has(marquee)) {
-      if (Math.abs(vel) > .5) mq.dir = vel > 0 ? -1 : 1;
-      const speed = (.55 + Math.min(Math.abs(vel) * .35, 14)) * (dt / 16.67);
-      mq.x += mq.dir * speed;
-      if (mq.x <= -mq.period) mq.x += mq.period;
-      if (mq.x > 0) mq.x -= mq.period;
-      marquee.style.transform = `translate3d(${mq.x}px, 0, 0)`;
+    if (Math.abs(vel) > .02) more = true;
+    else vel = 0;
+    if (mqAnim) {
+      if (Math.abs(vel) > .5) mqDir = vel > 0 ? 1 : -1;
+      const rate = mqDir * (1 + Math.min(Math.abs(vel) * .35, 14) / .55);
+      if (Math.abs(rate - mqRate) > .02) {
+        mqRate = rate;
+        if (mqAnim.updatePlaybackRate) mqAnim.updatePlaybackRate(rate);
+        else mqAnim.playbackRate = rate;
+      }
     }
 
-    if (finePointer && !reduced && cursor) {
-      ptr.rx = lerp(ptr.rx, ptr.x, .2);
-      ptr.ry = lerp(ptr.ry, ptr.y, .2);
-      cursor.style.transform = `translate3d(${ptr.rx}px, ${ptr.ry}px, 0)`;
+    if (spotlightRect) {
+      spotlightNext.el.style.setProperty('--mx', spotlightNext.x - spotlightRect.left + 'px');
+      spotlightNext.el.style.setProperty('--my', spotlightNext.y - spotlightRect.top + 'px');
+      spotlightNext = null;
+    }
 
+    if (heroRect) {
+      ptr.hx = (ptr.heroX - heroRect.left) / heroRect.width - .5;
+      ptr.hy = (ptr.heroY - heroRect.top) / heroRect.height - .5;
+      // La lueur suit la souris : un petit calque déplacé, rien n'est repeint
+      spot?.style.setProperty('transform', `translate3d(${ptr.heroX - heroRect.left - heroRect.width * .5}px, ${ptr.heroY - heroRect.top - heroRect.height * .4}px, 0)`);
+      ptr.heroX = ptr.heroY = null;
+    }
+
+    if (!lite()) {
       if (preview && (pv.s > .001 || pv.target)) {
         const px = pv.x;
         pv.x = lerp(pv.x, ptr.x, .14);
@@ -971,35 +1078,39 @@
         const x = Math.min(pv.x + 32, innerWidth - 360);
         preview.style.opacity = pv.s;
         preview.style.transform = `translate3d(${x}px, ${pv.y - 110}px, 0) rotate(${tilt}deg) scale(${.6 + pv.s * .4})`;
+        if (pv.target || pv.s > .001 || Math.abs(pv.x - ptr.x) > .5) more = true;
       }
 
-      if (mock && wide.matches && onScreen.has(hero)) {
-        ptr.cx = lerp(ptr.cx, ptr.hx, .07);
-        ptr.cy = lerp(ptr.cy, ptr.hy, .07);
-        mock.style.setProperty('--ry', `${-10 + ptr.cx * 16}deg`);
-        mock.style.setProperty('--rx', `${6 - ptr.cy * 12}deg`);
-        mock.style.setProperty('--tx', `${ptr.cx * 18}px`);
-        mock.style.setProperty('--ty', `${ptr.cy * 18}px`);
-        chips.forEach(c => {
-          const d = +c.dataset.depth || 1;
-          c.style.transform = `translate3d(${ptr.cx * d * 46}px, ${ptr.cy * d * 46}px, 0)`;
-        });
+      // Maquette Discord inclinée selon la souris (transformation directe : rien d'autre n'est recalculé)
+      if (mock && finePointer && !reduced && wide.matches && onScreen.has(hero)) {
+        const dx = ptr.hx - ptr.cx;
+        const dy = ptr.hy - ptr.cy;
+        if (Math.abs(dx) > .0005 || Math.abs(dy) > .0005) {
+          ptr.cx += dx * .07;
+          ptr.cy += dy * .07;
+          mock.style.transform = `translate3d(${(ptr.cx * 18).toFixed(2)}px, ${(ptr.cy * 18).toFixed(2)}px, 0) rotateX(${(6 - ptr.cy * 12).toFixed(3)}deg) rotateY(${(-10 + ptr.cx * 16).toFixed(3)}deg)`;
+          chips.forEach(c => {
+            const d = +c.dataset.depth || 1;
+            c.style.transform = `translate3d(${(ptr.cx * d * 46).toFixed(2)}px, ${(ptr.cy * d * 46).toFixed(2)}px, 0)`;
+          });
+          more = true;
+        }
       }
     }
 
-    requestAnimationFrame(frame);
+    if (more) wake();
   }
 
   /* ---------- Initialisation & redimensionnement ---------- */
-  const relayout = () => { vh = innerHeight; scrollTop = scrollY; mq.measure?.(); activeLink = undefined; dirty = true; };
+  const relayout = () => { vh = innerHeight; scrollTop = scrollY; buildMarquee(); activeLink = undefined; dirty = true; wake(); };
   let rT;
   addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(relayout, 150); });
   addEventListener('load', relayout);
   document.fonts?.ready.then(relayout);
   wide.addEventListener?.('change', () => {
-    if (!wide.matches && mock) { mock.removeAttribute('style'); chips.forEach(c => { c.style.transform = ''; }); }
+    if (!wide.matches && mock) { mock.style.removeProperty('transform'); chips.forEach(c => { c.style.transform = ''; }); }
   });
 
   $$('.js-year').forEach(el => { el.textContent = new Date().getFullYear(); });
-  requestAnimationFrame(frame);
+  wake();
 })();

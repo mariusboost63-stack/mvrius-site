@@ -159,7 +159,6 @@ em {
   isolation: isolate;
   overflow: hidden;
   transition: transform .5s var(--ease), box-shadow .4s var(--ease), border-color .3s, color .3s;
-  will-change: transform;
 }
 .btn > * { position: relative; z-index: 1; }
 .btn .ico { transition: transform .45s var(--ease); }
@@ -217,24 +216,9 @@ em {
 .loader__tip small { font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); }
 @keyframes tipIn { to { opacity: 1; transform: none; } }
 
-/* ---------- Barre de progression & curseur ---------- */
+/* ---------- Barre de progression ---------- */
 .progress { position: fixed; inset: 0 0 auto 0; height: 2px; z-index: 120; pointer-events: none; }
 .progress span { display: block; height: 100%; background: var(--grad); transform-origin: left; transform: scaleX(0); }
-
-.cursor { display: none; }
-.has-cursor .cursor { display: block; position: fixed; top: 0; left: 0; z-index: 130; pointer-events: none; }
-.cursor__ring {
-  position: absolute; left: -18px; top: -18px;
-  width: 36px; height: 36px; border-radius: 50%;
-  border: 1px solid rgba(var(--fg-rgb), .45);
-  display: grid; place-items: center;
-  transition: transform .45s var(--ease), background-color .3s, border-color .3s, opacity .3s;
-}
-.cursor__label { font-size: 4.6px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--on-text); opacity: 0; transition: opacity .2s; }
-.cursor.is-hover .cursor__ring { transform: scale(1.6); background: rgba(var(--accent-rgb), .12); border-color: rgba(var(--accent-rgb), .7); }
-.cursor.is-label .cursor__ring { transform: scale(2.8); background: var(--text); border-color: transparent; }
-.cursor.is-label .cursor__label { opacity: 1; }
-.cursor.is-hidden .cursor__ring { opacity: 0; }
 
 /* ---------- Navigation ---------- */
 .nav {
@@ -351,19 +335,24 @@ em {
   padding: 130px 0 110px;
   overflow: hidden;
 }
-.hero__bg { position: absolute; inset: 0; pointer-events: none; }
+.hero__bg { position: absolute; inset: 0; pointer-events: none; contain: strict; }
+/* Halos dessinés à moitié de leur taille puis agrandis 2 fois : même rendu (dégradés flous),
+   4 fois moins de mémoire graphique pour les ordinateurs modestes */
 .aurora span {
   position: absolute; border-radius: 50%;
-  width: 70vmax; height: 70vmax;
+  width: 35vmax; height: 35vmax;
   opacity: .55;
+  transform: scale(2);
   will-change: transform;
 }
-.aurora span:nth-child(1) { top: -35vmax; left: -20vmax; background: radial-gradient(closest-side, rgba(var(--accent-rgb), .32), transparent); animation: drift1 22s ease-in-out infinite alternate; }
-.aurora span:nth-child(2) { top: -10vmax; right: -30vmax; background: radial-gradient(closest-side, rgba(var(--accent-2-rgb), .26), transparent); animation: drift2 26s ease-in-out infinite alternate; }
-.aurora span:nth-child(3) { bottom: -45vmax; left: 20vw; background: radial-gradient(closest-side, rgba(150, 70, 40, .3), transparent); animation: drift3 30s ease-in-out infinite alternate; }
-@keyframes drift1 { to { transform: translate(18vw, 12vh) scale(1.15); } }
-@keyframes drift2 { to { transform: translate(-16vw, 18vh) scale(.9); } }
-@keyframes drift3 { to { transform: translate(-12vw, -14vh) scale(1.2); } }
+.aurora span:nth-child(1) { top: -17.5vmax; left: -2.5vmax; background: radial-gradient(closest-side, rgba(var(--accent-rgb), .32), transparent); animation: drift1 22s ease-in-out infinite alternate; }
+.aurora span:nth-child(2) { top: 7.5vmax; right: -12.5vmax; background: radial-gradient(closest-side, rgba(var(--accent-2-rgb), .26), transparent); animation: drift2 26s ease-in-out infinite alternate; }
+.aurora span:nth-child(3) { bottom: -27.5vmax; left: calc(20vw + 17.5vmax); background: radial-gradient(closest-side, rgba(150, 70, 40, .3), transparent); animation: drift3 30s ease-in-out infinite alternate; }
+@keyframes drift1 { to { transform: translate(18vw, 12vh) scale(2.3); } }
+@keyframes drift2 { to { transform: translate(-16vw, 18vh) scale(1.8); } }
+@keyframes drift3 { to { transform: translate(-12vw, -14vh) scale(2.4); } }
+/* Bloc hors de l'écran (classe « is-off » posée par main.js) : ses animations en boucle sont en pause */
+.is-off, .is-off *, .is-off *::before, .is-off *::after { animation-play-state: paused !important; }
 .gridlines {
   position: absolute; inset: 0;
   background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
@@ -373,8 +362,10 @@ em {
   opacity: .45;
 }
 .hero__spot {
-  position: absolute; inset: 0;
-  background: radial-gradient(500px circle at var(--sx, 50%) var(--sy, 40%), rgba(var(--accent-rgb), .12), transparent 60%);
+  position: absolute; left: 50%; top: 40%;
+  width: 600px; height: 600px; margin: -300px 0 0 -300px; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(var(--accent-rgb), .12), transparent);
+  will-change: transform;
 }
 .hero__inner { position: relative; display: grid; grid-template-columns: 1.05fr .95fr; gap: clamp(32px, 5vw, 72px); align-items: center; }
 .hero__copy { position: relative; z-index: 2; }
@@ -549,7 +540,7 @@ em {
 .marquee__track { display: flex; align-items: center; gap: 36px; width: max-content; will-change: transform; }
 .marquee__track span { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.8rem, 4.2vw, 3.4rem); letter-spacing: -.03em; line-height: 1.1; white-space: nowrap; }
 .marquee__track .o { color: transparent; -webkit-text-stroke: 1px rgba(var(--accent-rgb), .55); }
-.marquee__track .star { width: 28px; height: 28px; fill: var(--accent); stroke: none; flex: none; animation: spin 8s linear infinite; }
+.marquee__track .star { width: 28px; height: 28px; fill: var(--accent); stroke: none; flex: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ---------- Révélations au scroll ---------- */
@@ -696,7 +687,7 @@ html:not(.js) .plist__foot { display: none; }
   box-shadow: 0 40px 80px -24px rgba(var(--shadow-rgb), .85), 0 0 0 1px rgba(var(--fg-rgb), .12);
   opacity: 0; visibility: hidden;
 }
-.has-cursor .ppreview { visibility: visible; }
+.has-preview .ppreview { visibility: visible; }
 .ppreview__strip { height: 100%; transition: transform .7s var(--ease); }
 .pcard {
   position: relative; height: 100%; overflow: hidden;
@@ -1444,6 +1435,14 @@ a.copy { padding-right: 18px; }
   .hero__cta .btn { --pad-x: 20px; }
   .footer__grid { grid-template-columns: 1fr 1fr; gap: 32px; }
 }
+
+/* ---------- Mode allégé (ordinateurs modestes) ---------- */
+/* Activé automatiquement par main.js quand la page manque de fluidité : on garde les apparitions
+   et le contenu animé, on coupe les effets décoratifs les plus coûteux à afficher. */
+.lite body::after, .lite .hero__spot, .lite .ppreview, .lite .spotlight::before, .lite .spotlight::after { display: none; }
+.lite .aurora span, .lite .chip, .lite .recruit, .lite .orbit, .lite .contact__glow, .lite .scroll-cue__line::after { animation: none; }
+.lite .nav.is-scrolled .nav__inner { background: rgba(var(--bg-elev-rgb), .97); backdrop-filter: none; -webkit-backdrop-filter: none; }
+.lite .mock, .lite .dchan, .lite .diag__card, .lite .quote, .lite .recruit { box-shadow: 0 30px 60px -30px rgba(var(--shadow-rgb), .8); }
 
 /* ---------- Mouvement réduit ---------- */
 /* Animations coupées : uniquement si la classe « reduced » est ajoutée à <html> (aucune page ne le fait :

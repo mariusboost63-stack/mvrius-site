@@ -137,8 +137,6 @@ T = [
      '<h2 class="title" data-split>Communities I bring to <em>life</em>.</h2>', 1),
     ('Mes propres serveurs, et ceux des créateurs que j\'accompagne. <span class="live-note"><i></i>Chiffres en direct depuis Discord</span>',
      'My own servers, and those of the creators I work with. <span class="live-note"><i></i>Live numbers from Discord</span>', 1),
-    ('data-cursor="Rejoindre"', 'data-cursor="Join"', 8),
-    ('data-cursor="Visiter"', 'data-cursor="Visit"', 1),
     ('<span>Site web développé par moi : <b>cafe-fr.com</b></span>', '<span>Website I built: <b>cafe-fr.com</b></span>', 1),
     ('<span class="prow__desc">Communauté francophone</span>', '<span class="prow__desc">French-speaking community</span>', 1),
     ('<span class="prow__desc">Collectif de bots Discord</span>', '<span class="prow__desc">Discord bot collective</span>', 1),
@@ -328,7 +326,6 @@ T = [
      'Practical advice from my experience to help your community grow. Articles in French.', 1),
     ('href="conseils/', 'hreflang="fr" href="../conseils/', 5),
     ('<span>Voir tous les conseils</span>', '<span>See all tips</span>', 1),
-    ('data-cursor="Lire"', 'data-cursor="Read"', 3),
     ('Communauté · 4 min de lecture', 'Community · 4 min read', 1),
     ('Organisation · 5 min de lecture', 'Organisation · 5 min read', 1),
     ('Staff · 5 min de lecture', 'Staff · 5 min read', 1),
@@ -552,7 +549,7 @@ def layout(home, prefix, current):
 
 
 def tip_card(slug, meta, num, href):
-    return f"""          <a class="tip-card spotlight" href="{href}" data-reveal data-cursor="Lire">
+    return f"""          <a class="tip-card spotlight" href="{href}" data-reveal>
             <span class="tip-card__top"><span class="tip-card__icon"><svg class="ico"><use href="#{meta["icon"]}"/></svg></span><span class="tip-card__num">{num:02d}</span></span>
             <span class="tip-card__tag">{meta["tag"]} · {meta["read"]} de lecture</span>
             <span class="tip-card__title">{typo(meta["title"])}</span>
@@ -687,7 +684,7 @@ def build_articles(version):
         }
         # « À lire aussi » : les deux articles suivants (en boucle)
         nexts = [ARTICLES[(i + k) % len(ARTICLES)] for k in (1, 2)]
-        others = "\n".join(f"""          <a class="more-card spotlight" href="../{other}/" data-reveal data-cursor="Lire">
+        others = "\n".join(f"""          <a class="more-card spotlight" href="../{other}/" data-reveal>
             <span class="tip-card__tag">{data[other][0]["tag"]} · {data[other][0]["read"]} de lecture</span>
             <span class="more-card__title">{typo(data[other][0]["title"])}</span>
             <span class="tip-card__more">Lire l'article <svg class="ico"><use href="#i-arrow-right"/></svg></span>
