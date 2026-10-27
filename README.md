@@ -17,6 +17,8 @@ conseils/                → liste et articles « Conseils », générés depuis
 sitemap.xml, robots.txt  → pour Google, générés par tools/build.py
 diagnostic/<score>/      → pages d'arrivée des scores partagés du diagnostic, générées par tools/build.py
 agenda/                  → agenda privé (connexion Discord, voir « Agenda privé » plus bas)
+atelier/                 → atelier privé : construire des serveurs Discord avec le bot (voir plus bas)
+espace/                  → espace client privé (un lien secret par client)
 404.html                → page « introuvable »
 site.webmanifest        → nom et icônes quand le site est ajouté à l'écran d'accueil
 assets/css/style.css    → styles et animations
@@ -64,7 +66,33 @@ par changement).
   en minutes avant le début ; absent = 15 min, ou 9:00 le jour même pour une journée entière ;
   `null` = aucun). Le résumé du matin se règle dans Réglages (`reglages.resume`). Le bouton
   « Envoyer un message test » des réglages vérifie tout de bout en bout.
-- Après un changement de `agenda/app.js` ou `agenda/app.css`, augmenter `?v=` dans `agenda/index.html`.
+- **Factures** : dans l'agenda (menu › Factures). Une facture émise reçoit le numéro suivant
+  (`F-2026-001`…, sans trou, calculé quand l'opération est appliquée) et une copie des
+  informations du vendeur et du client ; elle ne se modifie plus (seulement payée, ou annulée par
+  un avoir `AV-…`). Les informations du vendeur sont dans Réglages › Facturation
+  (`reglages.facturation`). Le PDF est fabriqué dans le navigateur par `agenda/facture.js`
+  (sans bibliothèque), partagé avec l'espace client.
+- Après un changement de `agenda/app.js`, `agenda/app.css` ou `agenda/facture.js`, augmenter `?v=`
+  dans `agenda/index.html` (et dans `espace/index.html` et `atelier/index.html`, qui les utilisent aussi).
+
+## Espace client (`/espace/#clé`)
+
+Page publique mais sans contenu : tout vient du Worker (`GET /espace`, en-tête `Authorization: Cle …`),
+qui ne renvoie que les rendez-vous, le projet (`projet`, `etapes`, `messageEspace`) et les factures
+émises du client dont la fiche contient cette clé (`espace.cle`, 32 caractères aléatoires). Le lien
+se crée, se change ou se désactive dans la fiche client de l'agenda. La clé reste après le `#` :
+elle n'apparaît dans aucun journal de serveur.
+
+## Atelier de serveurs Discord (`/atelier/`)
+
+Même connexion que l'agenda (le Worker renvoie vers `/atelier/` grâce à `/connexion?vers=atelier`).
+Les modèles de serveur sont dans `atelier.json`, dans le même dépôt privé. Discord ne laisse plus
+les bots créer un serveur : on crée le serveur vide dans Discord, on y invite le bot (lien
+« Administrateur » donné par l'atelier), puis on applique un modèle. La page envoie une action à la
+fois au Worker (`POST /atelier/action` : rôle, salon, réglages, message…) et attend quand Discord
+répond 429. Les boutons de rôle (`custom_id` `role|<id>|a` ou `role|<id>|b`) passent par
+`/interactions` et marchent pour tous les membres ; le Worker refuse de donner un rôle qui a des
+permissions de modération.
 
 ## Avant chaque publication
 

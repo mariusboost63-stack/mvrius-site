@@ -13,6 +13,12 @@
    - Réservation d'appels : créneaux libres et demandes pour mvriuus.fr/rendez-vous/.
    - Historique : liste des versions de l'agenda (commits du dépôt privé).
    - Résumé de la semaine, le dimanche soir (réglage dans l'agenda).
+   - Atelier (mvriuus.fr/atelier/) : construit un serveur Discord (rôles, permissions,
+     salons, messages avec boutons) avec le bot, action par action. Les modèles sont
+     dans le fichier atelier.json du même dépôt privé. Boutons de rôle : n'importe quel
+     membre peut cliquer (le bot donne ou retire le rôle, jamais un rôle de modération).
+   - Espace client (mvriuus.fr/espace/#…) : un lien secret par client, qui montre ses
+     rendez-vous, l'avancement de son projet et ses factures. Rien d'autre.
 
    Variables à créer dans Cloudflare (Worker › Settings › Variables and Secrets) :
      DISCORD_CLIENT_ID      texte   identifiant de l'application Discord
@@ -29,6 +35,8 @@
 
 const DEPOT = 'mariusboost63-stack/agenda-donnees';
 const FICHIER = 'agenda.json';
+const FICHIER_ATELIER = 'atelier.json';
+const DESTINATIONS = { atelier: '../atelier/' }; // pages où revenir après la connexion (sinon l'agenda)
 const PAGE_PAR_DEFAUT = 'https://mvriuus.fr/agenda/';
 const DUREE_SESSION = 30 * 24 * 3600; // secondes
 const PERIODE = 5 * 60 * 1000; // intervalle du Cron Trigger, en millisecondes
@@ -48,12 +56,16 @@ export default {
       const chemin = url.pathname;
       if (chemin === '/connexion' && req.method === 'GET') return connexion(url, env);
       if (chemin === '/retour' && req.method === 'GET') return await retour(req, url, env, page);
-      if (chemin === '/depot' || chemin === `/depot/contents/${FICHIER}`) return await avecCors(() => depot(req, url, env));
+      if (chemin === '/depot' || chemin === `/depot/contents/${FICHIER}` || chemin === `/depot/contents/${FICHIER_ATELIER}`) return await avecCors(() => depot(req, url, env));
       if (chemin === '/depot/commits') return await avecCors(() => versions(req, url, env));
       if (chemin === '/rappels/test') return await avecCors(() => rappelTest(req, env, page));
       if (chemin === '/commandes/installer') return await avecCors(() => installerCommandes(req, env));
       if (chemin === '/reservation/creneaux') return await avecCors(() => creneauxPublics(req, env));
       if (chemin === '/reservation') return await avecCors(() => reserver(req, env, page, ctx));
+      if (chemin === '/atelier/serveurs') return await avecCors(() => atelierServeurs(req, env));
+      if (chemin === '/atelier/serveur') return await avecCors(() => atelierServeur(req, url, env));
+      if (chemin === '/atelier/action') return await avecCors(() => atelierAction(req, env));
+      if (chemin === '/espace') return await avecCors(() => espaceClient(req, env));
       if (chemin === '/interactions' && req.method === 'POST') return await interactions(req, env, ctx, page);
       return new Response("Serveur de l'agenda de Mvrius.", { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
     } catch (e) {
@@ -72,6 +84,7 @@ export default {
 /* ---------- Connexion Discord ---------- */
 function connexion(url, env) {
   const etat = crypto.randomUUID();
+  const vers = DESTINATIONS[url.searchParams.get('vers')] ? url.searchParams.get('vers') : '';
   const params = new URLSearchParams({
     client_id: env.DISCORD_CLIENT_ID,
     response_type: 'code',
@@ -84,26 +97,28 @@ function connexion(url, env) {
     status: 302,
     headers: {
       Location: `https://discord.com/oauth2/authorize?${params}`,
-      'Set-Cookie': `etat=${etat}; Path=/retour; Max-Age=600; HttpOnly; Secure; SameSite=Lax`,
+      'Set-Cookie': `etat=${etat}${vers ? `~${vers}` : ''}; Path=/retour; Max-Age=600; HttpOnly; Secure; SameSite=Lax`,
       'Cache-Control': 'no-store',
     },
   });
 }
 
 async function retour(req, url, env, page) {
+  const cookie = (req.headers.get('Cookie') || '').match(/(?:^|;\s*)etat=([^;]+)/);
+  const [etatCookie, destination] = cookie ? cookie[1].split('~') : [];
+  const cible = DESTINATIONS[destination] ? new URL(DESTINATIONS[destination], page).href : page;
   const vers = fragment => new Response(null, {
     status: 302,
     headers: {
-      Location: `${page}#${fragment}`,
+      Location: `${cible}#${fragment}`,
       'Set-Cookie': 'etat=; Path=/retour; Max-Age=0; HttpOnly; Secure; SameSite=Lax',
       'Cache-Control': 'no-store',
       'Referrer-Policy': 'no-referrer',
     },
   });
   if (url.searchParams.get('error')) return vers('erreur=annule');
-  const cookie = (req.headers.get('Cookie') || '').match(/(?:^|;\s*)etat=([^;]+)/);
   const code = url.searchParams.get('code');
-  if (!code || !cookie || cookie[1] !== url.searchParams.get('state')) return vers('erreur=etat');
+  if (!code || !etatCookie || etatCookie !== url.searchParams.get('state')) return vers('erreur=etat');
 
   const reponse = await fetch('https://discord.com/api/oauth2/token', {
     method: 'POST',
@@ -500,6 +515,11 @@ function messageSemaine(donnees, lundi, page) {
   if (taches.length) champs.push({ name: `Tâches prévues (${taches.length})`, value: coupe(taches.slice(0, 12).map(t => `${ligneTache(t, lundi)} · ${jourCourtTexte(t.date)}`).join('\n'), 1024) });
   if (echeances.length) champs.push({ name: `Échéances (${echeances.length})`, value: coupe(echeances.slice(0, 12).map(t => `⏳ ${t.titre} · ${t.echeance < lundi ? '**en retard**' : jourCourtTexte(t.echeance)}`).join('\n'), 1024) });
   if (attente.length) champs.push({ name: `Demandes en attente (${attente.length})`, value: coupe(attente.map(r => `📅 ${r.titre} · ${jourCourtTexte(r.date)} ${r.debut || ''}`).join('\n'), 1024) });
+  const aEncaisser = (donnees.factures || []).filter(f => f && f.numero && f.statut === 'emise' && f.type !== 'avoir').sort((x, y) => String(x.echeance).localeCompare(String(y.echeance)));
+  if (aEncaisser.length) {
+    const nomClient = f => (f.acheteur && f.acheteur.nom) || ((donnees.clients || []).find(c => c.id === f.client) || {}).nom || 'client';
+    champs.push({ name: `Factures à encaisser (${aEncaisser.length})`, value: coupe(aEncaisser.slice(0, 12).map(f => `🧾 ${f.numero} · ${nomClient(f)} · ${eurosTexte(totalFacture(f))}${DATE.test(f.echeance) && f.echeance < lundi ? ' · **en retard**' : ''}`).join('\n'), 1024) });
+  }
   const heures = Math.floor(minutesRdv / 60);
   return {
     embeds: [{
@@ -513,6 +533,14 @@ function messageSemaine(donnees, lundi, page) {
     components: [lienAgenda(page)],
   };
 }
+
+// Total d'une facture (TTC si TVA), arrondi au centime comme dans l'agenda
+function totalFacture(f) {
+  const ht = (f.lignes || []).reduce((t, l) => t + Math.round((Number(l.qte) || 0) * (Number(l.pu) || 0) * 100) / 100, 0);
+  const taux = Number(f.tva) > 0 ? Number(f.tva) : 0;
+  return Math.round((ht + Math.round(ht * taux) / 100) * 100) / 100;
+}
+const eurosTexte = n => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n).replace(/\u202f/g, ' ');
 
 /* ---------- Commandes et boutons Discord (interactions) ---------- */
 const hexVersOctets = h => Uint8Array.from(String(h).match(/[0-9a-f]{2}/gi) || [], x => parseInt(x, 16));
@@ -538,6 +566,13 @@ async function interactions(req, env, ctx, page) {
   if (!(await signatureValide(req, corps, env))) return new Response('Signature invalide.', { status: 401 });
   const i = JSON.parse(corps);
   if (i.type === 1) return json({ type: 1 }, 200); // vérification de l'adresse par Discord
+  // Boutons de rôle posés par l'atelier : pour tous les membres du serveur
+  if (i.type === 3 && String((i.data && i.data.custom_id) || '').startsWith('role|')) {
+    const webhookRole = `https://discord.com/api/v10/webhooks/${i.application_id}/${i.token}/messages/@original`;
+    const repondre = texte => fetch(webhookRole, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: texte, allowed_mentions: { parse: [] } }) });
+    ctx.waitUntil(boutonRole(i, env).then(repondre).catch(e => repondre(`⚠️ ${e.message}`)));
+    return json({ type: 5, data: { flags: 64 } }, 200);
+  }
   const auteur = (i.member && i.member.user) || i.user || {};
   if (auteur.id !== proprietaire(env)) return json({ type: 4, data: { content: '🔒 Cet agenda est privé.', flags: 64 } }, 200);
   const webhook = `https://discord.com/api/v10/webhooks/${i.application_id}/${i.token}`;
@@ -969,6 +1004,277 @@ function messageDemande(r, page) {
       { type: 2, style: 5, label: "Ouvrir l'agenda", url: page },
     ] }],
   };
+}
+
+/* ---------- Atelier : construire un serveur Discord avec le bot ---------- */
+// La page envoie une action à la fois (un rôle, un salon, un message…) : chaque appel reste
+// petit et la page affiche l'avancement. Si Discord demande d'attendre (429), la page attend.
+const ID = /^\d{5,22}$/;
+const BITS = /^\d{1,22}$/;
+const BIT = n => 1n << BigInt(n);
+const ADMINISTRATEUR = BIT(3);
+// Permissions qu'un bouton de rôle ne donne jamais (modération, gestion du serveur)
+const BITS_SENSIBLES = [1, 2, 3, 4, 5, 7, 13, 17, 22, 23, 24, 27, 28, 29, 30, 33, 34, 40].reduce((t, n) => t | BIT(n), 0n);
+
+async function apiDiscord(env, methode, chemin, corps) {
+  const rep = await fetch(`https://discord.com/api/v10${chemin}`, {
+    method: methode,
+    headers: { ...enteteBot(env), 'X-Audit-Log-Reason': encodeURIComponent('Atelier de Mvrius') },
+    body: corps === undefined ? undefined : JSON.stringify(corps),
+  });
+  const texte = await rep.text();
+  let donnees = null;
+  try { donnees = texte ? JSON.parse(texte) : null; } catch (e) { donnees = null; }
+  return { ok: rep.ok, status: rep.status, donnees };
+}
+
+// Message clair à partir d'une erreur Discord
+function erreurDiscord(r) {
+  const d = r.donnees || {};
+  const parCode = {
+    50013: "Le bot n'a pas la permission de faire ça. Donne-lui le rôle Administrateur (ou place son rôle tout en haut de la liste).",
+    50001: "Le bot n'a pas accès à ce salon ou à ce serveur.",
+    10004: "Le bot n'est pas (ou plus) sur ce serveur.",
+    10003: "Ce salon n'existe plus.",
+    10008: "Ce message n'existe plus.",
+    10011: "Ce rôle n'existe plus.",
+    30005: 'Ce serveur a atteint la limite de 250 rôles.',
+    30013: 'Ce serveur a atteint la limite de 500 salons.',
+    50024: 'Impossible avec ce type de salon.',
+    50005: "Ce message a été envoyé par quelqu'un d'autre : le bot ne peut modifier que ses propres messages.",
+  };
+  if (parCode[d.code]) return parCode[d.code];
+  if (d.code === 50035) {
+    const details = [];
+    const parcourir = (o, chemin) => {
+      if (!o || typeof o !== 'object') return;
+      if (Array.isArray(o._errors)) o._errors.forEach(e => details.push(`${chemin || 'contenu'} : ${e.message}`));
+      Object.entries(o).forEach(([k, v]) => { if (k !== '_errors') parcourir(v, chemin ? `${chemin}.${k}` : k); });
+    };
+    parcourir(d.errors, '');
+    return `Discord refuse le contenu${details.length ? ` (${details.slice(0, 3).join(' ; ')})` : ''}.`;
+  }
+  if (r.status === 401) return 'Discord refuse le token du bot (DISCORD_BOT_TOKEN).';
+  return `Discord a répondu ${r.status}${d.message ? ` : ${d.message}` : ''}.`;
+}
+const reponseDiscord = (r, garder) => {
+  if (r.status === 429) return json({ message: 'Discord demande de patienter.', attente: Math.ceil(((r.donnees && r.donnees.retry_after) || 1) * 1000) + 100 }, 429);
+  if (!r.ok) return json({ message: erreurDiscord(r), code: r.donnees && r.donnees.code }, 422);
+  return json(garder ? garder(r.donnees) : { ok: true }, 200);
+};
+const iconeServeur = g => (g.icon ? `https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png?size=96` : null);
+
+async function verifierAtelier(req, env) {
+  if (!(await sessionDe(req, env))) return json({ message: 'Session expirée.' }, 401);
+  if (!env.DISCORD_BOT_TOKEN) return json({ message: 'Ajoute le token du bot (DISCORD_BOT_TOKEN) dans Cloudflare.' }, 400);
+  return null;
+}
+
+// Serveurs où le bot est présent, et le lien pour l'inviter ailleurs
+async function atelierServeurs(req, env) {
+  if (req.method !== 'GET') return json({ message: 'Méthode refusée.' }, 405);
+  const refus = await verifierAtelier(req, env);
+  if (refus) return refus;
+  const r = await apiDiscord(env, 'GET', '/users/@me/guilds?limit=200');
+  const invitation = `https://discord.com/oauth2/authorize?client_id=${encodeURIComponent(env.DISCORD_CLIENT_ID)}&scope=bot%20applications.commands&permissions=8`;
+  return reponseDiscord(r, liste => ({
+    invitation,
+    guildes: (liste || []).map(g => ({ id: g.id, nom: g.name, icone: iconeServeur(g), admin: (BigInt(g.permissions || '0') & ADMINISTRATEUR) === ADMINISTRATEUR })),
+  }));
+}
+
+// État d'un serveur : rôles, salons, réglages, droits du bot
+async function atelierServeur(req, url, env) {
+  if (req.method !== 'GET') return json({ message: 'Méthode refusée.' }, 405);
+  const refus = await verifierAtelier(req, env);
+  if (refus) return refus;
+  const id = url.searchParams.get('id') || '';
+  if (!ID.test(id)) return json({ message: 'Serveur inconnu.' }, 400);
+  const [g, salons, moi] = await Promise.all([
+    apiDiscord(env, 'GET', `/guilds/${id}`),
+    apiDiscord(env, 'GET', `/guilds/${id}/channels`),
+    apiDiscord(env, 'GET', '/users/@me'),
+  ]);
+  for (const r of [g, salons, moi]) if (!r.ok) return reponseDiscord(r);
+  const membre = await apiDiscord(env, 'GET', `/guilds/${id}/members/${moi.donnees.id}`);
+  if (!membre.ok) return reponseDiscord(membre);
+  const roles = g.donnees.roles || [];
+  const rolesBot = roles.filter(r => (membre.donnees.roles || []).includes(r.id));
+  const admin = rolesBot.some(r => (BigInt(r.permissions || '0') & ADMINISTRATEUR) === ADMINISTRATEUR);
+  const d = g.donnees;
+  return json({
+    id: d.id, nom: d.name, icone: iconeServeur(d), features: d.features || [],
+    verification: d.verification_level, notifications: d.default_message_notifications, filtre: d.explicit_content_filter,
+    systeme: d.system_channel_id, reglement: d.rules_channel_id, majs: d.public_updates_channel_id, afk: d.afk_channel_id, afkDelai: d.afk_timeout,
+    bot: { id: moi.donnees.id, admin, position: Math.max(0, ...rolesBot.map(r => r.position)) },
+    roles: roles.map(r => ({ id: r.id, nom: r.name, couleur: r.color, permissions: r.permissions, position: r.position, separe: !!r.hoist, mentionnable: !!r.mentionable, gere: !!r.managed })),
+    salons: (salons.donnees || []).map(c => ({
+      id: c.id, nom: c.name, type: c.type, parent: c.parent_id || null, position: c.position, sujet: c.topic || '',
+      lent: c.rate_limit_per_user || 0, limite: c.user_limit || 0,
+      perms: (c.permission_overwrites || []).map(o => ({ id: o.id, type: o.type, allow: o.allow, deny: o.deny })),
+    })),
+  }, 200);
+}
+
+// Nettoyage de ce qu'envoie la page (Discord vérifie le reste)
+const texteMax = (v, n) => String(v ?? '').slice(0, n);
+const entier = (v, min, max) => Math.min(max, Math.max(min, Math.round(Number(v) || 0)));
+function corpsRole(o) {
+  const r = { name: texteMax(o.name, 100) || 'nouveau rôle', permissions: BITS.test(String(o.permissions)) ? String(o.permissions) : '0', hoist: !!o.hoist, mentionable: !!o.mentionable };
+  if (o.color !== undefined) r.color = entier(o.color, 0, 0xffffff);
+  return r;
+}
+const surcharges = l => (Array.isArray(l) ? l : []).slice(0, 100)
+  .filter(x => x && ID.test(String(x.id)) && BITS.test(String(x.allow)) && BITS.test(String(x.deny)))
+  .map(x => ({ id: String(x.id), type: x.type === 1 ? 1 : 0, allow: String(x.allow), deny: String(x.deny) }));
+function corpsSalon(o) {
+  const type = [0, 2, 4, 5, 13, 15].includes(o.type) ? o.type : 0;
+  const c = { name: texteMax(o.name, 100) || 'salon', type, permission_overwrites: surcharges(o.permission_overwrites) };
+  if (type !== 4 && ID.test(String(o.parent_id || ''))) c.parent_id = String(o.parent_id);
+  if ([0, 5, 15].includes(type) && o.topic) c.topic = texteMax(o.topic, 1024);
+  if ([0, 15].includes(type) && o.rate_limit_per_user) c.rate_limit_per_user = entier(o.rate_limit_per_user, 0, 21600);
+  if (type === 2 && o.user_limit) c.user_limit = entier(o.user_limit, 0, 99);
+  if (o.nsfw) c.nsfw = true;
+  return c;
+}
+function corpsMessage(o) {
+  const m = { content: texteMax(o.content, 2000), embeds: (Array.isArray(o.embeds) ? o.embeds : []).slice(0, 10), components: (Array.isArray(o.components) ? o.components : []).slice(0, 5) };
+  m.allowed_mentions = o.mentions ? { parse: ['roles', 'users', 'everyone'] } : { parse: [] };
+  return m;
+}
+const CHAMPS_SERVEUR = {
+  verification_level: v => entier(v, 0, 4), default_message_notifications: v => entier(v, 0, 1), explicit_content_filter: v => entier(v, 0, 2),
+  system_channel_id: v => (ID.test(String(v)) ? String(v) : null), rules_channel_id: v => (ID.test(String(v)) ? String(v) : null),
+  public_updates_channel_id: v => (ID.test(String(v)) ? String(v) : null), afk_channel_id: v => (ID.test(String(v)) ? String(v) : null),
+  afk_timeout: v => ([60, 300, 900, 1800, 3600].includes(Number(v)) ? Number(v) : 300),
+  features: v => (Array.isArray(v) ? v.filter(f => ['COMMUNITY', 'INVITES_DISABLED'].includes(f)) : []),
+};
+
+// Le salon doit appartenir au serveur choisi
+async function salonDuServeur(env, guilde, salon) {
+  if (!ID.test(String(salon))) return { ok: false, status: 400, donnees: { message: 'Salon inconnu.' } };
+  const r = await apiDiscord(env, 'GET', `/channels/${salon}`);
+  if (r.ok && r.donnees.guild_id !== guilde) return { ok: false, status: 403, donnees: { message: "Ce salon n'est pas sur ce serveur." } };
+  return r;
+}
+
+async function atelierAction(req, env) {
+  if (req.method !== 'POST') return json({ message: 'Méthode refusée.' }, 405);
+  const refus = await verifierAtelier(req, env);
+  if (refus) return refus;
+  const a = await req.json().catch(() => ({}));
+  const g = String(a.guilde || '');
+  if (!ID.test(g)) return json({ message: 'Serveur inconnu.' }, 400);
+  switch (a.type) {
+    case 'role': return reponseDiscord(await apiDiscord(env, 'POST', `/guilds/${g}/roles`, corpsRole(a.donnees || {})), r => ({ id: r.id }));
+    case 'modifierRole': {
+      if (!ID.test(String(a.id))) return json({ message: 'Rôle inconnu.' }, 400);
+      const corps = String(a.id) === g ? { permissions: corpsRole(a.donnees || {}).permissions } : corpsRole(a.donnees || {});
+      return reponseDiscord(await apiDiscord(env, 'PATCH', `/guilds/${g}/roles/${a.id}`, corps), r => ({ id: r.id }));
+    }
+    case 'salon': return reponseDiscord(await apiDiscord(env, 'POST', `/guilds/${g}/channels`, corpsSalon(a.donnees || {})), r => ({ id: r.id, type: r.type }));
+    case 'supprimerSalon': {
+      const c = await salonDuServeur(env, g, a.id);
+      if (!c.ok) return reponseDiscord(c);
+      return reponseDiscord(await apiDiscord(env, 'DELETE', `/channels/${a.id}`));
+    }
+    case 'positions': {
+      const liste = (Array.isArray(a.positions) ? a.positions : []).slice(0, 500).filter(p => p && ID.test(String(p.id)))
+        .map(p => ({ id: String(p.id), position: entier(p.position, 0, 1000), ...(p.parent_id === null || ID.test(String(p.parent_id)) ? { parent_id: p.parent_id === null ? null : String(p.parent_id) } : {}) }));
+      return reponseDiscord(await apiDiscord(env, 'PATCH', `/guilds/${g}/channels`, liste));
+    }
+    case 'serveur': {
+      const corps = {};
+      for (const [k, f] of Object.entries(CHAMPS_SERVEUR)) if (a.donnees && a.donnees[k] !== undefined) corps[k] = f(a.donnees[k]);
+      return reponseDiscord(await apiDiscord(env, 'PATCH', `/guilds/${g}`, corps), r => ({ features: r.features || [] }));
+    }
+    case 'message': {
+      const c = await salonDuServeur(env, g, a.salon);
+      if (!c.ok) return reponseDiscord(c);
+      return reponseDiscord(await apiDiscord(env, 'POST', `/channels/${a.salon}/messages`, corpsMessage(a.donnees || {})), r => ({ id: r.id, salon: r.channel_id }));
+    }
+    case 'lireMessage': {
+      const c = await salonDuServeur(env, g, a.salon);
+      if (!c.ok) return reponseDiscord(c);
+      if (!ID.test(String(a.message))) return json({ message: 'Message inconnu.' }, 400);
+      const [m, moi] = await Promise.all([apiDiscord(env, 'GET', `/channels/${a.salon}/messages/${a.message}`), apiDiscord(env, 'GET', '/users/@me')]);
+      if (!m.ok) return reponseDiscord(m);
+      return json({ content: m.donnees.content || '', embeds: m.donnees.embeds || [], components: m.donnees.components || [], duBot: !!(moi.ok && m.donnees.author && m.donnees.author.id === moi.donnees.id) }, 200);
+    }
+    case 'modifierMessage': {
+      const c = await salonDuServeur(env, g, a.salon);
+      if (!c.ok) return reponseDiscord(c);
+      if (!ID.test(String(a.message))) return json({ message: 'Message inconnu.' }, 400);
+      return reponseDiscord(await apiDiscord(env, 'PATCH', `/channels/${a.salon}/messages/${a.message}`, corpsMessage(a.donnees || {})), r => ({ id: r.id, salon: r.channel_id }));
+    }
+    default: return json({ message: 'Action inconnue.' }, 400);
+  }
+}
+
+// Bouton « role|ID|a » (ajouter) ou « role|ID|b » (ajouter ou retirer), posé par l'atelier
+async function boutonRole(i, env) {
+  const [, roleId, mode] = String(i.data.custom_id).split('|');
+  const g = i.guild_id;
+  const membre = i.member;
+  if (!g || !membre || !membre.user) return 'Ce bouton ne marche que sur un serveur.';
+  const posteParLeBot = i.message && i.message.author && i.message.author.id === i.application_id;
+  if (!posteParLeBot || !ID.test(String(roleId))) return 'Bouton invalide.';
+  const roles = await apiDiscord(env, 'GET', `/guilds/${g}/roles`);
+  if (!roles.ok) return erreurDiscord(roles);
+  const role = (roles.donnees || []).find(r => r.id === roleId);
+  if (!role) return "Ce rôle n'existe plus. Préviens l'équipe du serveur.";
+  if (role.managed || role.id === g || (BigInt(role.permissions || '0') & BITS_SENSIBLES) !== 0n) return 'Ce rôle ne peut pas être donné par un bouton.';
+  const aDeja = (membre.roles || []).includes(roleId);
+  if (aDeja && mode !== 'b') return `Tu as déjà le rôle <@&${roleId}> 👍`;
+  const r = await apiDiscord(env, aDeja ? 'DELETE' : 'PUT', `/guilds/${g}/members/${membre.user.id}/roles/${roleId}`);
+  if (r.status === 403) return `Je n'ai pas le droit de donner ce rôle. Dans les réglages du serveur, place le rôle du bot au-dessus de « ${role.name} ».`;
+  if (!r.ok) return erreurDiscord(r);
+  return aDeja ? `Rôle <@&${roleId}> retiré.` : `✅ Rôle <@&${roleId}> ajouté !`;
+}
+
+/* ---------- Espace client (lien secret) ---------- */
+// Ne renvoie que ce qui concerne ce client : ses rendez-vous, son projet, ses factures émises.
+async function espaceClient(req, env) {
+  if (req.method !== 'GET') return json({ message: 'Méthode refusée.' }, 405);
+  const cle = (req.headers.get('Authorization') || '').replace(/^Cle\s+/i, '');
+  if (!/^[A-Za-z0-9_-]{20,80}$/.test(cle)) return json({ message: "Ce lien n'est pas valide." }, 401);
+  const donnees = await lireAgenda(env);
+  const c = (donnees.clients || []).find(x => x && x.espace && x.espace.cle === cle && x.espace.actif !== false);
+  if (!c) return json({ message: "Ce lien n'est plus valide. Demandez un nouveau lien à Mvrius." }, 404);
+  const t = Date.now();
+  const auj = jourParis(t);
+  const nom = sansAccents(c.nom).trim();
+  const lies = (donnees.rendezvous || []).filter(r => r && r.statut !== 'annule' && DATE.test(r.date) && (r.client === c.id || (!r.client && sansAccents(r.avec).trim() === nom)));
+  const occ = [];
+  for (const r of lies) {
+    for (const d of debuts(r, decale(auj, -730), decale(auj, 365))) {
+      const dernier = dernierJourDe(r, d);
+      const fin = r.journee ? parisVersUtc(decale(dernier, 1), '00:00') : minutesDe(r.fin) === 0 ? parisVersUtc(decale(dernier, 1), '00:00') : parisVersUtc(dernier, r.fin);
+      const duree = r.journee ? 0 : Math.max(0, (fin - parisVersUtc(d, r.debut)) / 60000);
+      occ.push({ titre: coupe(r.titre, 120), date: d, dateFin: dernier, journee: !!r.journee, debut: r.journee ? null : r.debut, fin: r.journee ? null : r.fin, statut: r.statut === 'attente' ? 'attente' : 'confirme', duree, passe: fin <= t });
+    }
+  }
+  occ.sort((a, b) => (a.date + (a.debut || '')).localeCompare(b.date + (b.debut || '')));
+  const passes = occ.filter(x => x.passe && x.statut === 'confirme');
+  const fact = (donnees.reglages && donnees.reglages.facturation) || {};
+  const numeros = new Map((donnees.factures || []).map(f => [f.id, f.numero]));
+  const factures = (donnees.factures || []).filter(f => f && f.client === c.id && f.numero && f.statut !== 'brouillon')
+    .map(f => ({
+      id: f.id, type: f.type === 'avoir' ? 'avoir' : 'facture', numero: f.numero, statut: f.statut, date: f.date, echeance: f.echeance || null,
+      objet: f.objet || '', lignes: f.lignes || [], tva: f.tva ?? null, notes: f.notes || '', ref: f.ref ? numeros.get(f.ref) || null : null,
+      vendeur: f.vendeur || {}, acheteur: f.acheteur || {}, paiement: f.paiement ? { date: f.paiement.date } : null,
+    }))
+    .sort((a, b) => b.date.localeCompare(a.date) || b.numero.localeCompare(a.numero));
+  const etapes = (Array.isArray(c.etapes) ? c.etapes : []).filter(e => e && e.t).map(e => ({ t: coupe(e.t, 200), fait: !!e.fait }));
+  return json({
+    client: { nom: c.nom },
+    pro: { nom: fact.nom || 'Mvrius', email: fact.email || '' },
+    message: c.messageEspace || '',
+    projet: c.projet || etapes.length ? { titre: c.projet || '', etapes } : null,
+    rdv: { aVenir: occ.filter(x => !x.passe).slice(0, 20).map(({ passe, ...x }) => x), passes: passes.slice(-30).reverse().map(({ passe, statut, ...x }) => x), total: passes.length, minutes: Math.round(passes.reduce((s, x) => s + x.duree, 0)) },
+    factures,
+    maj: new Date(t).toISOString(),
+  }, 200);
 }
 
 /* ---------- Jours fériés (France métropolitaine) ---------- */

@@ -1,5 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /agenda/
+Disallow: /atelier/
+Disallow: /espace/
 
 Sitemap: https://mvriuus.fr/sitemap.xml

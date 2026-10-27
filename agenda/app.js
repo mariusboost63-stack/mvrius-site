@@ -42,6 +42,9 @@
   const PRIORITES = [[0, 'Normale', '#b6a993'], [1, 'Haute', '#e8b46a'], [2, 'Urgente', '#ff6b8b']];
   const DUREES_TACHE = [[15, '15 min'], [30, '30 min'], [45, '45 min'], [60, '1 h'], [90, '1 h 30'], [120, '2 h'], [180, '3 h'], [240, '4 h']];
   const CORBEILLE_JOURS = 30; // les éléments supprimés restent restaurables 30 jours
+  // Factures : informations du vendeur (Réglages › Facturation). Par défaut : franchise de TVA (micro-entreprise)
+  const FACTURATION_DEFAUT = { nom: 'Mvrius', identite: '', adresse: '', siret: '', email: '', tva: false, taux: 20, tvaNum: '', iban: '', bic: '', delai: 30, prefixe: 'F', mentions: '' };
+  const STATUTS_FACTURE = { brouillon: ['Brouillon', '#9ba3ba'], emise: ['À encaisser', '#e8b46a'], retard: ['En retard', '#ff6b8b'], payee: ['Payée', '#3ddc84'], annulee: ['Annulée', '#7c705f'], avoir: ['Avoir', '#c3a6ff'], rembourse: ['Remboursé', '#3ddc84'] };
   const MESSAGE_CONFIRMATION = 'Bonjour {nom} ! C\'est validé pour notre appel du {date} à {heure} ({duree} min) sur Discord. À très vite, Mvrius';
   const DATE = /^\d{4}-\d{2}-\d{2}$/;
   const HEURE = /^\d{2}:\d{2}$/;
@@ -149,7 +152,7 @@
   const vueEffective = () => (petit.matches && etat.vue === 'semaine' ? 'trois' : etat.vue);
 
   /* ---------- Données ---------- */
-  const vide = () => ({ format: 1, categories: clone(CATEGORIES), rendezvous: [], taches: [], reglages: {}, clients: [], modeles: [], corbeille: [] });
+  const vide = () => ({ format: 1, categories: clone(CATEGORIES), rendezvous: [], taches: [], reglages: {}, clients: [], modeles: [], corbeille: [], factures: [] });
   function normaliser(d) {
     d = d && typeof d === 'object' ? d : {};
     const cats = Array.isArray(d.categories) && d.categories.length
@@ -164,8 +167,9 @@
     const clients = liste(d.clients, c => c.id && typeof c.nom === 'string');
     const modeles = liste(d.modeles, m => m.id && typeof m.nom === 'string');
     const corbeille = liste(d.corbeille, c => c.cid && c.type && c.element);
+    const factures = liste(d.factures, f => f.id && Array.isArray(f.lignes));
     // Les autres champs éventuels (ajoutés par le serveur) sont gardés tels quels
-    return { ...d, format: 1, categories: cats, rendezvous: rdv, taches, reglages, clients, modeles, corbeille };
+    return { ...d, format: 1, categories: cats, rendezvous: rdv, taches, reglages, clients, modeles, corbeille, factures };
   }
   // Un changement = une opération rejouable : en cas de conflit avec un autre appareil,
   // on relit le fichier sur GitHub et on rejoue les opérations par-dessus.
@@ -186,6 +190,8 @@
     return null;
   }
   const LISTES = { tache: 'taches', client: 'clients', modele: 'modeles' };
+  // Pour la corbeille : un brouillon de facture supprimé revient dans « factures »
+  const LISTES_CORBEILLE = { ...LISTES, facture: 'factures' };
   // Un élément revenu dans l'agenda (bouton « Annuler », restauration) sort de la corbeille
   function nettoyerCorbeille(d) {
     if (!(d.corbeille || []).length) return;
@@ -195,14 +201,63 @@
         const r = d.rendezvous.find(x => x.id === c.element.id);
         return !!r && (r.exceptions || []).includes(c.element.date);
       }
-      return !(d[LISTES[c.type]] || []).some(x => x.id === c.element.id);
+      return !(d[LISTES_CORBEILLE[c.type]] || []).some(x => x.id === c.element.id);
     });
   }
   function appliquer(d, op) {
     appliquerOp(d, op);
     nettoyerCorbeille(d);
   }
+  // Émission : numéro suivant (calculé au moment où l'opération est appliquée, donc sans doublon
+  // même si un autre appareil a émis une facture entre-temps), copie des informations du vendeur
+  // et du client telles qu'elles sont ce jour-là
+  function emettre(d, f, op) {
+    const reg = { ...FACTURATION_DEFAUT, ...((d.reglages || {}).facturation || {}) };
+    const date = DATE.test(op.date) ? op.date : f.date;
+    const prefixe = /^[A-Z0-9]{1,6}$/i.test(reg.prefixe) && reg.prefixe.toUpperCase() !== 'AV' ? reg.prefixe.toUpperCase() : 'F';
+    const c = (d.clients || []).find(x => x.id === f.client) || {};
+    Object.assign(f, {
+      date,
+      numero: window.Facture.numeroSuivant(d.factures, f.type === 'avoir' ? 'AV' : prefixe, date.slice(0, 4)),
+      statut: 'emise',
+      tva: reg.tva ? Number(reg.taux) || 20 : null,
+      echeance: f.type === 'avoir' ? null : decale(date, Number(reg.delai) || 0),
+      vendeur: { nom: reg.nom, identite: reg.identite, adresse: reg.adresse, siret: reg.siret, email: reg.email, tvaNum: reg.tva ? reg.tvaNum : '', iban: reg.iban, bic: reg.bic, mentions: reg.mentions },
+      acheteur: { nom: c.nom || f.clientNom || '', adresse: c.adresse || '', email: c.email || '', siren: c.siren || '' },
+      emise: op.le, modifie: op.le,
+    });
+  }
+  function opFacture(d, op) {
+    d.factures = d.factures || [];
+    const f = d.factures.find(x => x.id === (op.facture ? op.facture.id : op.id));
+    if (op.type === 'facture') {
+      // Une facture émise ne se modifie plus (seulement payée, ou annulée par un avoir)
+      if (f && f.statut !== 'brouillon') return;
+      majListe(d, 'factures', { ...op.facture, statut: 'brouillon', numero: null });
+    } else if (op.type === 'supprimerFacture') {
+      if (!f || f.statut !== 'brouillon') return;
+      d.factures.splice(d.factures.indexOf(f), 1);
+      if (!op.sansCorbeille) mettreALaCorbeille(d, op, 'facture', f);
+    } else if (op.type === 'emettreFacture') {
+      if (f && f.statut === 'brouillon') emettre(d, f, op);
+    } else if (op.type === 'payerFacture') {
+      if (!f || !f.numero) return;
+      f.paiement = op.paiement ? clone(op.paiement) : null;
+      if (f.statut !== 'annulee') f.statut = op.paiement ? 'payee' : 'emise';
+      f.modifie = op.le;
+    } else if (op.type === 'avoirFacture') {
+      if (!f || !f.numero || f.type === 'avoir' || f.statut === 'annulee' || d.factures.some(x => x.id === op.avoir)) return;
+      const av = { id: op.avoir, type: 'avoir', client: f.client, clientNom: (f.acheteur || {}).nom, date: op.date, objet: f.objet, ref: f.id, notes: '', statut: 'brouillon', cree: op.le,
+        lignes: f.lignes.map(l => ({ ...l, pu: -(Number(l.pu) || 0) })) };
+      d.factures.push(av);
+      emettre(d, av, op);
+      av.tva = f.tva ?? null; // même TVA que la facture annulée
+      Object.assign(f, { statut: 'annulee', avoir: av.id, modifie: op.le });
+    }
+  }
+  const OPS_FACTURE = ['facture', 'supprimerFacture', 'emettreFacture', 'payerFacture', 'avoirFacture'];
   function appliquerOp(d, op) {
+    if (OPS_FACTURE.includes(op.type)) { opFacture(d, op); return; }
     const listes = LISTES;
     const retraits = { supprimerTache: 'tache', supprimerClient: 'client', supprimerModele: 'modele' };
     if (listes[op.type]) { majListe(d, listes[op.type], op[op.type]); return; }
@@ -220,7 +275,7 @@
       else if (c.type === 'occurrence') {
         const r = d.rendezvous.find(x => x.id === c.element.id);
         if (r) r.exceptions = (r.exceptions || []).filter(x => x !== c.element.date);
-      } else if (listes[c.type]) majListe(d, listes[c.type], c.element);
+      } else if (LISTES_CORBEILLE[c.type]) majListe(d, LISTES_CORBEILLE[c.type], c.element);
       return;
     }
     if (op.type === 'viderCorbeille') { d.corbeille = []; return; }
@@ -269,6 +324,8 @@
   const clientDe = id => (id ? clients().find(c => c.id === id) : null);
   const modeles = () => donnees().modeles || [];
   const corbeille = () => donnees().corbeille || [];
+  const factures = () => donnees().factures || [];
+  const facturation = () => ({ ...FACTURATION_DEFAUT, ...((donnees().reglages || {}).facturation || {}) });
   const feriesActifs = () => (donnees().reglages || {}).feries !== false;
   const reservation = () => ({ ...RESA_DEFAUT, ...((donnees().reglages || {}).reservation || {}) });
   const jourIso = d => jour(d).getDay() || 7; // 1 = lundi … 7 = dimanche
@@ -418,6 +475,11 @@
     if (op.type === 'restaurer') return `Restauré depuis la corbeille : ${op.titre || ''}`;
     if (op.type === 'viderCorbeille') return 'Corbeille vidée';
     if (op.type === 'remplacer') return op.message || "Retour à une version précédente de l'agenda";
+    if (op.type === 'facture') return `${op.nouveau ? 'Nouveau brouillon de facture' : 'Brouillon de facture modifié'} : ${op.titre || ''}`;
+    if (op.type === 'supprimerFacture') return `Brouillon de facture supprimé : ${op.titre || ''}`;
+    if (op.type === 'emettreFacture') return `Facture émise : ${op.titre || ''}`;
+    if (op.type === 'payerFacture') return `Facture ${op.numero || ''} : ${op.paiement ? 'payée' : 'paiement annulé'}`;
+    if (op.type === 'avoirFacture') return `Avoir pour la facture ${op.numero || ''}`;
     return 'Catégories mises à jour';
   }
 
@@ -841,6 +903,8 @@
     const nbAPlanifier = aPlanifier().length;
     $('#aplanifier-compte').textContent = nbAPlanifier ? `· ${nbAPlanifier}` : '';
     $('#clients-compte').textContent = clients().length || '';
+    const aEncaisser = factures().filter(f => f.statut === 'emise' && f.type !== 'avoir').length;
+    $('#factures-compte').textContent = aEncaisser ? `${aEncaisser} à encaisser` : '';
     rendreFiltres();
   }
 
@@ -1703,11 +1767,12 @@
     if (a === 'reglages') ouvrirReglages();
     else if (a === 'clients') ouvrirClients();
     else if (a === 'factu') ouvrirFactu();
+    else if (a === 'factures') ouvrirFactures();
     else if (a === 'corbeille') ouvrirCorbeille();
     else if (a === 'historique') ouvrirHistorique();
     else if (a === 'ics') telecharger('agenda-mvrius.ics', ics(donnees().rendezvous), 'text/calendar;charset=utf-8');
     else if (a === 'json') telecharger(`agenda-sauvegarde-${aujourdhui()}.json`, JSON.stringify(donnees(), null, 2), 'application/json');
-    else if (a === 'raccourcis') toast('N nouveau · T aujourd\'hui · J S M L vues · ← → naviguer · / rechercher · C clients · F facturation', null, 8000);
+    else if (a === 'raccourcis') toast('N nouveau · T aujourd\'hui · J S M L vues · ← → naviguer · / rechercher · C clients · F factures · H heures', null, 8000);
     else if (a === 'deconnexion') deconnecter();
   });
 
@@ -1717,7 +1782,8 @@
   const resumeActuel = () => ({ actif: false, heure: '08:00', ...((donnees().reglages || {}).resume || {}) });
   const semaineActuelle = () => ({ actif: false, heure: '19:00', ...((donnees().reglages || {}).resumeSemaine || {}) });
   let brouillonModeles = [];
-  function ouvrirReglages() {
+  const CHAMPS_FACTURATION = ['nom', 'identite', 'adresse', 'siret', 'email', 'tvaNum', 'iban', 'bic', 'mentions'];
+  function ouvrirReglages(section) {
     brouillon = clone(categories());
     rendreCategoriesEdit();
     brouillonModeles = clone(modeles());
@@ -1749,8 +1815,20 @@
     $('#r-resa-feries').checked = resa.feries !== false;
     $('#r-resa-message').value = resa.message || '';
     $('#r-resa-message').placeholder = MESSAGE_CONFIRMATION;
+    // Facturation
+    const fa = facturation();
+    CHAMPS_FACTURATION.forEach(k => { $(`#r-f-${k}`).value = fa[k] || ''; });
+    $('#r-f-mentions').placeholder = window.Facture.MENTIONS;
+    $('#r-f-tva').checked = !!fa.tva;
+    $('#r-f-taux').value = String(fa.taux || 20);
+    $('#r-f-delai').value = String(Number(fa.delai) || 0);
+    $('#r-f-prefixe').value = fa.prefixe || 'F';
+    majTvaReglages();
     reglages.showModal();
+    if (section) { const el = $(`#r-${section}`); if (el) el.scrollIntoView({ block: 'start' }); }
   }
+  const majTvaReglages = () => { $('#r-f-tva-detail').hidden = !$('#r-f-tva').checked; };
+  $('#r-f-tva').addEventListener('change', majTvaReglages);
   // Modèles : renommer ou supprimer (les changements s'appliquent avec « Enregistrer »)
   function rendreModelesEdit() {
     const resume = m => [m.journee ? 'Journée' : heuresTxt(Number(m.duree) || 60), categorie(m.categorie).nom].join(' · ');
@@ -1883,6 +1961,15 @@
     if ($('#r-feries').checked !== feriesActifs()) changes.feries = $('#r-feries').checked;
     if (JSON.stringify(t) !== JSON.stringify(travail())) changes.travail = t;
     if (JSON.stringify(resa) !== JSON.stringify(reservation())) changes.reservation = resa;
+    const fa = { ...facturation() };
+    CHAMPS_FACTURATION.forEach(k => { fa[k] = $(`#r-f-${k}`).value.trim(); });
+    fa.siret = fa.siret.replace(/\s+/g, ' ');
+    fa.tva = $('#r-f-tva').checked;
+    fa.taux = Number($('#r-f-taux').value) || 20;
+    fa.delai = Number($('#r-f-delai').value) || 0;
+    const prefixe = $('#r-f-prefixe').value.trim().toUpperCase();
+    fa.prefixe = /^[A-Z0-9]{1,6}$/.test(prefixe) && prefixe !== 'AV' ? prefixe : 'F';
+    if (JSON.stringify(fa) !== JSON.stringify(facturation())) changes.facturation = fa;
     if (Object.keys(changes).length) ops.push({ type: 'reglages', reglages: changes });
     if (ops.length) {
       operation(ops);
@@ -1925,7 +2012,7 @@
       rendreListeClients('');
       return;
     }
-    const c = clientDe(clientsEtat.id) || { id: null, nom: '', discord: '', email: '', serveur: '', tarif: null, notes: '' };
+    const c = clientDe(clientsEtat.id) || { id: null, nom: '', discord: '', email: '', serveur: '', tarif: null, notes: '', adresse: '', siren: '' };
     $('#clients-titre').textContent = c.id ? 'Fiche client' : 'Nouveau client';
     const auj = aujourdhui();
     const maint = instantMaintenant();
@@ -1950,12 +2037,42 @@
       + `<label class="champ"><span>Serveur Discord</span><input name="serveur" value="${esc(c.serveur)}" maxlength="120" placeholder="Nom ou lien d'invitation" autocomplete="off"></label>`
       + `<label class="champ"><span>Tarif horaire (€)</span><input name="tarif" type="number" min="0" step="0.5" inputmode="decimal" value="${tarif || ''}" placeholder="Ex. 40"></label>`
       + `</div>`
-      + `<label class="champ"><span>Notes</span><textarea name="notes" rows="3" maxlength="4000" placeholder="Besoins, projets, infos utiles…">${esc(c.notes)}</textarea></label>`
+      + `<div class="cl-adresse"><label class="champ"><span>Adresse (pour les factures)</span><textarea name="adresse" rows="2" maxlength="300" placeholder="Rue, code postal, ville">${esc(c.adresse || '')}</textarea></label>`
+      + `<label class="champ"><span>SIREN (si professionnel)</span><input name="siren" value="${esc(c.siren || '')}" maxlength="20" inputmode="numeric" autocomplete="off"></label></div>`
+      + `<label class="champ"><span>Notes (privées)</span><textarea name="notes" rows="3" maxlength="4000" placeholder="Besoins, projets, infos utiles…">${esc(c.notes)}</textarea></label>`
+      + blocEspaceClient(c)
       + `<p class="f-erreur" id="cl-erreur" role="alert"></p>`
       + `<div class="cl-actions">${c.id ? `<button type="button" class="icone-btn icone-btn--danger" data-cl="supprimer" aria-label="Supprimer le client" title="Supprimer le client">${icone('corbeille')}</button>`
         + `<button type="button" class="btn btn--ghost btn--petit" data-cl="rdv">${icone('plus')}Nouveau rendez-vous</button>` : ''}<span class="espace"></span>`
       + `<button type="submit" class="btn btn--primaire">Enregistrer</button></div></form>`
-      + (c.id ? stats + lignes('À venir', aVenir.slice(0, 20), 'Aucun rendez-vous prévu.') + lignes('Historique', passes.slice(-40).reverse(), 'Pas encore de rendez-vous passé.') : '');
+      + (c.id ? stats + blocFacturesClient(c) + lignes('À venir', aVenir.slice(0, 20), 'Aucun rendez-vous prévu.') + lignes('Historique', passes.slice(-40).reverse(), 'Pas encore de rendez-vous passé.') : '');
+  }
+  // Espace client : lien secret, projet en cours (étapes), message affiché au client
+  const nouvelleCle = () => btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(24)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  function lienEspaceHtml(c) {
+    const lien = lienEspace(c);
+    return lien ? `<div class="cl-lien"><input readonly value="${esc(lien)}" aria-label="Lien de l'espace client" data-cl-lien>`
+      + `<button type="button" class="btn btn--ghost btn--petit" data-cl="copier-lien">${icone('copie')}Copier</button>`
+      + `<a class="btn btn--ghost btn--petit" href="${esc(lien)}" target="_blank" rel="noopener">Ouvrir</a></div>`
+      + `<p class="r-aide">Toute personne qui a ce lien voit cet espace. <button type="button" class="btn--lien lien-tab" data-cl="nouveau-lien">Changer le lien</button> · <button type="button" class="btn--lien lien-tab" data-cl="sans-lien">Désactiver</button></p>`
+      : `<button type="button" class="btn btn--ghost btn--petit" data-cl="creer-lien">${icone('lien')}Créer le lien privé</button>`;
+  }
+  function blocEspaceClient(c) {
+    if (!c.id) return `<p class="r-aide">Enregistre la fiche pour créer l'espace client (rendez-vous, avancement du projet, factures).</p>`;
+    const etape = e => `<li class="t-item${e.fait ? ' is-fait' : ''}"><label class="t-coche"><input type="checkbox" data-etape-fait${e.fait ? ' checked' : ''} aria-label="Étape faite"><span class="t-case" aria-hidden="true"></span></label>`
+      + `<input class="cl-etape" data-etape value="${esc(e.t)}" maxlength="200" aria-label="Étape"><button type="button" class="t-suppr" data-etape-suppr aria-label="Retirer l'étape">${icone('fermer')}</button></li>`;
+    return `<section class="cl-espace"><h3 class="cl-h">${icone('espace')}Espace client</h3>`
+      + `<p class="r-aide">Une page privée où ${esc(c.nom)} voit ses rendez-vous, l'avancement du projet et ses factures émises. Jamais tes notes ni rien d'autre.</p>`
+      + `<div id="cl-lien-zone">${lienEspaceHtml(c)}</div>`
+      + `<label class="champ"><span>Projet en cours</span><input name="projet" value="${esc(c.projet || '')}" maxlength="120" placeholder="Ex. Création du serveur Discord" autocomplete="off"></label>`
+      + `<ul class="t-liste cl-etapes" id="cl-etapes">${(c.etapes || []).map(etape).join('')}</ul>`
+      + `<input class="cl-etape-ajout" id="cl-etape-ajout" maxlength="200" placeholder="Ajouter une étape… (Entrée)" aria-label="Ajouter une étape" autocomplete="off">`
+      + `<label class="champ"><span>Message pour ${esc(c.nom)}</span><textarea name="messageEspace" rows="2" maxlength="1000" placeholder="Ex. Le serveur est prêt, il ne reste que les bots à configurer !">${esc(c.messageEspace || '')}</textarea></label></section>`;
+  }
+  function blocFacturesClient(c) {
+    const liste = factures().filter(f => f.client === c.id).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    return `<div class="cl-h-ligne"><h3 class="cl-h">Factures</h3><button type="button" class="btn btn--ghost btn--petit" data-cl="facture">${icone('plus')}Nouvelle facture</button></div>`
+      + (liste.length ? `<ul class="fa-liste">${liste.slice(0, 12).map(ligneFacture).join('')}</ul>` : '<p class="av-vide">Pas encore de facture.</p>');
   }
   function rendreListeClients(q) {
     const t = sansAccents(q);
@@ -1971,9 +2088,26 @@
     }).join('') : `<li class="vide"><span class="vide-icone">${icone('clients')}</span><h3>${t ? 'Aucun client trouvé' : 'Pas encore de client'}</h3><p>${t ? 'Essaie un autre nom.' : 'Crée une fiche pour retrouver les coordonnées, les notes et l\'historique de chaque client.'}</p></li>`;
   }
   clientsDlg.addEventListener('input', e => { if (e.target.id === 'cl-q') rendreListeClients(e.target.value); });
-  clientsDlg.addEventListener('click', e => {
+  clientsDlg.addEventListener('change', e => { if (e.target.matches('[data-etape-fait]')) e.target.closest('li').classList.toggle('is-fait', e.target.checked); });
+  clientsDlg.addEventListener('keydown', e => {
+    if (e.target.id !== 'cl-etape-ajout' || e.key !== 'Enter') return;
+    e.preventDefault();
+    const t = e.target.value.trim();
+    if (!t) return;
+    $('#cl-etapes').insertAdjacentHTML('beforeend', `<li class="t-item"><label class="t-coche"><input type="checkbox" data-etape-fait aria-label="Étape faite"><span class="t-case" aria-hidden="true"></span></label><input class="cl-etape" data-etape value="${esc(t)}" maxlength="200" aria-label="Étape"><button type="button" class="t-suppr" data-etape-suppr aria-label="Retirer l'étape">${icone('fermer')}</button></li>`);
+    e.target.value = '';
+  });
+  clientsDlg.addEventListener('click', async e => {
     const ouvrir = e.target.closest('[data-cl-ouvrir]');
     if (ouvrir) { clientsEtat = { vue: 'fiche', id: ouvrir.dataset.clOuvrir }; rendreClients(); return; }
+    const fa = e.target.closest('[data-fa-ouvrir]');
+    if (fa) {
+      const f = factures().find(x => x.id === fa.dataset.faOuvrir);
+      clientsDlg.close();
+      if (f) ouvrirFactures(f.statut === 'brouillon' ? 'edition' : 'voir', f.id);
+      return;
+    }
+    if (e.target.closest('[data-etape-suppr]')) { e.target.closest('li').remove(); return; }
     const ev = e.target.closest('.l-ev');
     if (ev) { ouvrirFiche({ id: ev.dataset.id, date: ev.dataset.date }); return; }
     const b = e.target.closest('[data-cl]');
@@ -1988,6 +2122,25 @@
       toast(`Client « ${c.nom} » mis à la corbeille`, { texte: 'Annuler', faire: () => operation({ type: 'client', client: c }) });
       clientsEtat = { vue: 'liste', id: null };
       rendreClients();
+    } else if (action === 'creer-lien' || action === 'nouveau-lien') {
+      const c = clientDe(clientsEtat.id);
+      if (!c) return;
+      if (action === 'nouveau-lien' && !(await confirmer("Changer le lien de l'espace client ?", `L'ancien lien ne marchera plus : il faudra envoyer le nouveau à ${c.nom}.`, 'Changer le lien'))) return;
+      operation({ type: 'client', client: { ...c, espace: { cle: nouvelleCle(), cree: new Date().toISOString() } } });
+      $('#cl-lien-zone').innerHTML = lienEspaceHtml(clientDe(c.id));
+      toast(action === 'creer-lien' ? 'Espace client créé : copie le lien et envoie-le' : 'Nouveau lien créé');
+    } else if (action === 'sans-lien') {
+      const c = clientDe(clientsEtat.id);
+      if (!c) return;
+      operation({ type: 'client', client: { ...c, espace: null } });
+      $('#cl-lien-zone').innerHTML = lienEspaceHtml(clientDe(c.id));
+      toast("Espace client désactivé : le lien ne marche plus", { texte: 'Annuler', faire: () => { operation({ type: 'client', client: { ...clientDe(c.id), espace: c.espace } }); if (clientsDlg.open && $('#cl-lien-zone')) $('#cl-lien-zone').innerHTML = lienEspaceHtml(clientDe(c.id)); } });
+    } else if (action === 'copier-lien') {
+      toast((await copier($('[data-cl-lien]').value)) ? "Lien de l'espace client copié" : 'Copie impossible.');
+    } else if (action === 'facture') {
+      const c = clientDe(clientsEtat.id);
+      clientsDlg.close();
+      nouvelleFacture({ client: c ? c.id : '' });
     } else if (action === 'rdv') {
       const c = clientDe(clientsEtat.id);
       clientsDlg.close();
@@ -2010,8 +2163,16 @@
       ...(avant || {}), id: avant ? avant.id : nouvelId(), nom,
       discord: f.discord.value.trim(), email: f.email.value.trim(), serveur: f.serveur.value.trim(),
       tarif: Number.isFinite(tarif) && tarif > 0 ? tarif : null, notes: f.notes.value.trim(),
+      adresse: f.adresse.value.trim(), siren: f.siren.value.trim(),
       cree: avant ? avant.cree : instant, modifie: instant,
     };
+    if (f.projet) {
+      c.projet = f.projet.value.trim();
+      c.messageEspace = f.messageEspace.value.trim();
+      c.etapes = $$('#cl-etapes li').map(li => ({ t: $('[data-etape]', li).value.trim(), fait: $('[data-etape-fait]', li).checked })).filter(x => x.t);
+      const restant = $('#cl-etape-ajout').value.trim();
+      if (restant) c.etapes.push({ t: restant, fait: false });
+    }
     operation({ type: 'client', client: c, nouveau: !avant });
     toast(avant ? 'Fiche client enregistrée' : `Fiche client « ${nom} » créée`);
     clientsEtat = { vue: 'fiche', id: c.id };
@@ -2061,7 +2222,8 @@
         return `<tr><td>${g.c ? `<button type="button" class="lien-tab" data-factu-client="${esc(g.c.id)}">${esc(g.c.nom)}</button>` : '<span class="pale">Sans fiche client</span>'}</td>`
           + `<td>${g.lignes.length}</td><td>${heuresTxt(somme(r, x => x.duree))}</td><td>${heuresTxt(somme(g.lignes, x => x.duree))}</td>`
           + `<td>${g.c && Number(g.c.tarif) > 0 ? `${esc(euros(Number(g.c.tarif)))}/h` : '—'}</td><td><b>${montant ? esc(euros(montant)) : '—'}</b></td>`
-          + `<td>${g.c ? `<button type="button" class="icone-btn" data-factu-copier="${esc(g.c.id)}" aria-label="Copier le récapitulatif de ${esc(g.c.nom)}" title="Copier le récapitulatif">${icone('copie')}</button>` : ''}</td></tr>`;
+          + `<td>${g.c ? `<span class="tab-boutons"><button type="button" class="icone-btn" data-factu-copier="${esc(g.c.id)}" aria-label="Copier le récapitulatif de ${esc(g.c.nom)}" title="Copier le récapitulatif">${icone('copie')}</button>`
+            + `<button type="button" class="icone-btn" data-factu-facturer="${esc(g.c.id)}" aria-label="Facturer ${esc(g.c.nom)}" title="Créer la facture du mois">${icone('facture')}</button></span>` : ''}</td></tr>`;
       }).join('') + '</tbody></table></div>' : '';
     // Par catégorie
     const parCat = new Map();
@@ -2115,6 +2277,8 @@
     }
     const cl = e.target.closest('[data-factu-client]');
     if (cl) { ouvrirClients(cl.dataset.factuClient); return; }
+    const fa = e.target.closest('[data-factu-facturer]');
+    if (fa) { factuDlg.close(); nouvelleFacture({ client: fa.dataset.factuFacturer, mois: factuMois }); return; }
     const cp = e.target.closest('[data-factu-copier]');
     if (cp) {
       const c = clientDe(cp.dataset.factuCopier);
@@ -2123,6 +2287,353 @@
     }
     if (e.target.closest('[data-factu-csv]')) telecharger(`heures-${factuMois}.csv`, csvDuMois(factuMois), 'text/csv;charset=utf-8');
   });
+
+  /* ---------- Factures ---------- */
+  const facturesDlg = $('#factures');
+  let facturesEtat = { vue: 'liste', id: null, filtre: 'tout' };
+  let brouillonFacture = null; // facture en cours d'écriture (copie, enregistrée avec « Enregistrer » ou « Émettre »)
+  const F = () => window.Facture;
+  const nomClientFacture = f => (clientDe(f.client) || {}).nom || (f.acheteur || {}).nom || f.clientNom || 'Sans client';
+  const totalFacture = f => F().totaux(f).ttc;
+  const prefixeFacture = () => { const p = String(facturation().prefixe || '').toUpperCase(); return /^[A-Z0-9]{1,6}$/.test(p) && p !== 'AV' ? p : 'F'; };
+  // Statut affiché : « En retard » après l'échéance ; un avoir payé = remboursé
+  function statutFacture(f) {
+    if (f.type === 'avoir') return f.paiement ? 'rembourse' : 'avoir';
+    if (f.statut === 'emise' && DATE.test(f.echeance) && f.echeance < aujourdhui()) return 'retard';
+    return STATUTS_FACTURE[f.statut] ? f.statut : 'brouillon';
+  }
+  const pastilleFacture = f => { const [t, c] = STATUTS_FACTURE[statutFacture(f)]; return `<span class="fa-statut" style="--c:${c}">${esc(t)}</span>`; };
+  // Chiffre d'affaires encaissé : factures payées (et avoirs remboursés, en moins) à la date du paiement
+  const encaisse = (de, a) => factures().filter(f => f.numero && f.paiement && DATE.test(f.paiement.date) && f.paiement.date >= de && f.paiement.date <= a).reduce((t, f) => t + totalFacture(f), 0);
+  const lienEspace = c => (c && c.espace && c.espace.cle && c.espace.actif !== false ? `${new URL('../espace/', location.href).href}#${c.espace.cle}` : '');
+  const reglagesFacturationOk = () => { const r = facturation(); return !!((r.identite || r.nom) && r.adresse.trim() && r.siret.trim()); };
+  // Facture prête pour l'aperçu ou le PDF : un brouillon prend les réglages et la fiche client actuels
+  function factureComplete(f) {
+    if (f.numero) return { ...f, refNumero: f.ref ? (factures().find(x => x.id === f.ref) || {}).numero : null };
+    const reg = facturation();
+    const c = clientDe(f.client) || {};
+    return {
+      ...f, tva: reg.tva ? Number(reg.taux) || 20 : null, echeance: decale(f.date || aujourdhui(), Number(reg.delai) || 0),
+      vendeur: { ...reg, tvaNum: reg.tva ? reg.tvaNum : '' }, acheteur: { nom: c.nom || '', adresse: c.adresse || '', email: c.email || '', siren: c.siren || '' },
+    };
+  }
+  const moisTexte = mois => { const [a, m] = mois.split('-').map(Number); return fmt(new Date(a, m - 1, 1), { month: 'long', year: 'numeric' }); };
+  // Une ligne par rendez-vous réalisé et facturable du mois (durée en heures, tarif de la fiche)
+  function lignesHeures(c, mois) {
+    return lignesDuMois(mois).filter(x => x.c && x.c.id === c.id && x.realise && x.compte)
+      .map(x => ({ desc: `${x.i.r.titre} — ${fmt(x.i.date, { day: 'numeric', month: 'short' })}`, qte: Math.round(x.duree / 60 * 100) / 100, unite: 'h', pu: Number(c.tarif) || 0 }));
+  }
+
+  function ouvrirFactures(vue = 'liste', id = null) {
+    facturesEtat = { ...facturesEtat, vue, id };
+    if (vue === 'edition') brouillonFacture = clone(factures().find(f => f.id === id));
+    rendreFactures();
+    if (!facturesDlg.open) facturesDlg.showModal();
+    $('#factures-corps').scrollTop = 0;
+  }
+  // Nouveau brouillon, avec les heures d'un mois si on part de « Heures »
+  function nouvelleFacture({ client = '', mois = '' } = {}) {
+    const c = clientDe(client);
+    brouillonFacture = { id: nouvelId(), type: 'facture', client: c ? c.id : '', clientNom: c ? c.nom : '', date: aujourdhui(), objet: '', lignes: [], notes: '', statut: 'brouillon', nouveau: true };
+    if (c && mois) {
+      brouillonFacture.lignes = lignesHeures(c, mois);
+      brouillonFacture.objet = `Accompagnement — ${moisTexte(mois)}`;
+    }
+    if (!brouillonFacture.lignes.length) brouillonFacture.lignes.push({ desc: '', qte: 1, unite: 'forfait', pu: 0 });
+    facturesEtat = { ...facturesEtat, vue: 'edition', id: brouillonFacture.id };
+    rendreFactures();
+    if (!facturesDlg.open) facturesDlg.showModal();
+    $('#factures-corps').scrollTop = 0;
+  }
+
+  function rendreFactures() {
+    const corps = $('#factures-corps');
+    const f = factures().find(x => x.id === facturesEtat.id);
+    if (facturesEtat.vue === 'edition' && brouillonFacture) { rendreEditionFacture(corps); return; }
+    if (facturesEtat.vue === 'voir' && f) { rendreVoirFacture(corps, f); return; }
+    facturesEtat.vue = 'liste';
+    $('#factures-titre').textContent = 'Factures';
+    const auj = aujourdhui();
+    const annee = auj.slice(0, 4);
+    const mois = auj.slice(0, 7);
+    const toutes = factures().slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.numero || '~').localeCompare(String(a.numero || '~')));
+    const aEncaisser = toutes.filter(x => x.type !== 'avoir' && x.statut === 'emise');
+    const enRetard = aEncaisser.filter(x => statutFacture(x) === 'retard');
+    const trimestres = [1, 2, 3, 4].map(t => encaisse(`${annee}-${pad(t * 3 - 2)}-01`, `${annee}-${pad(t * 3)}-31`));
+    const filtres = { tout: () => true, brouillon: x => x.statut === 'brouillon', encaisser: x => x.statut === 'emise' && x.type !== 'avoir', payee: x => !!x.paiement };
+    const liste = toutes.filter(filtres[facturesEtat.filtre] || filtres.tout);
+    corps.innerHTML = (reglagesFacturationOk() ? '' : `<div class="fa-alerte">${icone('info')}<span>Avant ta première facture, complète tes informations (nom, adresse, SIRET) : elles doivent apparaître sur chaque facture.</span><button type="button" class="btn btn--ghost btn--petit" data-fa="reglages">Compléter</button></div>`)
+      + `<div class="cartes">`
+      + `<div class="carte carte--or"><small>À encaisser</small><b>${esc(euros(aEncaisser.reduce((t, x) => t + totalFacture(x), 0)))}</b><span>${aEncaisser.length} facture${aEncaisser.length > 1 ? 's' : ''}${enRetard.length ? ` · <em class="fa-retard">${enRetard.length} en retard</em>` : ''}</span></div>`
+      + `<div class="carte"><small>Encaissé en ${esc(fmt(auj, { month: 'long' }))}</small><b>${esc(euros(encaisse(`${mois}-01`, `${mois}-31`)))}</b><span>chiffre d'affaires du mois</span></div>`
+      + `<div class="carte"><small>Encaissé en ${annee}</small><b>${esc(euros(trimestres.reduce((t, x) => t + x, 0)))}</b><span class="fa-trim">${trimestres.map((x, k) => `T${k + 1}&nbsp;${esc(euros(x))}`).join(' · ')}</span></div></div>`
+      + `<div class="fa-barre"><div class="fa-filtres">${[['tout', 'Toutes'], ['brouillon', 'Brouillons'], ['encaisser', 'À encaisser'], ['payee', 'Payées']].map(([k, t]) => `<label class="choix" style="--c:#e8b46a"><input type="radio" name="fa-filtre" value="${k}"${facturesEtat.filtre === k ? ' checked' : ''}><span>${t}</span></label>`).join('')}</div>`
+      + `<button type="button" class="btn btn--primaire btn--petit" data-fa="nouvelle">${icone('plus')}Nouvelle facture</button></div>`
+      + (liste.length ? `<ul class="fa-liste">${liste.map(ligneFacture).join('')}</ul>`
+        : `<div class="vide"><span class="vide-icone">${icone('facture')}</span><h3>${toutes.length ? 'Aucune facture ici' : 'Pas encore de facture'}</h3><p>${toutes.length ? 'Essaie un autre filtre.' : 'Crée une facture pour un client, ou pars de ses heures du mois dans « Heures ».'}</p></div>`)
+      + `<p class="r-aide">Une facture émise reçoit le numéro suivant (${esc(prefixeFacture())}-${annee}-001, -002…) et ne se modifie plus : en cas d'erreur, annule-la avec un avoir. L'encaissé compte chaque facture à la date de son paiement (pour ta déclaration de chiffre d'affaires).</p>`
+      + `<div class="r-boutons"><button type="button" class="btn btn--ghost btn--petit" data-fa="recettes"${toutes.some(x => x.paiement) ? '' : ' disabled'}>${icone('telecharger')}Livre des recettes ${annee} (.csv)</button>`
+      + `<button type="button" class="btn btn--ghost btn--petit" data-fa="reglages">${icone('reglages')}Informations de facturation</button></div>`;
+  }
+  const ligneFacture = f => `<li><button type="button" class="fa-ligne" data-fa-ouvrir="${esc(f.id)}"><span class="fa-num">${f.numero ? esc(f.numero) : '<i>Brouillon</i>'}</span>`
+    + `<span class="cl-txt"><b>${esc(nomClientFacture(f))}</b><small>${esc([f.objet, f.date ? fmt(f.date, { day: 'numeric', month: 'short', year: 'numeric' }) : ''].filter(Boolean).join(' · ') || ' ')}</small></span>`
+    + `<span class="fa-montant">${esc(euros(totalFacture(f)))}</span>${pastilleFacture(f)}</button></li>`;
+
+  function rendreEditionFacture(corps) {
+    const f = brouillonFacture;
+    $('#factures-titre').textContent = f.nouveau ? 'Nouvelle facture' : 'Brouillon de facture';
+    const liste = clients().slice().sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+    const moisCourant = aujourdhui().slice(0, 7);
+    const moisPrecedent = iso(new Date(Number(moisCourant.slice(0, 4)), Number(moisCourant.slice(5)) - 2, 1)).slice(0, 7);
+    corps.innerHTML = `<form class="fa-form" id="fa-form" novalidate>`
+      + `<button type="button" class="btn btn--lien btn--petit cl-retour" data-fa="liste">${icone('gauche')}Toutes les factures</button>`
+      + `<div class="fa-haut"><label class="champ"><span>Client</span><select name="client"><option value="">— Choisir un client —</option>${liste.map(c => `<option value="${esc(c.id)}"${c.id === f.client ? ' selected' : ''}>${esc(c.nom)}</option>`).join('')}</select></label>`
+      + `<label class="champ"><span>Date de la facture</span><input type="date" name="date" value="${esc(f.date || aujourdhui())}"></label></div>`
+      + (liste.length ? '' : `<p class="r-aide">Les factures se font pour une fiche client. <button type="button" class="btn--lien lien-tab" data-fa="clients">Créer une fiche client</button></p>`)
+      + `<label class="champ"><span>Objet</span><input name="objet" value="${esc(f.objet || '')}" maxlength="160" placeholder="Ex. Création du serveur Discord" autocomplete="off"></label>`
+      + `<div class="fa-lignes" id="fa-lignes"></div>`
+      + `<div class="fa-ajouts"><button type="button" class="btn btn--ghost btn--petit" data-fa="ligne">${icone('plus')}Ajouter une ligne</button>`
+      + `<label class="fa-heures"><span class="sr">Ajouter les heures d'un mois</span><select data-fa-heures><option value="">Ajouter les heures de…</option>${[moisCourant, moisPrecedent].map(m => `<option value="${m}">${esc(maj1(moisTexte(m)))}</option>`).join('')}</select></label></div>`
+      + `<label class="champ"><span>Note sur la facture (facultatif)</span><textarea name="notes" rows="2" maxlength="600" placeholder="Ex. Merci pour votre confiance !">${esc(f.notes || '')}</textarea></label>`
+      + `<div class="fa-total" id="fa-total"></div>`
+      + `<p class="f-erreur" id="fa-erreur" role="alert"></p>`
+      + `<div class="cl-actions fa-boutons">${f.nouveau ? '' : `<button type="button" class="icone-btn icone-btn--danger" data-fa="supprimer" aria-label="Supprimer le brouillon" title="Supprimer le brouillon">${icone('corbeille')}</button>`}`
+      + `<button type="button" class="btn btn--ghost btn--petit" data-fa="apercu">${icone('telecharger')}Aperçu PDF</button><span class="espace"></span>`
+      + `<button type="submit" class="btn btn--ghost">Enregistrer le brouillon</button><button type="button" class="btn btn--primaire" data-fa="emettre">${icone('facture')}Émettre</button></div></form>`;
+    rendreLignesFacture();
+  }
+  function rendreLignesFacture() {
+    const f = brouillonFacture;
+    $('#fa-lignes').innerHTML = `<div class="fa-l fa-l--tete" aria-hidden="true"><span>Description</span><span>Qté</span><span>Unité</span><span>Prix unitaire</span><span>Total</span><span></span></div>`
+      + f.lignes.map((l, k) => `<div class="fa-l" data-k="${k}">`
+        + `<input data-l="desc" value="${esc(l.desc)}" maxlength="300" placeholder="Description" aria-label="Description, ligne ${k + 1}" autocomplete="off">`
+        + `<input data-l="qte" type="number" step="0.25" inputmode="decimal" value="${esc(l.qte)}" aria-label="Quantité, ligne ${k + 1}">`
+        + `<select data-l="unite" aria-label="Unité, ligne ${k + 1}">${F().UNITES.map(([v, t]) => `<option value="${v}"${l.unite === v ? ' selected' : ''}>${t}</option>`).join('')}</select>`
+        + `<input data-l="pu" type="number" step="0.01" inputmode="decimal" value="${esc(l.pu)}" aria-label="Prix unitaire en euros, ligne ${k + 1}">`
+        + `<b class="fa-l-total"></b>`
+        + `<button type="button" class="icone-btn" data-fa-retirer="${k}" aria-label="Retirer la ligne ${k + 1}"${f.lignes.length > 1 ? '' : ' disabled'}>${icone('fermer')}</button></div>`).join('');
+    majTotalFacture();
+  }
+  function majTotalFacture() {
+    const t = F().totaux(factureComplete(brouillonFacture));
+    $$('#fa-lignes .fa-l[data-k]').forEach((el, k) => { $('.fa-l-total', el).textContent = euros(t.lignes[k] ? t.lignes[k].total : 0); });
+    const reg = facturation();
+    $('#fa-total').innerHTML = (t.taux ? `<div><span>Total HT</span><b>${esc(euros(t.ht))}</b></div><div><span>TVA ${esc(F().nombre(t.taux))} %</span><b>${esc(euros(t.tva))}</b></div>` : '')
+      + `<div class="fa-total-ttc"><span>${t.taux ? 'Total TTC' : 'Total'}</span><b>${esc(euros(t.ttc))}</b></div>`
+      + `<small>${t.taux ? '' : `${F().FRANCHISE} · `}${Number(reg.delai) ? `à régler sous ${Number(reg.delai)} jours` : 'à régler à réception'}</small>`;
+  }
+  function lireFormFacture() {
+    const form = $('#fa-form');
+    if (!form || !brouillonFacture) return;
+    const f = brouillonFacture;
+    f.client = form.elements.client.value;
+    f.clientNom = (clientDe(f.client) || {}).nom || '';
+    f.date = DATE.test(form.elements.date.value) ? form.elements.date.value : aujourdhui();
+    f.objet = form.elements.objet.value.trim();
+    f.notes = form.elements.notes.value.trim();
+    const nombreDe = v => { const n = Number(String(v).replace(',', '.')); return Number.isFinite(n) ? n : 0; };
+    $$('#fa-lignes .fa-l[data-k]').forEach(el => {
+      const l = f.lignes[Number(el.dataset.k)];
+      if (!l) return;
+      l.desc = $('[data-l="desc"]', el).value;
+      l.qte = nombreDe($('[data-l="qte"]', el).value);
+      l.unite = $('[data-l="unite"]', el).value;
+      l.pu = nombreDe($('[data-l="pu"]', el).value);
+    });
+  }
+  function enregistrerBrouillonFacture() {
+    lireFormFacture();
+    const f = brouillonFacture;
+    const instant = new Date().toISOString();
+    const propre = { ...f, lignes: f.lignes.map(l => ({ ...l, desc: String(l.desc).trim() })).filter(l => l.desc || Number(l.pu)), cree: f.cree || instant, modifie: instant };
+    delete propre.nouveau;
+    if (!propre.lignes.length) propre.lignes = [{ desc: '', qte: 1, unite: 'forfait', pu: 0 }];
+    operation({ type: 'facture', facture: propre, nouveau: !!f.nouveau, titre: [propre.clientNom, propre.objet].filter(Boolean).join(' · ') });
+    brouillonFacture = clone(propre);
+    return propre;
+  }
+  function problemesEmission(f) {
+    const manques = [];
+    if (!reglagesFacturationOk()) manques.push('tes informations de facturation (nom, adresse et SIRET, dans Réglages › Facturation)');
+    if (!clientDe(f.client)) manques.push('le client');
+    if (!f.lignes.some(l => l.desc && Number(l.qte) && Number(l.pu))) manques.push('au moins une ligne avec une description, une quantité et un prix');
+    if (manques.length) return `Pour émettre, il manque ${manques.join(', ')}.`;
+    // Les numéros doivent suivre l'ordre des dates
+    const derniere = factures().filter(x => x.numero && x.type !== 'avoir' && x.numero.startsWith(`${prefixeFacture()}-${f.date.slice(0, 4)}-`)).map(x => x.date).sort().pop();
+    if (derniere && f.date < derniere) return `La date doit être le ${fmt(derniere, { day: 'numeric', month: 'long' })} ou après (date de ta dernière facture), pour que les numéros suivent l'ordre des dates.`;
+    return '';
+  }
+  async function emettreFacture() {
+    const f = enregistrerBrouillonFacture();
+    const probleme = problemesEmission(f);
+    if (probleme) { rendreFactures(); $('#fa-erreur').textContent = probleme; return; }
+    const c = clientDe(f.client);
+    const numero = F().numeroSuivant(factures(), prefixeFacture(), f.date.slice(0, 4));
+    const ok = await confirmer(`Émettre la facture ${numero} ?`,
+      `${euros(totalFacture(factureComplete(f)))} pour ${c.nom}, datée du ${fmt(f.date, { day: 'numeric', month: 'long', year: 'numeric' })}. Une fois émise, elle ne pourra plus être modifiée ni supprimée : en cas d'erreur, tu l'annuleras avec un avoir.${c.adresse ? '' : " Sa fiche client n'a pas d'adresse : ajoute-la d'abord si c'est un professionnel."}`,
+      'Émettre la facture');
+    if (!ok) { rendreFactures(); return; }
+    operation({ type: 'emettreFacture', id: f.id, date: f.date, titre: `${c.nom} · ${euros(totalFacture(factureComplete(f)))}` });
+    brouillonFacture = null;
+    const emise = factures().find(x => x.id === f.id);
+    ouvrirFactures('voir', f.id);
+    toast(`Facture ${emise ? emise.numero : ''} émise`);
+  }
+
+  function rendreVoirFacture(corps, f) {
+    const avoir = f.type === 'avoir';
+    $('#factures-titre').textContent = `${avoir ? 'Avoir' : 'Facture'} ${f.numero}`;
+    const st = statutFacture(f);
+    const c = clientDe(f.client);
+    const lien = lienEspace(c);
+    const autre = id => factures().find(x => x.id === id) || {};
+    const jourTxt = d => (DATE.test(d || '') ? fmt(d, { day: 'numeric', month: 'long', year: 'numeric' }) : '');
+    const mode = f.paiement && (F().MODES.find(m => m[0] === f.paiement.mode) || [])[1];
+    const etatTxt = {
+      emise: `À régler avant le ${jourTxt(f.echeance)}.`,
+      retard: `En retard : l'échéance était le ${jourTxt(f.echeance)}.`,
+      payee: `Payée le ${jourTxt(f.paiement && f.paiement.date)}${mode ? ` (${mode.toLowerCase()})` : ''}.`,
+      annulee: `Annulée par l'avoir ${autre(f.avoir).numero || ''}${f.paiement ? `, après un paiement le ${jourTxt(f.paiement.date)}` : ''}.`,
+      avoir: `Annule la facture ${autre(f.ref).numero || ''}. Si ton client avait déjà payé, marque l'avoir comme remboursé une fois le remboursement fait.`,
+      rembourse: `Remboursé le ${jourTxt(f.paiement && f.paiement.date)}.`,
+    }[st];
+    corps.innerHTML = `<button type="button" class="btn btn--lien btn--petit cl-retour" data-fa="liste">${icone('gauche')}Toutes les factures</button>`
+      + `<div class="fa-etat">${pastilleFacture(f)}<span>${esc(etatTxt)}</span></div>`
+      + `<div class="fa-actions"><button type="button" class="btn btn--primaire btn--petit" data-fa="pdf">${icone('telecharger')}Télécharger le PDF</button>`
+      + (f.paiement ? `<button type="button" class="btn btn--ghost btn--petit" data-fa="impayer">Annuler le paiement</button>`
+        : st !== 'annulee' ? `<button type="button" class="btn btn--ghost btn--petit" data-fa="payer">${icone('coche')}${avoir ? 'Marquer comme remboursé' : 'Marquer comme payée'}</button>` : '')
+      + (!avoir && f.statut !== 'annulee' ? `<button type="button" class="btn btn--ghost btn--petit" data-fa="avoir">${icone('restaurer')}Annuler par un avoir</button>` : '')
+      + (c && c.email ? `<button type="button" class="btn btn--ghost btn--petit" data-fa="email">${icone('mail')}Envoyer par e-mail</button>` : '')
+      + (lien ? `<button type="button" class="btn btn--ghost btn--petit" data-fa="lien">${icone('lien')}Lien de l'espace client</button>` : '')
+      + `</div>`
+      + `<form class="fa-paiement" id="fa-paiement" hidden><label class="champ"><span>Date du ${avoir ? 'remboursement' : 'paiement'}</span><input type="date" name="date" value="${aujourdhui()}" required></label>`
+      + `<label class="champ"><span>Moyen</span><select name="mode">${F().MODES.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select></label>`
+      + `<button type="submit" class="btn btn--primaire btn--petit">Confirmer</button></form>`
+      + `<div class="fa-papier">${F().html(factureComplete(f))}</div>`;
+  }
+
+  // Livre des recettes : encaissements de l'année, dans l'ordre des dates (tableur)
+  function livreRecettes(annee) {
+    const nb = n => String(Math.round(n * 100) / 100).replace('.', ',');
+    const cell = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lignes = factures().filter(f => f.numero && f.paiement && String(f.paiement.date).startsWith(annee))
+      .sort((a, b) => a.paiement.date.localeCompare(b.paiement.date) || a.numero.localeCompare(b.numero))
+      .map(f => [fmt(f.paiement.date, { day: '2-digit', month: '2-digit', year: 'numeric' }), f.numero, nomClientFacture(f), f.objet || (f.type === 'avoir' ? 'Avoir' : 'Prestation de services'),
+        nb(totalFacture(f)), (F().MODES.find(m => m[0] === f.paiement.mode) || ['', ''])[1]].map(cell).join(';'));
+    const tete = ['Date d\'encaissement', 'Facture', 'Client', 'Nature', 'Montant (€)', 'Moyen de paiement'].map(cell).join(';');
+    return '﻿' + [tete, ...lignes].join('\r\n') + '\r\n';
+  }
+  function mailFacture(f) {
+    const c = clientDe(f.client) || {};
+    const lien = lienEspace(c);
+    const reg = facturation();
+    const corps = [`Bonjour ${c.nom || ''},`, '',
+      `${f.type === 'avoir' ? `Voici l'avoir ${f.numero}` : `Voici la facture ${f.numero}`} d'un montant de ${euros(totalFacture(f))}${f.type !== 'avoir' && f.echeance ? `, à régler avant le ${fmt(f.echeance, { day: 'numeric', month: 'long', year: 'numeric' })}` : ''}.`,
+      lien ? `Vous pouvez la télécharger depuis votre espace client : ${lien}` : 'Vous la trouverez en pièce jointe.', '', 'Merci !', reg.nom || 'Mvrius'].join('\n');
+    if (!lien) F().telecharger(factureComplete(f));
+    location.href = `mailto:${encodeURIComponent(c.email || '')}?subject=${encodeURIComponent(`${f.type === 'avoir' ? 'Avoir' : 'Facture'} ${f.numero} — ${reg.nom || 'Mvrius'}`)}&body=${encodeURIComponent(corps)}`;
+  }
+
+  facturesDlg.addEventListener('change', e => {
+    if (e.target.name === 'fa-filtre') { facturesEtat.filtre = e.target.value; rendreFactures(); return; }
+    if (e.target.matches('[data-fa-heures]')) {
+      const mois = e.target.value;
+      e.target.value = '';
+      lireFormFacture();
+      const c = clientDe(brouillonFacture.client);
+      if (!mois) return;
+      if (!c) { $('#fa-erreur').textContent = "Choisis d'abord le client."; return; }
+      const nouvelles = lignesHeures(c, mois);
+      if (!nouvelles.length) { $('#fa-erreur').textContent = `Aucune heure réalisée et facturable pour ${c.nom} en ${moisTexte(mois)}.`; return; }
+      brouillonFacture.lignes = [...brouillonFacture.lignes.filter(l => String(l.desc).trim() || Number(l.pu)), ...nouvelles];
+      if (!brouillonFacture.objet) { brouillonFacture.objet = `Accompagnement — ${moisTexte(mois)}`; $('#fa-form').elements.objet.value = brouillonFacture.objet; }
+      $('#fa-erreur').textContent = '';
+      rendreLignesFacture();
+      if (!Number(c.tarif)) $('#fa-erreur').textContent = `La fiche de ${c.nom} n'a pas de tarif horaire : indique le prix de chaque ligne.`;
+      return;
+    }
+    if (e.target.closest('#fa-form')) { lireFormFacture(); majTotalFacture(); }
+  });
+  facturesDlg.addEventListener('input', e => { if (e.target.closest('#fa-lignes')) { lireFormFacture(); majTotalFacture(); } });
+  facturesDlg.addEventListener('submit', e => {
+    e.preventDefault();
+    if (e.target.id === 'fa-form') {
+      enregistrerBrouillonFacture();
+      toast('Brouillon enregistré');
+      ouvrirFactures('liste');
+    } else if (e.target.id === 'fa-paiement') {
+      const f = factures().find(x => x.id === facturesEtat.id);
+      const date = e.target.elements.date.value;
+      if (!f || !DATE.test(date)) return;
+      operation({ type: 'payerFacture', id: f.id, numero: f.numero, paiement: { date, mode: e.target.elements.mode.value } });
+      toast(f.type === 'avoir' ? `Avoir ${f.numero} remboursé` : `Facture ${f.numero} payée 🎉`, { texte: 'Annuler', faire: () => operation({ type: 'payerFacture', id: f.id, numero: f.numero, paiement: null }) });
+      rendreFactures();
+    }
+  });
+  facturesDlg.addEventListener('click', async e => {
+    const ouvrir = e.target.closest('[data-fa-ouvrir]');
+    if (ouvrir) {
+      const f = factures().find(x => x.id === ouvrir.dataset.faOuvrir);
+      if (f) ouvrirFactures(f.statut === 'brouillon' ? 'edition' : 'voir', f.id);
+      return;
+    }
+    const retirer = e.target.closest('[data-fa-retirer]');
+    if (retirer) { lireFormFacture(); brouillonFacture.lignes.splice(Number(retirer.dataset.faRetirer), 1); rendreLignesFacture(); return; }
+    const b = e.target.closest('[data-fa]');
+    if (!b) return;
+    const a = b.dataset.fa;
+    const f = factures().find(x => x.id === facturesEtat.id);
+    if (a === 'liste') { brouillonFacture = null; ouvrirFactures('liste'); }
+    else if (a === 'nouvelle') nouvelleFacture();
+    else if (a === 'reglages') { facturesDlg.close(); ouvrirReglages('facturation'); }
+    else if (a === 'clients') { facturesDlg.close(); ouvrirClients(); }
+    else if (a === 'recettes') { const annee = aujourdhui().slice(0, 4); telecharger(`livre-des-recettes-${annee}.csv`, livreRecettes(annee), 'text/csv;charset=utf-8'); }
+    else if (a === 'ligne') {
+      lireFormFacture();
+      const c = clientDe(brouillonFacture.client);
+      brouillonFacture.lignes.push({ desc: '', qte: 1, unite: c && Number(c.tarif) > 0 ? 'h' : 'forfait', pu: c && Number(c.tarif) > 0 ? Number(c.tarif) : 0 });
+      rendreLignesFacture();
+      $$('#fa-lignes [data-l="desc"]').pop().focus();
+    } else if (a === 'apercu') { lireFormFacture(); F().telecharger(factureComplete(brouillonFacture)); }
+    else if (a === 'emettre') emettreFacture();
+    else if (a === 'supprimer') {
+      const ancien = factures().find(x => x.id === brouillonFacture.id);
+      if (ancien) {
+        operation({ type: 'supprimerFacture', id: ancien.id, titre: [ancien.clientNom, ancien.objet].filter(Boolean).join(' · ') });
+        toast('Brouillon mis à la corbeille', { texte: 'Annuler', faire: () => operation({ type: 'facture', facture: ancien }) });
+      }
+      brouillonFacture = null;
+      ouvrirFactures('liste');
+    } else if (!f) {
+      // (la facture a disparu entre-temps)
+    } else if (a === 'pdf') F().telecharger(factureComplete(f));
+    else if (a === 'payer') { const p = $('#fa-paiement'); p.hidden = !p.hidden; if (!p.hidden) p.elements.date.focus(); }
+    else if (a === 'impayer') {
+      const avant = f.paiement;
+      operation({ type: 'payerFacture', id: f.id, numero: f.numero, paiement: null });
+      toast('Paiement annulé', { texte: 'Annuler', faire: () => operation({ type: 'payerFacture', id: f.id, numero: f.numero, paiement: avant }) });
+      rendreFactures();
+    } else if (a === 'avoir') {
+      const ok = await confirmer(`Annuler la facture ${f.numero} ?`, `Un avoir de ${euros(-totalFacture(f))} va être créé et numéroté. La facture restera dans tes comptes avec la mention « Annulée ».`, "Créer l'avoir");
+      if (!ok) return;
+      const id = nouvelId();
+      operation({ type: 'avoirFacture', id: f.id, avoir: id, date: aujourdhui(), numero: f.numero });
+      ouvrirFactures('voir', id);
+      toast(`Avoir ${(factures().find(x => x.id === id) || {}).numero || ''} créé`);
+    } else if (a === 'email') mailFacture(f);
+    else if (a === 'lien') toast((await copier(lienEspace(clientDe(f.client)))) ? "Lien de l'espace client copié" : 'Copie impossible.');
+  });
+
+  // Fenêtre de confirmation (oui / non)
+  function confirmer(titre, texte, bouton) {
+    const d = $('#confirmer');
+    $('#confirmer-titre').textContent = titre;
+    $('#confirmer-texte').textContent = texte;
+    $('#confirmer-ok').textContent = bouton;
+    d.returnValue = '';
+    d.showModal();
+    return new Promise(resolve => d.addEventListener('close', () => resolve(d.returnValue === 'oui'), { once: true }));
+  }
 
   /* ---------- Tâches : fiche, réserver du temps, glisser dans l'agenda ---------- */
   const tacheDlg = $('#tache-dialog');
@@ -2277,7 +2788,7 @@
 
   /* ---------- Corbeille ---------- */
   const corbeilleDlg = $('#corbeille');
-  const TYPES_CORBEILLE = { rdv: ['calendrier', 'Rendez-vous'], occurrence: ['repete', 'Rendez-vous d\'une série'], tache: ['coche', 'Tâche'], client: ['clients', 'Client'], modele: ['modele', 'Modèle'] };
+  const TYPES_CORBEILLE = { rdv: ['calendrier', 'Rendez-vous'], occurrence: ['repete', 'Rendez-vous d\'une série'], tache: ['coche', 'Tâche'], client: ['clients', 'Client'], modele: ['modele', 'Modèle'], facture: ['facture', 'Brouillon de facture'] };
   function ouvrirCorbeille() {
     rendreCorbeille();
     corbeilleDlg.showModal();
@@ -2295,7 +2806,7 @@
     $('#corbeille-corps').innerHTML = `<p class="r-aide">Ce que tu supprimes reste ici ${CORBEILLE_JOURS} jours : tu peux le restaurer en un clic.</p>`
       + (liste.length ? `<ul class="cb-liste">${liste.map(c => {
         const [ic, type] = TYPES_CORBEILLE[c.type] || ['corbeille', 'Élément'];
-        const titre = c.element.titre || c.element.nom || 'Sans titre';
+        const titre = c.element.titre || c.element.nom || [c.element.clientNom, c.element.objet].filter(Boolean).join(' · ') || 'Sans titre';
         return `<li class="cb-ligne"><span class="cb-ic">${icone(ic)}</span><span class="cb-txt"><b>${esc(titre)}</b><small>${esc([type, detail(c)].filter(Boolean).join(' · '))} · supprimé le ${esc(quandSuppr(c.le))}</small></span>`
           + `<button type="button" class="btn btn--ghost btn--petit" data-restaurer="${esc(c.cid)}">${icone('restaurer')}Restaurer</button></li>`;
       }).join('')}</ul><div class="r-boutons"><button type="button" class="btn btn--danger btn--petit" data-vider-corbeille>${icone('corbeille')}Vider la corbeille</button></div>`
@@ -2501,7 +3012,8 @@
       m: () => changerVue('mois'),
       l: () => changerVue('liste'),
       c: () => ouvrirClients(),
-      f: () => ouvrirFactu(),
+      f: () => ouvrirFactures(),
+      h: () => ouvrirFactu(),
       arrowleft: () => naviguer(-1),
       arrowright: () => naviguer(1),
       '/': () => { $('#barre').classList.add('cherche'); recherche.focus(); },
