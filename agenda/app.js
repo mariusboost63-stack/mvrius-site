@@ -35,10 +35,14 @@
   const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
   const TRAVAIL_DEFAUT = { jours: [1, 2, 3, 4, 5], debut: '09:00', fin: '18:00', griser: true, semaineTravail: false };
   const RESA_DEFAUT = {
-    actif: false, duree: 30, pause: 10, delai: 24, horizon: 14,
+    actif: false, duree: 30, pause: 10, delai: 24, horizon: 14, feries: true, message: '',
     plages: { 1: [['10:00', '12:00'], ['14:00', '18:00']], 2: [['10:00', '12:00'], ['14:00', '18:00']], 3: [['10:00', '12:00'], ['14:00', '18:00']], 4: [['10:00', '12:00'], ['14:00', '18:00']], 5: [['10:00', '12:00'], ['14:00', '18:00']] },
   };
   const PAS = { jour: 1, semaine: 7, '2semaines': 14 };
+  const PRIORITES = [[0, 'Normale', '#b6a993'], [1, 'Haute', '#e8b46a'], [2, 'Urgente', '#ff6b8b']];
+  const DUREES_TACHE = [[15, '15 min'], [30, '30 min'], [45, '45 min'], [60, '1 h'], [90, '1 h 30'], [120, '2 h'], [180, '3 h'], [240, '4 h']];
+  const CORBEILLE_JOURS = 30; // les éléments supprimés restent restaurables 30 jours
+  const MESSAGE_CONFIRMATION = 'Bonjour {nom} ! C\'est validé pour notre appel du {date} à {heure} ({duree} min) sur Discord. À très vite, Mvrius';
   const DATE = /^\d{4}-\d{2}-\d{2}$/;
   const HEURE = /^\d{2}:\d{2}$/;
 
@@ -85,6 +89,26 @@
     return Math.ceil(((t - Date.UTC(t.getUTCFullYear(), 0, 1)) / 864e5 + 1) / 7);
   }
 
+  // Jours fériés en France (métropole), Pâques calculé (algorithme de Meeus)
+  const feriesParAnnee = new Map();
+  function feriesDe(a) {
+    if (feriesParAnnee.has(a)) return feriesParAnnee.get(a);
+    const b = a % 19, c = Math.floor(a / 100), e = a % 100, f = Math.floor(c / 4), g = c % 4;
+    const h = (19 * b + c - f - Math.floor((c - Math.floor((c + 8) / 25) + 1) / 3) + 15) % 30;
+    const l = (32 + 2 * g + 2 * Math.floor(e / 4) - h - (e % 4)) % 7;
+    const m = Math.floor((b + 11 * h + 22 * l) / 451);
+    const paques = iso(new Date(a, Math.floor((h + l - 7 * m + 114) / 31) - 1, ((h + l - 7 * m + 114) % 31) + 1));
+    const liste = new Map([
+      [`${a}-01-01`, "Jour de l'an"], [decale(paques, 1), 'Lundi de Pâques'], [`${a}-05-01`, 'Fête du Travail'],
+      [`${a}-05-08`, 'Victoire 1945'], [decale(paques, 39), 'Ascension'], [decale(paques, 50), 'Lundi de Pentecôte'],
+      [`${a}-07-14`, 'Fête nationale'], [`${a}-08-15`, 'Assomption'], [`${a}-11-01`, 'Toussaint'],
+      [`${a}-11-11`, 'Armistice 1918'], [`${a}-12-25`, 'Noël'],
+    ]);
+    feriesParAnnee.set(a, liste);
+    return liste;
+  }
+  const ferieDe = d => feriesDe(Number(d.slice(0, 4))).get(d) || '';
+
   /* ---------- État ---------- */
   // Session donnée par le serveur après la connexion Discord : « charge.signature »
   function lireSession(jeton) {
@@ -125,7 +149,7 @@
   const vueEffective = () => (petit.matches && etat.vue === 'semaine' ? 'trois' : etat.vue);
 
   /* ---------- Données ---------- */
-  const vide = () => ({ format: 1, categories: clone(CATEGORIES), rendezvous: [], taches: [], reglages: {} });
+  const vide = () => ({ format: 1, categories: clone(CATEGORIES), rendezvous: [], taches: [], reglages: {}, clients: [], modeles: [], corbeille: [] });
   function normaliser(d) {
     d = d && typeof d === 'object' ? d : {};
     const cats = Array.isArray(d.categories) && d.categories.length
@@ -133,19 +157,78 @@
       : clone(CATEGORIES);
     const rdv = (Array.isArray(d.rendezvous) ? d.rendezvous : [])
       .filter(r => r && r.id && DATE.test(r.date) && (r.journee || (HEURE.test(r.debut) && HEURE.test(r.fin))));
-    const taches = (Array.isArray(d.taches) ? d.taches : []).filter(t => t && t.id && typeof t.titre === 'string' && DATE.test(t.date));
+    // Tâche sans date (null) : « À planifier »
+    const taches = (Array.isArray(d.taches) ? d.taches : []).filter(t => t && t.id && typeof t.titre === 'string' && (t.date === null || DATE.test(t.date)));
     const reglages = d.reglages && typeof d.reglages === 'object' && !Array.isArray(d.reglages) ? d.reglages : {};
-    return { format: 1, categories: cats, rendezvous: rdv, taches, reglages };
+    const liste = (x, ok) => (Array.isArray(x) ? x.filter(e => e && typeof e === 'object' && ok(e)) : []);
+    const clients = liste(d.clients, c => c.id && typeof c.nom === 'string');
+    const modeles = liste(d.modeles, m => m.id && typeof m.nom === 'string');
+    const corbeille = liste(d.corbeille, c => c.cid && c.type && c.element);
+    // Les autres champs éventuels (ajoutés par le serveur) sont gardés tels quels
+    return { ...d, format: 1, categories: cats, rendezvous: rdv, taches, reglages, clients, modeles, corbeille };
   }
   // Un changement = une opération rejouable : en cas de conflit avec un autre appareil,
   // on relit le fichier sur GitHub et on rejoue les opérations par-dessus.
+  // Ce qui est supprimé va dans la corbeille (restaurable 30 jours) ; « le » et « cid » sont fixés
+  // à la création de l'opération pour que le résultat soit le même à chaque fois qu'on la rejoue.
+  function mettreALaCorbeille(d, op, type, element) {
+    d.corbeille = d.corbeille || [];
+    if (d.corbeille.some(c => c.cid === op.cid)) return;
+    const limite = new Date(Date.parse(op.le) - CORBEILLE_JOURS * 864e5).toISOString();
+    d.corbeille = [{ cid: op.cid, type, element: clone(element), le: op.le }, ...d.corbeille.filter(c => String(c.le) >= limite)].slice(0, 200);
+  }
+  // Ajoute ou remplace un élément d'une liste (clients, modèles, tâches) ; le retire s'il faut
+  function majListe(d, cle, element, retirer) {
+    d[cle] = d[cle] || [];
+    const k = d[cle].findIndex(x => x.id === element.id);
+    if (retirer) { if (k >= 0) return d[cle].splice(k, 1)[0]; return null; }
+    if (k >= 0) d[cle][k] = clone(element); else d[cle].push(clone(element));
+    return null;
+  }
+  const LISTES = { tache: 'taches', client: 'clients', modele: 'modeles' };
+  // Un élément revenu dans l'agenda (bouton « Annuler », restauration) sort de la corbeille
+  function nettoyerCorbeille(d) {
+    if (!(d.corbeille || []).length) return;
+    d.corbeille = d.corbeille.filter(c => {
+      if (c.type === 'rdv') return !d.rendezvous.some(r => r.id === c.element.id);
+      if (c.type === 'occurrence') {
+        const r = d.rendezvous.find(x => x.id === c.element.id);
+        return !!r && (r.exceptions || []).includes(c.element.date);
+      }
+      return !(d[LISTES[c.type]] || []).some(x => x.id === c.element.id);
+    });
+  }
   function appliquer(d, op) {
-    if (op.type === 'tache' || op.type === 'supprimerTache') {
-      d.taches = d.taches || [];
-      const k = d.taches.findIndex(t => t.id === (op.tache ? op.tache.id : op.id));
-      if (op.type === 'supprimerTache') { if (k >= 0) d.taches.splice(k, 1); }
-      else if (k >= 0) d.taches[k] = clone(op.tache);
-      else d.taches.push(clone(op.tache));
+    appliquerOp(d, op);
+    nettoyerCorbeille(d);
+  }
+  function appliquerOp(d, op) {
+    const listes = LISTES;
+    const retraits = { supprimerTache: 'tache', supprimerClient: 'client', supprimerModele: 'modele' };
+    if (listes[op.type]) { majListe(d, listes[op.type], op[op.type]); return; }
+    if (retraits[op.type]) {
+      const type = retraits[op.type];
+      const retire = majListe(d, listes[type], { id: op.id }, true);
+      if (retire && !op.sansCorbeille) mettreALaCorbeille(d, op, type, retire);
+      return;
+    }
+    if (op.type === 'restaurer') {
+      const k = (d.corbeille || []).findIndex(c => c.cid === op.cid);
+      if (k < 0) return;
+      const [c] = d.corbeille.splice(k, 1);
+      if (c.type === 'rdv') { if (!d.rendezvous.some(r => r.id === c.element.id)) d.rendezvous.push(clone(c.element)); }
+      else if (c.type === 'occurrence') {
+        const r = d.rendezvous.find(x => x.id === c.element.id);
+        if (r) r.exceptions = (r.exceptions || []).filter(x => x !== c.element.date);
+      } else if (listes[c.type]) majListe(d, listes[c.type], c.element);
+      return;
+    }
+    if (op.type === 'viderCorbeille') { d.corbeille = []; return; }
+    if (op.type === 'remplacer') {
+      // Retour à une ancienne version de l'agenda (historique)
+      const v = normaliser(clone(op.donnees));
+      Object.keys(d).forEach(k => delete d[k]);
+      Object.assign(d, v);
       return;
     }
     const i = d.rendezvous.findIndex(r => r.id === (op.rdv ? op.rdv.id : op.id));
@@ -153,9 +236,16 @@
       if (i >= 0) d.rendezvous[i] = clone(op.rdv);
       else d.rendezvous.push(clone(op.rdv));
     } else if (op.type === 'supprimer') {
-      if (i >= 0) d.rendezvous.splice(i, 1);
+      if (i >= 0) {
+        const retire = d.rendezvous.splice(i, 1)[0];
+        if (!op.sansCorbeille) mettreALaCorbeille(d, op, 'rdv', retire);
+      }
     } else if (op.type === 'sauter') {
-      if (i >= 0) { const r = d.rendezvous[i]; r.exceptions = [...new Set([...(r.exceptions || []), op.date])].sort(); }
+      if (i >= 0) {
+        const r = d.rendezvous[i];
+        if (!(r.exceptions || []).includes(op.date)) mettreALaCorbeille(d, op, 'occurrence', { id: r.id, date: op.date, titre: r.titre });
+        r.exceptions = [...new Set([...(r.exceptions || []), op.date])].sort();
+      }
     } else if (op.type === 'categories') {
       d.categories = clone(op.categories);
     } else if (op.type === 'reglages') {
@@ -175,6 +265,11 @@
   const categorie = id => categories().find(c => c.id === id) || { id, nom: 'Sans catégorie', couleur: '#9ba3ba' };
   const trouver = id => donnees().rendezvous.find(r => r.id === id);
   const travail = () => ({ ...TRAVAIL_DEFAUT, ...((donnees().reglages || {}).travail || {}) });
+  const clients = () => donnees().clients || [];
+  const clientDe = id => (id ? clients().find(c => c.id === id) : null);
+  const modeles = () => donnees().modeles || [];
+  const corbeille = () => donnees().corbeille || [];
+  const feriesActifs = () => (donnees().reglages || {}).feries !== false;
   const reservation = () => ({ ...RESA_DEFAUT, ...((donnees().reglages || {}).reservation || {}) });
   const jourIso = d => jour(d).getDay() || 7; // 1 = lundi … 7 = dimanche
 
@@ -316,6 +411,13 @@
     if (op.type === 'reglages') return 'Réglages mis à jour';
     if (op.type === 'tache') return `${op.nouveau ? 'Tâche ajoutée' : op.tache.fait ? 'Tâche faite' : 'Tâche modifiée'} : ${op.tache.titre}`;
     if (op.type === 'supprimerTache') return `Tâche supprimée : ${op.titre || ''}`;
+    if (op.type === 'client') return `${op.nouveau ? 'Nouveau client' : 'Fiche client modifiée'} : ${op.client.nom}`;
+    if (op.type === 'supprimerClient') return `Client supprimé : ${op.titre || ''}`;
+    if (op.type === 'modele') return `${op.nouveau ? 'Nouveau modèle' : 'Modèle modifié'} : ${op.modele.nom}`;
+    if (op.type === 'supprimerModele') return `Modèle supprimé : ${op.titre || ''}`;
+    if (op.type === 'restaurer') return `Restauré depuis la corbeille : ${op.titre || ''}`;
+    if (op.type === 'viderCorbeille') return 'Corbeille vidée';
+    if (op.type === 'remplacer') return op.message || "Retour à une version précédente de l'agenda";
     return 'Catégories mises à jour';
   }
 
@@ -337,7 +439,8 @@
     el.setAttribute('aria-label', `Synchronisation : ${titre}`);
   }
   function operation(ops) {
-    etat.attente.push(...[].concat(ops));
+    const le = new Date().toISOString();
+    etat.attente.push(...[].concat(ops).map(op => ({ le, cid: nouvelId(), ...op })));
     stock.ecrire(STOCK.attente, etat.attente);
     invalider();
     rendre();
@@ -582,6 +685,9 @@
     return tries;
   }
   const jourCourt = d => fmt(d, { weekday: 'short', day: 'numeric', month: 'short' });
+  const avecDe = r => (clientDe(r.client) || {}).nom || r.avec || '';
+  // « aujourd'hui », « demain », « le lun. 3 nov. »
+  const leJour = d => { const q = quand(d); return d === aujourdhui() || d === decale(aujourdhui(), 1) ? q.toLowerCase() : `le ${q}`; };
   function libelleHoraire(i) {
     const r = i.r;
     if (r.journee) return i.fin === i.date ? 'Toute la journée' : `Du ${jourCourt(i.date)} au ${jourCourt(i.fin)}`;
@@ -590,10 +696,11 @@
   function blocEv(i) {
     const c = categorie(i.r.categorie);
     const duree = i.finM - i.debut;
-    const label = `${libelleHoraire(i)}, ${i.r.titre}${i.r.avec ? `, avec ${i.r.avec}` : ''}`;
+    const avec = avecDe(i.r);
+    const label = `${libelleHoraire(i)}, ${i.r.titre}${avec ? `, avec ${avec}` : ''}`;
     return `<button type="button" class="ev statut-${esc(i.r.statut || 'confirme')}${duree < 45 ? ' ev--court' : ''}${i.plusieurs ? ' ev--plusieurs' : ''}" data-id="${esc(i.r.id)}" data-date="${i.date}" style="--c:${couleurSure(c.couleur)};--d:${i.debut};--l:${duree};--col:${i.col};--tot:${i.total}" aria-label="${esc(label)}">`
-      + `<span class="ev-titre">${i.r.repetition ? icone('repete') : ''}${esc(i.r.titre)}</span>`
-      + `<span class="ev-heure">${i.r.debut} ${i.plusieurs ? '→' : '–'} ${i.r.fin}${i.r.avec ? ` · ${esc(i.r.avec)}` : ''}</span>`
+      + `<span class="ev-titre">${i.r.repetition ? icone('repete') : ''}${i.r.tache ? icone('coche') : ''}${esc(i.r.titre)}</span>`
+      + `<span class="ev-heure">${i.r.debut} ${i.plusieurs ? '→' : '–'} ${i.r.fin}${avec ? ` · ${esc(avec)}` : ''}</span>`
       + '<span class="ev-poignee" aria-hidden="true"></span></button>';
   }
   // d : jour où la pastille est affichée (heure de début le premier jour, heure de fin le dernier)
@@ -610,14 +717,15 @@
     const auj = aujourdhui();
     const liste = instances(de, a);
     const t = travail();
-    const repos = d => !t.jours.includes(jourIso(d));
+    const fer = d => (feriesActifs() ? ferieDe(d) : '');
+    const repos = d => !t.jours.includes(jourIso(d)) || !!fer(d);
     // Heures hors travail grisées (journée entière grisée les jours de repos)
     const horaires = d => (t.griser ? ` a-horaires" style="--td:${repos(d) ? 1440 : minutes(t.debut)};--tf:${repos(d) ? 1440 : minutes(t.fin) || 1440}` : '');
     const tete = jours.map(d => `<button type="button" class="g-jour${d === auj ? ' is-auj' : ''}${t.griser && repos(d) ? ' is-repos' : ''}" data-aller="${d}" aria-label="${esc(maj1(fmt(d, { weekday: 'long', day: 'numeric', month: 'long' })))}"><span>${esc(fmt(d, { weekday: 'short' }).replace('.', ''))}</span><b>${jour(d).getDate()}</b></button>`).join('');
     // En haut : journées entières et rendez-vous de 24 h ou plus ; dans la grille : le reste,
     // découpé jour par jour s'il passe minuit (ex. 22:00 → 02:00)
     const enHaut = i => i.r.journee || i.longue;
-    const journee = jours.map(d => `<div class="g-jt" data-date="${d}">${liste.filter(i => enHaut(i) && i.date <= d && i.fin >= d).map(i => puce(i, true, d)).join('')}</div>`).join('');
+    const journee = jours.map(d => `<div class="g-jt" data-date="${d}">${fer(d) ? `<span class="puce puce--ferie">${esc(fer(d))}</span>` : ''}${liste.filter(i => enHaut(i) && i.date <= d && i.fin >= d).map(i => puce(i, true, d)).join('')}</div>`).join('');
     const morceaux = d => liste.filter(i => !enHaut(i) && i.date <= d && i.fin >= d)
       .map(i => (i.plusieurs ? { ...i, debut: i.date === d ? i.debut : 0, finM: i.fin === d ? i.finM : 1440 } : i));
     const heures = Array.from({ length: 23 }, (_, h) => `<span style="--d:${(h + 1) * 60}">${pad(h + 1)}:00</span>`).join('');
@@ -643,15 +751,19 @@
       const ici = liste.filter(i => i.date <= d && i.fin >= d);
       const hors = jour(d).getMonth() !== c.getMonth();
       const nom = maj1(fmt(d, { weekday: 'long', day: 'numeric', month: 'long' }));
-      cases += `<div class="m-case${hors ? ' is-hors' : ''}${d === auj ? ' is-auj' : ''}${d === etat.curseur ? ' is-choisi' : ''}" data-date="${d}">`
-        + `<button type="button" class="m-num" data-aller="${d}" aria-label="${esc(nom)}${ici.length ? `, ${ici.length} rendez-vous` : ''}">${jour(d).getDate()}</button>`
+      const fer = feriesActifs() ? ferieDe(d) : '';
+      cases += `<div class="m-case${hors ? ' is-hors' : ''}${d === auj ? ' is-auj' : ''}${d === etat.curseur ? ' is-choisi' : ''}${fer ? ' is-ferie' : ''}" data-date="${d}">`
+        + `<button type="button" class="m-num" data-aller="${d}" aria-label="${esc(nom)}${fer ? `, ${esc(fer)}` : ''}${ici.length ? `, ${ici.length} rendez-vous` : ''}">${jour(d).getDate()}</button>`
+        + `${fer ? `<span class="m-ferie">${esc(fer)}</span>` : ''}`
         + `<div class="m-evs">${ici.slice(0, 3).map(i => puce(i, true, d)).join('')}${ici.length > 3 ? `<button type="button" class="m-plus" data-aller="${d}">+${ici.length - 3} autre${ici.length > 4 ? 's' : ''}</button>` : ''}</div>`
         + `<div class="m-points" aria-hidden="true">${ici.slice(0, 4).map(i => `<i style="--c:${couleurSure(categorie(i.r.categorie).couleur)}"></i>`).join('')}</div></div>`;
     }
     const tete = ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'].map(j => `<span>${j}</span>`).join('');
     // Sur mobile, les rendez-vous du jour choisi s'affichent sous le mois
     const choisis = liste.filter(i => i.date <= etat.curseur && i.fin >= etat.curseur);
+    const ferCurseur = feriesActifs() ? ferieDe(etat.curseur) : '';
     const detail = `<section class="m-detail"><h3 class="l-date">${esc(maj1(fmt(etat.curseur, { weekday: 'long', day: 'numeric', month: 'long' })))}${etat.curseur === auj ? " <small>Aujourd'hui</small>" : ''}</h3>`
+      + `${ferCurseur ? `<p class="l-ferie">${esc(ferCurseur)} · jour férié</p>` : ''}`
       + `${choisis.length ? `<div class="l-items">${choisis.map(ligne).join('')}</div>` : '<p class="av-vide">Rien de prévu ce jour-là.</p>'}`
       + `<button type="button" class="btn btn--ghost btn--petit" data-nouveau="${etat.curseur}">${icone('plus')}Ajouter ce jour-là</button></section>`;
     return `<div class="mois"><div class="m-tete" aria-hidden="true">${tete}</div><div class="m-grille" style="--semaines:${semaines}">${cases}</div>${detail}</div>`;
@@ -661,13 +773,14 @@
   function ligne(i) {
     const r = i.r;
     const c = categorie(r.categorie);
+    const avec = avecDe(r);
     const infos = [
-      r.avec && `<span>${icone('personne')}${esc(r.avec)}</span>`,
+      avec && `<span>${icone(r.client && clientDe(r.client) ? 'clients' : 'personne')}${esc(avec)}</span>`,
       r.lieu && `<span>${icone('lieu')}${esc(r.lieu)}</span>`,
       r.repetition && `<span>${icone('repete')}${esc((REPETITIONS.find(x => x[0] === r.repetition.frequence) || ['', ''])[1])}</span>`,
       Array.isArray(r.checklist) && r.checklist.length && `<span>${icone('coche')}${r.checklist.filter(x => x.fait).length}/${r.checklist.length}</span>`,
       r.source === 'reservation' && `<span>${icone('calendrier')}Réservé en ligne</span>`,
-      !r.avec && !r.lieu && !r.repetition && `<span>${esc(c.nom)}</span>`,
+      !avec && !r.lieu && !r.repetition && `<span>${esc(c.nom)}</span>`,
     ].filter(Boolean).join('');
     const finCourte = esc(fmt(i.fin, { day: 'numeric', month: 'short' }));
     const heureTxt = r.journee
@@ -684,9 +797,10 @@
     const de = q ? decale(auj, -730) : auj;
     const a = decale(auj, q ? 730 : 180);
     let liste = instances(de, a, !!q);
-    if (q) liste = liste.filter(i => sansAccents(`${i.r.titre} ${i.r.avec} ${i.r.lieu} ${i.r.notes} ${categorie(i.r.categorie).nom}`).includes(q));
+    if (q) liste = liste.filter(i => sansAccents(`${i.r.titre} ${avecDe(i.r)} ${i.r.avec} ${i.r.lieu} ${i.r.notes} ${categorie(i.r.categorie).nom}`).includes(q));
     else liste = liste.filter(pasFini);
-    const taches = q ? '' : `<section class="l-jour l-taches"><h3 class="l-date">Tâches du jour</h3>${blocTaches(auj)}</section>`;
+    const taches = q ? '' : `<section class="l-jour l-taches"><h3 class="l-date">Tâches du jour</h3>${blocTaches(auj)}</section>`
+      + `<section class="l-jour l-taches"><h3 class="l-date">À planifier</h3>${blocAPlanifier()}</section>`;
     if (!liste.length) {
       if (!q) return `<div class="liste">${taches}<div class="vide"><span class="vide-icone">${icone('calendrier')}</span><h3>Rien de prévu</h3><p>Ton agenda est libre pour les six prochains mois. Ajoute ton premier rendez-vous&nbsp;!</p><button type="button" class="btn btn--primaire" data-nouveau="${auj}">${icone('plus')}Nouveau rendez-vous</button></div></div>`;
       return q
@@ -700,11 +814,18 @@
       if (!groupes.has(d)) groupes.set(d, []);
       groupes.get(d).push(i);
     });
+    if (!q && feriesActifs()) {
+      const dernier = liste.length > MAX ? liste[MAX - 1].date : decale(auj, 60);
+      for (let d = auj; d <= dernier; d = decale(d, 1)) if (ferieDe(d) && !groupes.has(d)) groupes.set(d, []);
+    }
     let html = taches;
-    for (const [d, items] of groupes) {
+    for (const d of [...groupes.keys()].sort()) {
+      const items = groupes.get(d);
       const rel = d === auj ? "Aujourd'hui" : d === decale(auj, 1) ? 'Demain' : '';
       const annee = jour(d).getFullYear() !== jour(auj).getFullYear() ? ` ${jour(d).getFullYear()}` : '';
-      html += `<section class="l-jour"><h3 class="l-date">${esc(maj1(fmt(d, { weekday: 'long', day: 'numeric', month: 'long' })))}${annee}${rel ? ` <small>${rel}</small>` : ''}</h3><div class="l-items">${items.map(ligne).join('')}</div></section>`;
+      const fer = !q && feriesActifs() ? ferieDe(d) : '';
+      html += `<section class="l-jour"><h3 class="l-date">${esc(maj1(fmt(d, { weekday: 'long', day: 'numeric', month: 'long' })))}${annee}${rel ? ` <small>${rel}</small>` : ''}</h3>`
+        + `${fer ? `<p class="l-ferie">${esc(fer)} · jour férié</p>` : ''}${items.length ? `<div class="l-items">${items.map(ligne).join('')}</div>` : ''}</section>`;
     }
     if (liste.length > MAX) html += `<p class="l-suite">… et ${liste.length - MAX} autres. Précise ta recherche.</p>`;
     return `<div class="liste">${html}</div>`;
@@ -716,24 +837,42 @@
     rendreAvenir();
     $('#taches-quand').textContent = `· ${etat.curseur === aujourdhui() ? "aujourd'hui" : fmt(etat.curseur, { weekday: 'short', day: 'numeric', month: 'short' })}`;
     $('#taches-cote').innerHTML = blocTaches(etat.curseur);
+    $('#aplanifier').innerHTML = blocAPlanifier();
+    const nbAPlanifier = aPlanifier().length;
+    $('#aplanifier-compte').textContent = nbAPlanifier ? `· ${nbAPlanifier}` : '';
+    $('#clients-compte').textContent = clients().length || '';
     rendreFiltres();
   }
 
   /* ---------- Tâches ---------- */
   // Tâches d'un jour ; aujourd'hui, celles des jours passés pas encore faites sont reportées
+  // Ordre : à faire avant fait, puis priorité, échéance la plus proche, ancienneté
+  const ordreTaches = (a, b) => Number(!!a.fait) - Number(!!b.fait) || (Number(b.priorite) || 0) - (Number(a.priorite) || 0)
+    || String(a.echeance || '9999').localeCompare(String(b.echeance || '9999')) || String(a.date || '').localeCompare(String(b.date || '')) || String(a.cree).localeCompare(String(b.cree));
   function tachesDu(d) {
     const auj = aujourdhui();
     const toutes = donnees().taches || [];
-    const liste = toutes.filter(t => t.date === d || (d === auj && !t.fait && t.date < auj));
-    return liste.sort((a, b) => Number(a.fait) - Number(b.fait) || (a.date < b.date ? -1 : a.date > b.date ? 1 : 0) || String(a.cree).localeCompare(String(b.cree)));
+    return toutes.filter(t => t.date && (t.date === d || (d === auj && !t.fait && t.date < auj))).sort(ordreTaches);
+  }
+  const aPlanifier = () => (donnees().taches || []).filter(t => !t.date && !t.fait).sort(ordreTaches);
+  function itemTache(t, d) {
+    const auj = aujourdhui();
+    const prio = Number(t.priorite) || 0;
+    const echeance = DATE.test(t.echeance || '') && !t.fait
+      ? `<small class="t-echeance${t.echeance < auj ? ' is-retard' : t.echeance === auj ? ' is-auj' : ''}" title="Échéance">${icone('sablier')}${esc(t.echeance === auj ? "aujourd'hui" : fmt(t.echeance, { day: 'numeric', month: 'short' }))}</small>` : '';
+    const retard = d && t.date && !t.fait && t.date < d ? `<small class="t-retard">${esc(fmt(t.date, { day: 'numeric', month: 'short' }))}</small>` : '';
+    return `<li class="t-item prio-${prio}${t.fait ? ' is-fait' : ''}"${t.fait ? '' : ` draggable="true" data-glisser-tache="${esc(t.id)}"`}>`
+      + `<label class="t-coche" title="Fait"><input type="checkbox" data-tache-coche="${esc(t.id)}"${t.fait ? ' checked' : ''} aria-label="${esc(t.titre)} : faite"><span class="t-case" aria-hidden="true"></span></label>`
+      + `<button type="button" class="t-texte" data-tache-ouvrir="${esc(t.id)}"><span class="t-titre">${prio ? `<span class="t-prio" title="Priorité ${esc(PRIORITES[prio][1].toLowerCase())}">${icone('drapeau')}</span>` : ''}${esc(t.titre)}${t.bloc && trouver(t.bloc) ? icone('calendrier', 'i t-planifiee') : ''}</span>${echeance}${retard}</button>`
+      + `<button type="button" class="t-suppr" data-tache-suppr="${esc(t.id)}" aria-label="Supprimer la tâche ${esc(t.titre)}">${icone('fermer')}</button></li>`;
   }
   function blocTaches(d) {
-    const items = tachesDu(d).map(t => `<li class="t-item${t.fait ? ' is-fait' : ''}">`
-      + `<label class="t-coche"><input type="checkbox" data-tache-coche="${esc(t.id)}"${t.fait ? ' checked' : ''}><span class="t-case" aria-hidden="true"></span><span class="t-texte">${esc(t.titre)}</span>`
-      + `${!t.fait && t.date < d ? `<small class="t-retard">${esc(fmt(t.date, { day: 'numeric', month: 'short' }))}</small>` : ''}</label>`
-      + `<button type="button" class="t-suppr" data-tache-suppr="${esc(t.id)}" aria-label="Supprimer la tâche ${esc(t.titre)}">${icone('fermer')}</button></li>`).join('');
-    return `<div class="taches"><ul class="t-liste">${items}</ul>`
+    return `<div class="taches"><ul class="t-liste">${tachesDu(d).map(t => itemTache(t, d)).join('')}</ul>`
       + `<form class="t-ajout" data-tache-ajout="${d}"><input type="text" maxlength="200" placeholder="Ajouter une tâche…" aria-label="Ajouter une tâche" autocomplete="off"></form></div>`;
+  }
+  function blocAPlanifier() {
+    return `<div class="taches"><ul class="t-liste">${aPlanifier().map(t => itemTache(t, null)).join('')}</ul>`
+      + '<form class="t-ajout" data-tache-ajout=""><input type="text" maxlength="200" placeholder="Ajouter à planifier…" aria-label="Ajouter une tâche à planifier" autocomplete="off"></form></div>';
   }
   document.addEventListener('change', e => {
     const c = e.target.closest('[data-tache-coche]');
@@ -760,8 +899,8 @@
     const champ = $('input', f);
     const titre = champ.value.trim();
     if (!titre) return;
-    const dans = f.closest('#cote') ? '#cote' : '#vue';
-    operation({ type: 'tache', nouveau: true, tache: { id: nouvelId(), titre, date: f.dataset.tacheAjout, fait: false, faitLe: null, cree: new Date().toISOString() } });
+    const dans = f.closest('#aplanifier') ? '#aplanifier' : f.closest('#cote') ? '#cote' : '#vue';
+    operation({ type: 'tache', nouveau: true, tache: { id: nouvelId(), titre, date: f.dataset.tacheAjout || null, fait: false, faitLe: null, priorite: 0, echeance: null, duree: 60, cree: new Date().toISOString() } });
     const nouveau = $(`${dans} [data-tache-ajout="${f.dataset.tacheAjout}"] input`);
     if (nouveau) nouveau.focus();
   });
@@ -779,8 +918,9 @@
     let jours = '';
     for (let k = 0; k < 42; k++) {
       const d = decale(de, k);
-      const cls = ['mini-jour', jour(d).getMonth() !== premier.getMonth() && 'is-hors', d === auj && 'is-auj', d >= selDe && d <= selA && etat.vue !== 'liste' && 'is-sel', avecRdv.has(d) && 'a-rdv'].filter(Boolean).join(' ');
-      jours += `<button type="button" class="${cls}" data-mini-jour="${d}" aria-label="${esc(maj1(fmt(d, { weekday: 'long', day: 'numeric', month: 'long' })))}${avecRdv.has(d) ? ', rendez-vous prévus' : ''}">${jour(d).getDate()}</button>`;
+      const fer = feriesActifs() ? ferieDe(d) : '';
+      const cls = ['mini-jour', jour(d).getMonth() !== premier.getMonth() && 'is-hors', d === auj && 'is-auj', d >= selDe && d <= selA && etat.vue !== 'liste' && 'is-sel', avecRdv.has(d) && 'a-rdv', fer && 'is-ferie'].filter(Boolean).join(' ');
+      jours += `<button type="button" class="${cls}" data-mini-jour="${d}" aria-label="${esc(maj1(fmt(d, { weekday: 'long', day: 'numeric', month: 'long' })))}${fer ? `, ${esc(fer)}` : ''}${avecRdv.has(d) ? ', rendez-vous prévus' : ''}"${fer ? ` title="${esc(fer)}"` : ''}>${jour(d).getDate()}</button>`;
     }
     $('#mini').innerHTML = `<div class="mini-tete"><b>${esc(maj1(fmt(premier, { month: 'long', year: 'numeric' })))}</b>`
       + `<button type="button" class="icone-btn" data-mini="-1" aria-label="Mois précédent">${icone('gauche')}</button>`
@@ -895,18 +1035,155 @@
     champs.frequence.value = (v.repetition && v.repetition.frequence) || '';
     champs.jusquau.value = (v.repetition && v.repetition.jusquau) || '';
     (form.querySelector(`input[name="statut"][value="${v.statut || 'confirme'}"]`) || form.querySelector('input[name="statut"]')).checked = true;
-    champs.avec.value = v.avec || '';
+    champs.avec.value = v.avec || (clientDe(v.client) || {}).nom || '';
     champs.lieu.value = v.lieu || '';
     champs.notes.value = v.notes || '';
+    champs.facturable.checked = r ? (r.facturable !== undefined ? !!r.facturable : r.source !== 'reservation') : true;
     form.dataset.debut = champs.debut.value;
     form.dataset.date = champs.date.value;
+    $('#clients-noms').innerHTML = clients().map(c => `<option value="${esc(c.nom)}"></option>`).join('');
     $('[data-serie]', form).hidden = !(r && r.repetition);
-    $$('[data-action]', form).forEach(b => { b.hidden = !r; });
+    $$('[data-action]', form).forEach(b => { b.hidden = !r && b.dataset.action !== 'modele'; });
     $('#f-erreur').textContent = '';
+    rendreModelesFiche();
     majFiche();
     fiche.showModal();
     if (!r) champs.titre.focus();
   }
+  // Client dont le nom correspond au champ « Avec » (sans tenir compte des accents ni des majuscules)
+  const clientParNom = texte => {
+    const t = sansAccents(texte).trim();
+    return t ? clients().find(c => sansAccents(c.nom).trim() === t) || null : null;
+  };
+
+  /* Modèles : en haut d'un nouveau rendez-vous */
+  function rendreModelesFiche() {
+    const zone = $('#f-modeles');
+    const liste = modeles();
+    zone.hidden = !ficheEtat || !!ficheEtat.r || !liste.length;
+    if (zone.hidden) return;
+    zone.innerHTML = '<span class="f-legende">Partir d\'un modèle</span>'
+      + liste.map(m => `<button type="button" class="pastille-btn" data-modele="${esc(m.id)}">${icone('modele')}${esc(m.nom)}</button>`).join('');
+  }
+  function appliquerModele(m) {
+    if (m.titre) champs.titre.value = m.titre;
+    const cat = $$('input[name="categorie"]', form).find(x => x.value === m.categorie);
+    if (cat) cat.checked = true;
+    champs.journee.checked = !!m.journee;
+    if (!m.journee && m.duree > 0 && DATE.test(champs.date.value) && HEURE.test(champs.debut.value)) {
+      [champs.dateFin.value, champs.fin.value] = finDepuis(instantDebut(champs.date.value, champs.debut.value) + m.duree);
+    }
+    remplirRappels(!!m.journee, Array.isArray(m.rappels) ? m.rappels : [rappelDefaut(!!m.journee)]);
+    ficheEtat.checklist = (m.checklist || []).filter(x => x && x.t).map(x => ({ t: x.t, fait: false }));
+    rendreChecklist();
+    if (m.avec) champs.avec.value = m.avec;
+    if (m.lieu) champs.lieu.value = m.lieu;
+    if (m.notes) champs.notes.value = m.notes;
+    $$('[data-modele]', form).forEach(b => b.classList.toggle('is-on', b.dataset.modele === m.id));
+    majFiche();
+  }
+  $('#f-modeles').addEventListener('click', e => {
+    const b = e.target.closest('[data-modele]');
+    const m = b && modeles().find(x => x.id === b.dataset.modele);
+    if (m) appliquerModele(m);
+  });
+  // Modèle tiré de la fiche ouverte (ce qui est saisi, pas forcément enregistré)
+  function modeleDepuisFiche() {
+    const journee = champs.journee.checked;
+    const dateFin = DATE.test(champs.dateFin.value) && champs.dateFin.value >= champs.date.value ? champs.dateFin.value : champs.date.value;
+    const duree = !journee && DATE.test(champs.date.value) && HEURE.test(champs.debut.value) && HEURE.test(champs.fin.value)
+      ? instantFin(dateFin, champs.fin.value) - instantDebut(champs.date.value, champs.debut.value) : 60;
+    return {
+      titre: champs.titre.value.trim(),
+      categorie: (form.querySelector('input[name="categorie"]:checked') || {}).value || categories()[0].id,
+      journee,
+      duree: duree > 0 ? duree : 60,
+      rappels: $$('#f-rappels input:checked').map(c => Number(c.value)).sort((a, b) => b - a),
+      checklist: ficheEtat.checklist.filter(x => x.t).map(x => ({ t: x.t })),
+      avec: champs.avec.value.trim(),
+      lieu: champs.lieu.value.trim(),
+      notes: champs.notes.value.trim(),
+    };
+  }
+  function enregistrerModele() {
+    const d = $('#modele-nom');
+    const champ = $('#modele-nom-champ');
+    champ.value = champs.titre.value.trim().slice(0, 40);
+    d.returnValue = '';
+    d.showModal();
+    champ.select();
+    d.addEventListener('close', () => {
+      const nom = champ.value.trim();
+      if (d.returnValue !== 'ok' || !nom) return;
+      const existant = modeles().find(m => sansAccents(m.nom) === sansAccents(nom));
+      const modele = { id: existant ? existant.id : nouvelId(), nom, ...modeleDepuisFiche() };
+      operation({ type: 'modele', modele, nouveau: !existant });
+      rendreModelesFiche();
+      toast(existant ? `Modèle « ${nom} » mis à jour` : `Modèle « ${nom} » créé`, { texte: 'Annuler', faire: () => operation(existant ? { type: 'modele', modele: existant } : { type: 'supprimerModele', id: modele.id, titre: nom }) });
+    }, { once: true });
+  }
+  $('#modele-nom-champ').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); $('#modele-nom').close('ok'); }
+  });
+
+  /* Chevauchements : prévenir et proposer le prochain créneau libre */
+  const instantMaintenant = () => instantDebut(aujourdhui(), heure(maintenant()));
+  // Rendez-vous avec horaire (non annulés) qui chevauchent [de, a[ en minutes depuis BASE
+  function chevauchements(date, dateFin, de, a, sauf) {
+    return instances(decale(date, -7), dateFin, true).filter(i => i.r.id !== sauf && i.r.statut !== 'annule' && !i.r.journee
+      && instantDebut(i.date, i.r.debut) < a && instantFin(i.fin, i.r.fin) > de);
+  }
+  // Premier créneau libre de la même durée, dans les heures de travail, sur les 3 semaines qui suivent
+  function prochainLibre(duree, depuis, sauf) {
+    const t = travail();
+    const ouverture = minutes(t.debut);
+    const fermeture = minutes(t.fin) || 1440;
+    const j0 = Math.floor(depuis / 1440);
+    for (let j = 0; j < 21; j++) {
+      const d = decale(BASE, j0 + j);
+      if (!t.jours.includes(jourIso(d)) || (feriesActifs() && ferieDe(d))) continue;
+      const occupe = instances(d, d, true).filter(i => i.r.id !== sauf && i.r.statut !== 'annule' && !i.r.journee)
+        .map(i => [i.date === d ? i.debut : 0, i.fin === d ? i.finM : 1440]);
+      let m = j === 0 ? Math.max(ouverture, Math.ceil((depuis - j0 * 1440) / 15) * 15) : ouverture;
+      for (; m + duree <= fermeture; m += 15) {
+        if (!occupe.some(([x, y]) => m < y && m + duree > x)) return { date: d, debut: heure(m), fin: heure(m + duree) };
+      }
+    }
+    return null;
+  }
+  function majConflit() {
+    const zone = $('#f-conflit');
+    const statutChoisi = (form.querySelector('input[name="statut"]:checked') || {}).value;
+    const date = champs.date.value;
+    const dateFin = DATE.test(champs.dateFin.value) && champs.dateFin.value >= date ? champs.dateFin.value : date;
+    let liste = [];
+    let de = 0;
+    let a = 0;
+    if (!champs.journee.checked && statutChoisi !== 'annule' && DATE.test(date) && HEURE.test(champs.debut.value) && HEURE.test(champs.fin.value)) {
+      de = instantDebut(date, champs.debut.value);
+      a = instantFin(dateFin, champs.fin.value);
+      if (a > de) liste = chevauchements(date, dateFin, de, a, ficheEtat && ficheEtat.r && ficheEtat.r.id);
+    }
+    zone.hidden = !liste.length;
+    if (!liste.length) { zone.innerHTML = ''; return; }
+    const autres = liste.length - 1;
+    const libre = prochainLibre(a - de, Math.max(de, instantMaintenant()), ficheEtat && ficheEtat.r && ficheEtat.r.id);
+    zone.innerHTML = `${icone('alerte')}<div><b>Ce créneau chevauche « ${esc(liste[0].r.titre)} »</b> <span>${esc(libelleHoraire(liste[0]))}${autres ? ` et ${autres} autre${autres > 1 ? 's' : ''}` : ''}</span>`
+      + (libre ? `<button type="button" class="f-conflit-btn" data-libre="${libre.date}|${libre.debut}|${libre.fin}">Prendre le prochain créneau libre : ${esc(quand(libre.date).toLowerCase())} ${libre.debut} – ${libre.fin}</button>` : '')
+      + '</div>';
+  }
+  $('#f-conflit').addEventListener('click', e => {
+    const b = e.target.closest('[data-libre]');
+    if (!b) return;
+    const [d, h1, h2] = b.dataset.libre.split('|');
+    champs.date.value = d;
+    champs.dateFin.value = d;
+    champs.debut.value = h1;
+    champs.fin.value = h2;
+    form.dataset.date = d;
+    form.dataset.debut = h1;
+    majFiche();
+  });
   // Rappels : pastilles à cocher (aucune cochée = pas de rappel)
   function remplirRappels(journee, valeurs) {
     const liste = journee ? RAPPELS_JOURNEE : RAPPELS;
@@ -944,10 +1221,65 @@
     if (!d) return;
     const recue = Date.parse(d.recue) ? new Date(d.recue).toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : '';
     const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email || '') ? `<a href="mailto:${esc(d.email)}">${esc(d.email)}</a>` : '';
+    const connu = clients().find(c => (d.email && sansAccents(c.email) === sansAccents(d.email)) || (d.discord && sansAccents(c.discord) === sansAccents(d.discord)));
     zone.innerHTML = `${icone('calendrier')}<div><b>Réservé en ligne par ${esc(d.nom || '?')}</b>${recue ? ` <small>le ${esc(recue)}</small>` : ''}`
       + `<span>${[email, d.discord && `Discord : ${esc(d.discord)}`, d.sujet && esc(d.sujet)].filter(Boolean).join(' · ')}</span>`
-      + `${r.statut === 'attente' ? '<small>Passe le statut à « Confirmé », puis préviens la personne.</small>' : ''}</div>`;
+      + `${r.statut === 'attente' ? '<small>Confirme la demande, puis envoie le message à la personne.</small>' : ''}`
+      + '<span class="f-demande-actions">'
+      + `<button type="button" class="btn btn--ghost btn--petit" data-demande="copier">${icone('copie')}${r.statut === 'attente' ? 'Confirmer et copier le message' : 'Copier le message de confirmation'}</button>`
+      + (email ? `<button type="button" class="btn btn--ghost btn--petit" data-demande="email">${icone('lien')}Écrire l'e-mail</button>` : '')
+      + (connu ? `<button type="button" class="btn btn--lien btn--petit" data-demande="voir" data-client="${esc(connu.id)}">${icone('clients')}Client : ${esc(connu.nom)}</button>`
+        : `<button type="button" class="btn btn--lien btn--petit" data-demande="client">${icone('plus')}Créer la fiche client</button>`)
+      + '</span></div>';
   }
+  // Message de confirmation (réglages) avec la date et l'heure saisies dans la fiche
+  function messageConfirmation(d) {
+    const date = DATE.test(champs.date.value) ? champs.date.value : ficheEtat.r.date;
+    const h1 = HEURE.test(champs.debut.value) ? champs.debut.value : ficheEtat.r.debut;
+    const h2 = HEURE.test(champs.fin.value) ? champs.fin.value : ficheEtat.r.fin;
+    const duree = Math.max(0, (minutes(h2) || 1440) - minutes(h1));
+    const modele = String(reservation().message || '').trim() || MESSAGE_CONFIRMATION;
+    const parlee = h => { const [x, y] = h.split(':'); return y === '00' ? `${Number(x)} h` : `${Number(x)} h ${y}`; };
+    const valeurs = { nom: d.nom || '', date: fmt(date, { weekday: 'long', day: 'numeric', month: 'long' }), heure: parlee(h1), fin: parlee(h2), duree: String(duree), sujet: d.sujet || '' };
+    return modele.replace(/\{(nom|date|heure|fin|duree|sujet)\}/g, (_, k) => valeurs[k]);
+  }
+  async function copier(texte) {
+    try {
+      await navigator.clipboard.writeText(texte);
+      return true;
+    } catch (e) {
+      const zone = Object.assign(document.createElement('textarea'), { value: texte });
+      zone.style.cssText = 'position:fixed;opacity:0';
+      document.body.append(zone);
+      zone.select();
+      const ok = document.execCommand('copy');
+      zone.remove();
+      return ok;
+    }
+  }
+  $('#f-demande').addEventListener('click', async e => {
+    const b = e.target.closest('[data-demande]');
+    const d = ficheEtat && ficheEtat.r && ficheEtat.r.demande;
+    if (!b || !d) return;
+    const action = b.dataset.demande;
+    if (action === 'copier') {
+      const confirmer = form.querySelector('input[name="statut"][value="confirme"]');
+      const etaitAttente = !confirmer.checked;
+      confirmer.checked = true;
+      const ok = await copier(messageConfirmation(d));
+      toast(ok ? `Message copié${etaitAttente ? ' · enregistre pour confirmer le rendez-vous' : ''}` : 'Copie impossible : sélectionne le texte dans les réglages.', null, 4500);
+    } else if (action === 'email') {
+      location.href = `mailto:${encodeURIComponent(d.email)}?subject=${encodeURIComponent('Notre appel est confirmé')}&body=${encodeURIComponent(messageConfirmation(d))}`;
+    } else if (action === 'client') {
+      const c = creerClient({ nom: d.nom || 'Client', email: d.email || '', discord: d.discord || '', notes: d.sujet ? `Premier contact : réservation en ligne (${d.sujet}).` : 'Premier contact : réservation en ligne.' });
+      champs.avec.value = c.nom;
+      majFiche();
+      rendreDemande(ficheEtat.r);
+    } else if (action === 'voir') {
+      const c = clientDe(b.dataset.client);
+      if (c) { champs.avec.value = c.nom; majFiche(); ouvrirClients(c.id); }
+    }
+  });
   function majFiche() {
     const journee = champs.journee.checked;
     if ($('#f-rappels').dataset.journee !== String(journee)) remplirRappels(journee, [rappelDefaut(journee)]);
@@ -959,7 +1291,26 @@
     const lien = $('#f-lien');
     lien.hidden = !/^https?:\/\/\S+$/i.test(lieu);
     if (!lien.hidden) lien.href = lieu;
+    // Client relié au rendez-vous (par son nom dans « Avec »)
+    const client = clientParNom(champs.avec.value);
+    $('#f-client').hidden = !client;
+    $('#f-client-creer').hidden = !!client || !champs.avec.value.trim();
+    $('#f-facturable-l').hidden = !client;
+    majConflit();
   }
+  $('#f-client').addEventListener('click', e => {
+    e.preventDefault();
+    const c = clientParNom(champs.avec.value);
+    if (c) ouvrirClients(c.id);
+  });
+  $('#f-client-creer').addEventListener('click', e => {
+    e.preventDefault();
+    const nom = champs.avec.value.trim();
+    if (!nom) return;
+    const d = ficheEtat && ficheEtat.r && ficheEtat.r.demande;
+    creerClient({ nom, email: (d && d.email) || '', discord: (d && d.discord) || '' });
+    majFiche();
+  });
   form.addEventListener('input', majFiche);
   form.addEventListener('change', e => {
     // Changer le début (date ou heure) décale la fin d'autant : la durée reste la même
@@ -1025,6 +1376,9 @@
       cree: avant ? avant.cree : instant,
       modifie: instant,
     };
+    const client = clientParNom(rdv.avec);
+    if (client) { rdv.client = client.id; rdv.facturable = champs.facturable.checked; }
+    else { delete rdv.client; delete rdv.facturable; }
     delete rdv.rappel; // ancien réglage à un seul rappel
     if (avant && (avant.date !== rdv.date || avant.debut !== rdv.debut)) delete rdv.relance;
     fiche.close();
@@ -1032,11 +1386,12 @@
     operation({ type: 'enregistrer', rdv, nouveau: !avant });
     toast(avant ? 'Rendez-vous modifié' : 'Rendez-vous ajouté', {
       texte: 'Annuler',
-      faire: () => operation(avant ? { type: 'enregistrer', rdv: avant } : { type: 'supprimer', id: rdv.id, titre: rdv.titre }),
+      faire: () => operation(avant ? { type: 'enregistrer', rdv: avant } : { type: 'supprimer', id: rdv.id, titre: rdv.titre, sansCorbeille: true }),
     });
   });
   form.addEventListener('click', e => {
     const action = e.target.closest('[data-action]');
+    if (action && action.dataset.action === 'modele') { enregistrerModele(); return; }
     if (!action || !ficheEtat.r) return;
     const r = ficheEtat.r;
     if (action.dataset.action === 'supprimer') { fiche.close(); supprimer(r, ficheEtat.occurrence); }
@@ -1044,9 +1399,11 @@
       ficheEtat = { r: null, occurrence: null, checklist: ficheEtat.checklist.map(x => ({ t: x.t, fait: false })) };
       rendreChecklist();
       rendreDemande(null);
+      rendreModelesFiche();
       $('#fiche-titre').textContent = 'Nouveau rendez-vous (copie)';
       $('[data-serie]', form).hidden = true;
-      $$('[data-action]', form).forEach(b => { b.hidden = true; });
+      $$('[data-action]', form).forEach(b => { b.hidden = b.dataset.action !== 'modele'; });
+      majFiche();
       champs.titre.focus();
       champs.titre.select();
     } else if (action.dataset.action === 'ics') {
@@ -1248,7 +1605,8 @@
   function deplacer(r, ancienneDate, date, debut, fin) {
     const avant = clone(r);
     const instant = new Date().toISOString();
-    const quandTxt = `${quand(date).toLowerCase() === "aujourd'hui" ? "aujourd'hui" : `le ${fmt(date, { weekday: 'short', day: 'numeric', month: 'short' })}`} à ${heure(debut)}`;
+    const conflit = chevauchements(date, date, instantDebut(date, heure(debut)), instantDebut(date, '00:00') + fin, r.id)[0];
+    const quandTxt = `${quand(date).toLowerCase() === "aujourd'hui" ? "aujourd'hui" : `le ${fmt(date, { weekday: 'short', day: 'numeric', month: 'short' })}`} à ${heure(debut)}${conflit ? ` · chevauche « ${conflit.r.titre} »` : ''}`;
     if (r.repetition) {
       // Une occurrence d'une série déplacée devient un rendez-vous à part
       const copie = { ...clone(r), id: nouvelId(), date, dateFin: date, debut: heure(debut), fin: heure(fin), repetition: null, exceptions: [], cree: instant, modifie: instant };
@@ -1265,7 +1623,7 @@
     if (ignorerClic) { e.preventDefault(); e.stopPropagation(); }
   }, true);
   vueEl.addEventListener('click', e => {
-    const ev = e.target.closest('.ev, .puce, .l-ev');
+    const ev = e.target.closest('.ev, .puce[data-id], .l-ev');
     if (ev) { ouvrirFiche({ id: ev.dataset.id, date: ev.dataset.date }); return; }
     const nouv = e.target.closest('[data-nouveau]');
     if (nouv) { ouvrirFiche({ nouveau: { date: nouv.dataset.nouveau } }); return; }
@@ -1343,9 +1701,13 @@
     fermerCote();
     const a = action.dataset.menu;
     if (a === 'reglages') ouvrirReglages();
+    else if (a === 'clients') ouvrirClients();
+    else if (a === 'factu') ouvrirFactu();
+    else if (a === 'corbeille') ouvrirCorbeille();
+    else if (a === 'historique') ouvrirHistorique();
     else if (a === 'ics') telecharger('agenda-mvrius.ics', ics(donnees().rendezvous), 'text/calendar;charset=utf-8');
     else if (a === 'json') telecharger(`agenda-sauvegarde-${aujourdhui()}.json`, JSON.stringify(donnees(), null, 2), 'application/json');
-    else if (a === 'raccourcis') toast('N nouveau · T aujourd\'hui · J S M L vues · ← → naviguer · / rechercher', null, 7000);
+    else if (a === 'raccourcis') toast('N nouveau · T aujourd\'hui · J S M L vues · ← → naviguer · / rechercher · C clients · F facturation', null, 8000);
     else if (a === 'deconnexion') deconnecter();
   });
 
@@ -1353,10 +1715,17 @@
   const reglages = $('#reglages');
   let brouillon = null;
   const resumeActuel = () => ({ actif: false, heure: '08:00', ...((donnees().reglages || {}).resume || {}) });
+  const semaineActuelle = () => ({ actif: false, heure: '19:00', ...((donnees().reglages || {}).resumeSemaine || {}) });
+  let brouillonModeles = [];
   function ouvrirReglages() {
     brouillon = clone(categories());
     rendreCategoriesEdit();
+    brouillonModeles = clone(modeles());
+    rendreModelesEdit();
     $('#r-resume').checked = !!resumeActuel().actif;
+    $('#r-semaine').checked = !!semaineActuelle().actif;
+    $('#r-semaine-heure').value = semaineActuelle().heure;
+    $('#r-feries').checked = feriesActifs();
     // Heures de travail
     const t = travail();
     $('#r-jours').innerHTML = '<legend class="sr">Jours travaillés</legend>' + JOURS.map((nom, k) => `<label class="choix" style="--c:#e8b46a"><input type="checkbox" value="${k + 1}"${t.jours.includes(k + 1) ? ' checked' : ''}><span>${nom.slice(0, 3)}.</span></label>`).join('');
@@ -1377,8 +1746,29 @@
     $('#r-resa-pause').value = String(resa.pause);
     $('#r-resa-delai').value = String(resa.delai);
     $('#r-resa-horizon').value = String(resa.horizon);
+    $('#r-resa-feries').checked = resa.feries !== false;
+    $('#r-resa-message').value = resa.message || '';
+    $('#r-resa-message').placeholder = MESSAGE_CONFIRMATION;
     reglages.showModal();
   }
+  // Modèles : renommer ou supprimer (les changements s'appliquent avec « Enregistrer »)
+  function rendreModelesEdit() {
+    const resume = m => [m.journee ? 'Journée' : heuresTxt(Number(m.duree) || 60), categorie(m.categorie).nom].join(' · ');
+    $('#modeles-edit').innerHTML = brouillonModeles.length ? brouillonModeles.map((m, i) => `<div class="cat-ligne cat-ligne--modele" data-i="${i}">`
+      + `<span class="mo-ic" style="--c:${couleurSure(categorie(m.categorie).couleur)}">${icone('modele')}</span>`
+      + `<input value="${esc(m.nom)}" maxlength="40" aria-label="Nom du modèle" data-nom-modele>`
+      + `<span class="cat-compte">${esc(resume(m))}</span>`
+      + `<button type="button" class="icone-btn icone-btn--danger" data-retirer-modele aria-label="Supprimer le modèle ${esc(m.nom)}">${icone('corbeille')}</button></div>`).join('')
+      : '<p class="av-vide">Aucun modèle pour l\'instant.</p>';
+  }
+  $('#modeles-edit').addEventListener('click', e => {
+    const l = e.target.closest('.cat-ligne--modele');
+    if (l && e.target.closest('[data-retirer-modele]')) { brouillonModeles.splice(Number(l.dataset.i), 1); rendreModelesEdit(); }
+  });
+  $('#modeles-edit').addEventListener('input', e => {
+    const l = e.target.closest('.cat-ligne--modele');
+    if (l && e.target.matches('[data-nom-modele]')) brouillonModeles[Number(l.dataset.i)].nom = e.target.value;
+  });
   function lirePlages() {
     const plages = {};
     $$('#r-plages .r-plage').forEach(ligne => {
@@ -1466,24 +1856,569 @@
       semaineTravail: $('#r-t-semaine').checked,
     };
     const resa = {
+      ...reservation(),
       actif: $('#r-resa-actif').checked,
       plages: lirePlages(),
       duree: Number($('#r-resa-duree').value),
       pause: Number($('#r-resa-pause').value),
       delai: Number($('#r-resa-delai').value),
       horizon: Number($('#r-resa-horizon').value),
+      feries: $('#r-resa-feries').checked,
+      message: $('#r-resa-message').value.trim(),
     };
+    const semaine = { ...semaineActuelle(), actif: $('#r-semaine').checked, heure: $('#r-semaine-heure').value };
     reglages.close();
     const ops = [];
     if (JSON.stringify(propres) !== JSON.stringify(categories())) ops.push({ type: 'categories', categories: propres });
+    // Modèles renommés ou supprimés
+    const gardes = new Map(brouillonModeles.map(m => [m.id, m]));
+    modeles().forEach(m => {
+      const b = gardes.get(m.id);
+      if (!b) ops.push({ type: 'supprimerModele', id: m.id, titre: m.nom });
+      else if (b.nom.trim() && b.nom.trim() !== m.nom) ops.push({ type: 'modele', modele: { ...m, nom: b.nom.trim() } });
+    });
     const changes = {};
     if (JSON.stringify(resume) !== JSON.stringify(resumeActuel())) changes.resume = resume;
+    if (JSON.stringify(semaine) !== JSON.stringify(semaineActuelle())) changes.resumeSemaine = semaine;
+    if ($('#r-feries').checked !== feriesActifs()) changes.feries = $('#r-feries').checked;
     if (JSON.stringify(t) !== JSON.stringify(travail())) changes.travail = t;
     if (JSON.stringify(resa) !== JSON.stringify(reservation())) changes.reservation = resa;
     if (Object.keys(changes).length) ops.push({ type: 'reglages', reglages: changes });
     if (ops.length) {
       operation(ops);
       toast('Réglages enregistrés');
+    }
+  });
+
+  /* ---------- Clients ---------- */
+  const clientsDlg = $('#clients');
+  let clientsEtat = { vue: 'liste', id: null };
+  const dureeInst = i => (i.r.journee ? 0 : Math.max(0, instantFin(i.fin, i.r.fin) - instantDebut(i.date, i.r.debut)));
+  const heuresTxt = m => { const h = Math.floor(m / 60); const mm = Math.round(m % 60); return h ? `${h} h${mm ? ` ${pad(mm)}` : ''}` : `${mm} min`; };
+  const euros = n => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n);
+  // Compte dans les heures facturées : réglé dans la fiche (par défaut oui, sauf les appels réservés en ligne)
+  const facturable = r => (r.facturable !== undefined ? !!r.facturable : r.source !== 'reservation');
+  function creerClient(valeurs) {
+    const instant = new Date().toISOString();
+    const c = { id: nouvelId(), nom: String(valeurs.nom || 'Client').trim().slice(0, 80), discord: '', email: '', serveur: '', tarif: null, notes: '', ...valeurs, cree: instant, modifie: instant };
+    c.nom = String(c.nom).trim().slice(0, 80) || 'Client';
+    operation({ type: 'client', client: c, nouveau: true });
+    toast(`Fiche client « ${c.nom} » créée`, { texte: 'Annuler', faire: () => operation({ type: 'supprimerClient', id: c.id, titre: c.nom, sansCorbeille: true }) });
+    return c;
+  }
+  // Rendez-vous d'un client : reliés par la fiche, ou avec son nom dans « Avec » (rendez-vous plus anciens)
+  function rdvDuClient(c, de, a) {
+    const nom = sansAccents(c.nom).trim();
+    return instances(de, a, true).filter(i => i.r.client === c.id || (!i.r.client && sansAccents(i.r.avec).trim() === nom));
+  }
+  function ouvrirClients(id) {
+    clientsEtat = { vue: id ? 'fiche' : 'liste', id: id || null };
+    rendreClients();
+    if (!clientsDlg.open) clientsDlg.showModal();
+  }
+  function rendreClients() {
+    const corps = $('#clients-corps');
+    if (clientsEtat.vue === 'liste') {
+      $('#clients-titre').textContent = 'Clients';
+      corps.innerHTML = `<div class="cl-barre"><label class="b-recherche cl-recherche">${icone('loupe')}<input type="search" id="cl-q" placeholder="Rechercher un client" aria-label="Rechercher un client" autocomplete="off"></label>`
+        + `<button type="button" class="btn btn--primaire btn--petit" data-cl="nouveau">${icone('plus')}Nouveau client</button></div><ul class="cl-liste" id="cl-liste"></ul>`;
+      rendreListeClients('');
+      return;
+    }
+    const c = clientDe(clientsEtat.id) || { id: null, nom: '', discord: '', email: '', serveur: '', tarif: null, notes: '' };
+    $('#clients-titre').textContent = c.id ? 'Fiche client' : 'Nouveau client';
+    const auj = aujourdhui();
+    const maint = instantMaintenant();
+    const tous = c.id ? rdvDuClient(c, decale(auj, -1825), decale(auj, 730)) : [];
+    const passes = tous.filter(i => i.r.statut !== 'annule' && instantFin(i.fin, i.r.journee ? '00:00' : i.r.fin) <= maint);
+    const aVenir = tous.filter(i => i.r.statut !== 'annule' && !passes.includes(i));
+    const mois = auj.slice(0, 7);
+    const duMois = passes.filter(i => i.date.slice(0, 7) === mois);
+    const tarif = Number(c.tarif) > 0 ? Number(c.tarif) : 0;
+    const montantMois = tarif * duMois.filter(i => facturable(i.r)).reduce((t, i) => t + dureeInst(i), 0) / 60;
+    const stats = c.id ? `<div class="cartes">`
+      + `<div class="carte"><small>Rendez-vous</small><b>${passes.length}</b><span>${aVenir.length ? `${aVenir.length} à venir` : 'aucun à venir'}</span></div>`
+      + `<div class="carte"><small>Heures au total</small><b>${heuresTxt(passes.reduce((t, i) => t + dureeInst(i), 0))}</b><span>depuis le début</span></div>`
+      + `<div class="carte"><small>Ce mois-ci</small><b>${heuresTxt(duMois.reduce((t, i) => t + dureeInst(i), 0))}</b><span>${tarif ? `${esc(euros(montantMois))} à facturer` : 'sans tarif'}</span></div></div>` : '';
+    const lignes = (titre, liste, vide) => `<h3 class="cl-h">${titre}</h3>${liste.length ? `<div class="l-items">${liste.map(ligne).join('')}</div>` : `<p class="av-vide">${vide}</p>`}`;
+    corps.innerHTML = `<form class="cl-fiche" id="cl-form" novalidate>`
+      + `<button type="button" class="btn btn--lien btn--petit cl-retour" data-cl="retour">${icone('gauche')}Tous les clients</button>`
+      + `<input class="f-nom" name="nom" value="${esc(c.nom)}" placeholder="Nom du client" aria-label="Nom du client" maxlength="80" autocomplete="off" required>`
+      + `<div class="f-ligne">`
+      + `<label class="champ"><span>Pseudo Discord</span><input name="discord" value="${esc(c.discord)}" maxlength="60" autocomplete="off"></label>`
+      + `<label class="champ"><span>E-mail</span><input name="email" type="email" value="${esc(c.email)}" maxlength="120" autocomplete="off"></label>`
+      + `<label class="champ"><span>Serveur Discord</span><input name="serveur" value="${esc(c.serveur)}" maxlength="120" placeholder="Nom ou lien d'invitation" autocomplete="off"></label>`
+      + `<label class="champ"><span>Tarif horaire (€)</span><input name="tarif" type="number" min="0" step="0.5" inputmode="decimal" value="${tarif || ''}" placeholder="Ex. 40"></label>`
+      + `</div>`
+      + `<label class="champ"><span>Notes</span><textarea name="notes" rows="3" maxlength="4000" placeholder="Besoins, projets, infos utiles…">${esc(c.notes)}</textarea></label>`
+      + `<p class="f-erreur" id="cl-erreur" role="alert"></p>`
+      + `<div class="cl-actions">${c.id ? `<button type="button" class="icone-btn icone-btn--danger" data-cl="supprimer" aria-label="Supprimer le client" title="Supprimer le client">${icone('corbeille')}</button>`
+        + `<button type="button" class="btn btn--ghost btn--petit" data-cl="rdv">${icone('plus')}Nouveau rendez-vous</button>` : ''}<span class="espace"></span>`
+      + `<button type="submit" class="btn btn--primaire">Enregistrer</button></div></form>`
+      + (c.id ? stats + lignes('À venir', aVenir.slice(0, 20), 'Aucun rendez-vous prévu.') + lignes('Historique', passes.slice(-40).reverse(), 'Pas encore de rendez-vous passé.') : '');
+  }
+  function rendreListeClients(q) {
+    const t = sansAccents(q);
+    const auj = aujourdhui();
+    const liste = clients().filter(c => !t || sansAccents(`${c.nom} ${c.discord} ${c.email} ${c.serveur}`).includes(t))
+      .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+    $('#cl-liste').innerHTML = liste.length ? liste.map(c => {
+      const prochain = rdvDuClient(c, auj, decale(auj, 365)).find(i => i.r.statut !== 'annule' && pasFini(i));
+      const sous = [c.discord, c.serveur, c.email].filter(Boolean).map(esc).join(' · ') || 'Aucune coordonnée';
+      return `<li><button type="button" class="cl-ligne" data-cl-ouvrir="${esc(c.id)}"><span class="cl-av">${esc(c.nom.charAt(0).toUpperCase())}</span>`
+        + `<span class="cl-txt"><b>${esc(c.nom)}</b><small>${sous}</small></span>`
+        + `<span class="cl-prochain">${prochain ? `Prochain : ${esc(quand(prochain.date))}${prochain.r.journee ? '' : ` ${prochain.r.debut}`}` : ''}</span></button></li>`;
+    }).join('') : `<li class="vide"><span class="vide-icone">${icone('clients')}</span><h3>${t ? 'Aucun client trouvé' : 'Pas encore de client'}</h3><p>${t ? 'Essaie un autre nom.' : 'Crée une fiche pour retrouver les coordonnées, les notes et l\'historique de chaque client.'}</p></li>`;
+  }
+  clientsDlg.addEventListener('input', e => { if (e.target.id === 'cl-q') rendreListeClients(e.target.value); });
+  clientsDlg.addEventListener('click', e => {
+    const ouvrir = e.target.closest('[data-cl-ouvrir]');
+    if (ouvrir) { clientsEtat = { vue: 'fiche', id: ouvrir.dataset.clOuvrir }; rendreClients(); return; }
+    const ev = e.target.closest('.l-ev');
+    if (ev) { ouvrirFiche({ id: ev.dataset.id, date: ev.dataset.date }); return; }
+    const b = e.target.closest('[data-cl]');
+    if (!b) return;
+    const action = b.dataset.cl;
+    if (action === 'nouveau') { clientsEtat = { vue: 'fiche', id: null }; rendreClients(); $('#cl-form [name="nom"]').focus(); }
+    else if (action === 'retour') { clientsEtat = { vue: 'liste', id: null }; rendreClients(); }
+    else if (action === 'supprimer') {
+      const c = clientDe(clientsEtat.id);
+      if (!c) return;
+      operation({ type: 'supprimerClient', id: c.id, titre: c.nom });
+      toast(`Client « ${c.nom} » mis à la corbeille`, { texte: 'Annuler', faire: () => operation({ type: 'client', client: c }) });
+      clientsEtat = { vue: 'liste', id: null };
+      rendreClients();
+    } else if (action === 'rdv') {
+      const c = clientDe(clientsEtat.id);
+      clientsDlg.close();
+      ouvrirFiche({ nouveau: { date: etat.curseur } });
+      if (c) { champs.avec.value = c.nom; majFiche(); }
+    }
+  });
+  clientsDlg.addEventListener('submit', e => {
+    if (e.target.id !== 'cl-form') return;
+    e.preventDefault();
+    const f = e.target.elements;
+    const nom = f.nom.value.trim();
+    if (!nom) { $('#cl-erreur').textContent = 'Donne un nom au client.'; f.nom.focus(); return; }
+    const doublon = clients().find(x => x.id !== clientsEtat.id && sansAccents(x.nom).trim() === sansAccents(nom));
+    if (doublon) { $('#cl-erreur').textContent = `Il y a déjà une fiche « ${doublon.nom} ».`; f.nom.focus(); return; }
+    const avant = clientDe(clientsEtat.id);
+    const instant = new Date().toISOString();
+    const tarif = parseFloat(String(f.tarif.value).replace(',', '.'));
+    const c = {
+      ...(avant || {}), id: avant ? avant.id : nouvelId(), nom,
+      discord: f.discord.value.trim(), email: f.email.value.trim(), serveur: f.serveur.value.trim(),
+      tarif: Number.isFinite(tarif) && tarif > 0 ? tarif : null, notes: f.notes.value.trim(),
+      cree: avant ? avant.cree : instant, modifie: instant,
+    };
+    operation({ type: 'client', client: c, nouveau: !avant });
+    toast(avant ? 'Fiche client enregistrée' : `Fiche client « ${nom} » créée`);
+    clientsEtat = { vue: 'fiche', id: c.id };
+    rendreClients();
+    if (fiche.open) { $('#clients-noms').innerHTML = clients().map(x => `<option value="${esc(x.nom)}"></option>`).join(''); majFiche(); }
+  });
+
+  /* ---------- Heures et facturation ---------- */
+  const factuDlg = $('#factu');
+  let factuMois = aujourdhui().slice(0, 7);
+  function ouvrirFactu() {
+    factuMois = etat.curseur.slice(0, 7);
+    rendreFactu();
+    factuDlg.showModal();
+  }
+  // Rendez-vous confirmés avec un horaire, qui commencent dans le mois
+  function lignesDuMois(mois) {
+    const de = `${mois}-01`;
+    const a = iso(new Date(Number(mois.slice(0, 4)), Number(mois.slice(5, 7)), 0));
+    const maint = instantMaintenant();
+    return instances(de, a, true).filter(i => i.date >= de && !i.r.journee && (i.r.statut || 'confirme') === 'confirme').map(i => {
+      const c = clientDe(i.r.client);
+      const duree = dureeInst(i);
+      const compte = !!c && facturable(i.r);
+      const tarif = compte && Number(c.tarif) > 0 ? Number(c.tarif) : 0;
+      return { i, c, duree, realise: instantFin(i.fin, i.r.fin) <= maint, compte, tarif, montant: tarif * duree / 60 };
+    });
+  }
+  function rendreFactu() {
+    const lignes = lignesDuMois(factuMois);
+    const somme = (l, f) => l.reduce((t, x) => t + f(x), 0);
+    const realise = lignes.filter(x => x.realise);
+    const [a, m] = factuMois.split('-').map(Number);
+    const titreMois = maj1(fmt(new Date(a, m - 1, 1), { month: 'long', year: 'numeric' }));
+    // Par client (les rendez-vous sans fiche client à part)
+    const parClient = new Map();
+    lignes.forEach(x => {
+      const cle = x.c ? x.c.id : '';
+      if (!parClient.has(cle)) parClient.set(cle, { c: x.c, lignes: [] });
+      parClient.get(cle).lignes.push(x);
+    });
+    const clientsTries = [...parClient.values()].sort((p, q) => (p.c ? 0 : 1) - (q.c ? 0 : 1) || somme(q.lignes, x => x.duree) - somme(p.lignes, x => x.duree));
+    const tableClients = clientsTries.length ? `<div class="tab-cadre"><table class="tab"><thead><tr><th>Client</th><th>Rdv</th><th>Réalisé</th><th>Prévu</th><th>Tarif</th><th>À facturer</th><th></th></tr></thead><tbody>`
+      + clientsTries.map(g => {
+        const r = g.lignes.filter(x => x.realise);
+        const montant = somme(r.filter(x => x.compte), x => x.montant);
+        return `<tr><td>${g.c ? `<button type="button" class="lien-tab" data-factu-client="${esc(g.c.id)}">${esc(g.c.nom)}</button>` : '<span class="pale">Sans fiche client</span>'}</td>`
+          + `<td>${g.lignes.length}</td><td>${heuresTxt(somme(r, x => x.duree))}</td><td>${heuresTxt(somme(g.lignes, x => x.duree))}</td>`
+          + `<td>${g.c && Number(g.c.tarif) > 0 ? `${esc(euros(Number(g.c.tarif)))}/h` : '—'}</td><td><b>${montant ? esc(euros(montant)) : '—'}</b></td>`
+          + `<td>${g.c ? `<button type="button" class="icone-btn" data-factu-copier="${esc(g.c.id)}" aria-label="Copier le récapitulatif de ${esc(g.c.nom)}" title="Copier le récapitulatif">${icone('copie')}</button>` : ''}</td></tr>`;
+      }).join('') + '</tbody></table></div>' : '';
+    // Par catégorie
+    const parCat = new Map();
+    lignes.forEach(x => parCat.set(x.i.r.categorie, (parCat.get(x.i.r.categorie) || 0) + x.duree));
+    const totalCat = somme([...parCat.values()], x => x) || 1;
+    const tableCats = [...parCat.entries()].sort((p, q) => q[1] - p[1]).map(([id, duree]) => {
+      const c = categorie(id);
+      return `<li style="--c:${couleurSure(c.couleur)}"><span class="fc-nom">${esc(c.nom)}</span><span class="fc-barre"><i style="width:${Math.round(duree / totalCat * 100)}%"></i></span><b>${heuresTxt(duree)}</b></li>`;
+    }).join('');
+    $('#factu-corps').innerHTML = `<div class="fa-nav"><button type="button" class="icone-btn" data-factu-mois="-1" aria-label="Mois précédent">${icone('gauche')}</button>`
+      + `<b>${esc(titreMois)}</b><button type="button" class="icone-btn" data-factu-mois="1" aria-label="Mois suivant">${icone('droite')}</button>`
+      + `${factuMois !== aujourdhui().slice(0, 7) ? '<button type="button" class="btn btn--ghost btn--petit" data-factu-mois="0">Ce mois-ci</button>' : ''}</div>`
+      + `<div class="cartes">`
+      + `<div class="carte"><small>Heures réalisées</small><b>${heuresTxt(somme(realise, x => x.duree))}</b><span>${realise.length} rendez-vous</span></div>`
+      + `<div class="carte"><small>Prévu sur le mois</small><b>${heuresTxt(somme(lignes, x => x.duree))}</b><span>${lignes.length} rendez-vous</span></div>`
+      + `<div class="carte carte--or"><small>À facturer</small><b>${esc(euros(somme(realise.filter(x => x.compte), x => x.montant)))}</b><span>${esc(euros(somme(lignes.filter(x => x.compte), x => x.montant)))} prévus</span></div></div>`
+      + (lignes.length ? `<h3 class="cl-h">Par client</h3>${tableClients}<h3 class="cl-h">Par catégorie</h3><ul class="fc-liste">${tableCats}</ul>`
+        : `<div class="vide"><span class="vide-icone">${icone('euro')}</span><h3>Rien ce mois-ci</h3><p>Les rendez-vous confirmés avec un horaire apparaîtront ici. Relie-les à une fiche client avec un tarif pour calculer le montant.</p></div>`)
+      + `<p class="r-aide">Sont comptés les rendez-vous confirmés avec un horaire. Le montant utilise le tarif horaire de la fiche client ; les appels réservés en ligne ne sont pas facturés, sauf si tu l'indiques dans leur fiche.</p>`
+      + `<div class="r-boutons"><button type="button" class="btn btn--ghost btn--petit" data-factu-csv${lignes.length ? '' : ' disabled'}>${icone('telecharger')}Exporter le mois (tableur .csv)</button></div>`;
+  }
+  function recapClient(c, mois) {
+    const lignes = lignesDuMois(mois).filter(x => x.c && x.c.id === c.id && x.realise && x.compte);
+    const [a, m] = mois.split('-').map(Number);
+    const titre = fmt(new Date(a, m - 1, 1), { month: 'long', year: 'numeric' });
+    const total = lignes.reduce((t, x) => t + x.duree, 0);
+    const tarif = Number(c.tarif) > 0 ? Number(c.tarif) : 0;
+    return [`Récapitulatif ${titre} — ${c.nom}`, '',
+      ...lignes.map(x => `• ${fmt(x.i.date, { day: '2-digit', month: '2-digit' })} ${x.i.r.debut}–${x.i.r.fin} · ${x.i.r.titre} (${heuresTxt(x.duree)})`),
+      '', `Total : ${heuresTxt(total)}${tarif ? ` × ${euros(tarif)}/h = ${euros(tarif * total / 60)}` : ''}`].join('\n');
+  }
+  function csvDuMois(mois) {
+    const nb = n => String(Math.round(n * 100) / 100).replace('.', ',');
+    const cell = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lignes = lignesDuMois(mois).map(x => [
+      fmt(x.i.date, { day: '2-digit', month: '2-digit', year: 'numeric' }), x.i.r.debut, x.i.r.fin, nb(x.duree / 60),
+      x.c ? x.c.nom : avecDe(x.i.r), x.i.r.titre, categorie(x.i.r.categorie).nom, x.realise ? 'oui' : 'non',
+      x.compte ? 'oui' : 'non', x.tarif ? nb(x.tarif) : '', x.compte && x.realise && x.montant ? nb(x.montant) : '',
+    ].map(cell).join(';'));
+    const tete = ['Date', 'Début', 'Fin', 'Durée (h)', 'Client', 'Titre', 'Catégorie', 'Réalisé', 'Facturable', 'Tarif (€/h)', 'Montant (€)'].map(cell).join(';');
+    return '﻿' + [tete, ...lignes].join('\r\n') + '\r\n';
+  }
+  factuDlg.addEventListener('click', async e => {
+    const nav = e.target.closest('[data-factu-mois]');
+    if (nav) {
+      const n = Number(nav.dataset.factuMois);
+      if (!n) factuMois = aujourdhui().slice(0, 7);
+      else { const [a, m] = factuMois.split('-').map(Number); factuMois = iso(new Date(a, m - 1 + n, 1)).slice(0, 7); }
+      rendreFactu();
+      return;
+    }
+    const cl = e.target.closest('[data-factu-client]');
+    if (cl) { ouvrirClients(cl.dataset.factuClient); return; }
+    const cp = e.target.closest('[data-factu-copier]');
+    if (cp) {
+      const c = clientDe(cp.dataset.factuCopier);
+      if (c) toast((await copier(recapClient(c, factuMois))) ? `Récapitulatif de ${c.nom} copié` : 'Copie impossible.');
+      return;
+    }
+    if (e.target.closest('[data-factu-csv]')) telecharger(`heures-${factuMois}.csv`, csvDuMois(factuMois), 'text/csv;charset=utf-8');
+  });
+
+  /* ---------- Tâches : fiche, réserver du temps, glisser dans l'agenda ---------- */
+  const tacheDlg = $('#tache-dialog');
+  const tacheForm = $('#tache-form');
+  let tacheEdit = null;
+  $('#t-priorite').insertAdjacentHTML('beforeend', PRIORITES.map(([v, t, c]) => `<label class="choix" style="--c:${c}"><input type="radio" name="priorite" value="${v}"><span>${t}</span></label>`).join(''));
+  tacheForm.elements.duree.innerHTML = DUREES_TACHE.map(([v, t]) => `<option value="${v}">${t}</option>`).join('');
+  function ouvrirTache(id) {
+    const t = (donnees().taches || []).find(x => x.id === id);
+    if (!t) return;
+    tacheEdit = clone(t);
+    const f = tacheForm.elements;
+    f.titre.value = t.titre;
+    f.date.value = t.date || '';
+    f.aplanifier.checked = !t.date;
+    f.echeance.value = t.echeance || '';
+    f.duree.value = String(DUREES_TACHE.some(([v]) => v === Number(t.duree)) ? Number(t.duree) : 60);
+    f.notes.value = t.notes || '';
+    tacheForm.querySelector(`input[name="priorite"][value="${clamp(Number(t.priorite) || 0, 0, 2)}"]`).checked = true;
+    const bloc = t.bloc && trouver(t.bloc);
+    $('#t-bloc').hidden = !bloc;
+    if (bloc) $('#t-bloc').innerHTML = `${icone('calendrier')}<span>Du temps est réservé ${esc(leJour(bloc.date))} de ${bloc.debut} à ${bloc.fin}.</span>`;
+    $('#t-erreur').textContent = '';
+    majTache();
+    tacheDlg.showModal();
+  }
+  function majTache() {
+    const f = tacheForm.elements;
+    f.date.disabled = f.aplanifier.checked;
+  }
+  tacheForm.addEventListener('change', e => {
+    if (e.target.name === 'aplanifier' && !e.target.checked && !tacheForm.elements.date.value) tacheForm.elements.date.value = etat.curseur;
+    majTache();
+  });
+  function lireTache() {
+    const f = tacheForm.elements;
+    return {
+      ...tacheEdit,
+      titre: f.titre.value.trim(),
+      date: f.aplanifier.checked || !DATE.test(f.date.value) ? null : f.date.value,
+      echeance: DATE.test(f.echeance.value) ? f.echeance.value : null,
+      priorite: Number((tacheForm.querySelector('input[name="priorite"]:checked') || {}).value) || 0,
+      duree: Number(f.duree.value) || 60,
+      notes: f.notes.value.trim(),
+    };
+  }
+  tacheForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const t = lireTache();
+    if (!t.titre) { $('#t-erreur').textContent = 'Donne un titre à la tâche.'; tacheForm.elements.titre.focus(); return; }
+    const avant = (donnees().taches || []).find(x => x.id === t.id);
+    tacheDlg.close();
+    operation({ type: 'tache', tache: t });
+    toast('Tâche enregistrée', avant ? { texte: 'Annuler', faire: () => operation({ type: 'tache', tache: avant }) } : null);
+  });
+  tacheForm.addEventListener('click', e => {
+    const b = e.target.closest('[data-tache-action]');
+    if (!b || !tacheEdit) return;
+    if (b.dataset.tacheAction === 'supprimer') {
+      const t = (donnees().taches || []).find(x => x.id === tacheEdit.id);
+      tacheDlg.close();
+      if (!t) return;
+      operation({ type: 'supprimerTache', id: t.id, titre: t.titre });
+      toast('Tâche mise à la corbeille', { texte: 'Annuler', faire: () => operation({ type: 'tache', tache: t }) });
+    } else if (b.dataset.tacheAction === 'planifier') {
+      const t = lireTache();
+      if (!t.titre) { $('#t-erreur').textContent = 'Donne un titre à la tâche.'; return; }
+      const jourVise = t.date && t.date >= aujourdhui() ? t.date : aujourdhui();
+      const libre = prochainLibre(t.duree, Math.max(instantDebut(jourVise, '00:00'), instantMaintenant()), null);
+      if (!libre) { $('#t-erreur').textContent = 'Aucun créneau libre dans tes heures de travail sur les 3 prochaines semaines.'; return; }
+      tacheDlg.close();
+      bloquerTemps(t, libre.date, minutes(libre.debut));
+    }
+  });
+  // Crée un bloc dans l'agenda pour une tâche ; la tâche passe à ce jour-là
+  function bloquerTemps(t, date, debutM) {
+    const avant = (donnees().taches || []).find(x => x.id === t.id) || t;
+    const duree = Number(t.duree) || 60;
+    const instant = new Date().toISOString();
+    const cat = categories().find(c => c.id === 'perso') || categories()[0];
+    const rdv = {
+      id: nouvelId(), titre: t.titre, categorie: cat.id, date, dateFin: date, journee: false,
+      debut: heure(debutM), fin: heure(Math.min(debutM + duree, 1440)), repetition: null, exceptions: [], rappels: [5],
+      checklist: [], statut: 'confirme', avec: '', lieu: '', notes: t.notes || '', tache: t.id, cree: instant, modifie: instant,
+    };
+    const tache = { ...clone(t), date, bloc: rdv.id };
+    operation([{ type: 'enregistrer', rdv, nouveau: true }, { type: 'tache', tache }]);
+    if (!visible(date)) { etat.curseur = date; etat.mini = null; rendre(); }
+    toast(`« ${t.titre} » planifiée ${leJour(date)} à ${rdv.debut}`, { texte: 'Annuler', faire: () => operation([{ type: 'supprimer', id: rdv.id, titre: rdv.titre, sansCorbeille: true }, { type: 'tache', tache: avant }]) });
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-tache-ouvrir]');
+    if (b) ouvrirTache(b.dataset.tacheOuvrir);
+  });
+  // Glisser une tâche (colonne de gauche) sur la grille : un bloc de sa durée à l'heure visée ;
+  // sur la ligne « Journée » ou un jour du mois : la tâche passe à ce jour-là
+  let tacheGlissee = null;
+  let fantomeTache = null;
+  const retirerFantome = () => { if (fantomeTache) { fantomeTache.remove(); fantomeTache = null; } };
+  document.addEventListener('dragstart', e => {
+    const el = e.target.closest && e.target.closest('[data-glisser-tache]');
+    if (!el) return;
+    tacheGlissee = (donnees().taches || []).find(t => t.id === el.dataset.glisserTache) || null;
+    if (!tacheGlissee) return;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', tacheGlissee.titre);
+    document.body.classList.add('glisse-tache');
+    // Sur tablette, la colonne de gauche est un tiroir : on le ferme pour voir l'agenda
+    setTimeout(fermerCote, 0);
+  });
+  document.addEventListener('dragend', () => { tacheGlissee = null; retirerFantome(); document.body.classList.remove('glisse-tache'); $$('.is-cible').forEach(x => x.classList.remove('is-cible')); });
+  const minuteSous = (col, y) => clamp(caleSur((y - col.getBoundingClientRect().top) / hauteurHeure() * 60, 15), 0, 1425);
+  vueEl.addEventListener('dragover', e => {
+    if (!tacheGlissee) return;
+    const col = e.target.closest('.g-col');
+    const cible = col || e.target.closest('.g-jt, .m-case');
+    if (!cible) { retirerFantome(); return; }
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    $$('.is-cible').forEach(x => { if (x !== cible) x.classList.remove('is-cible'); });
+    cible.classList.add('is-cible');
+    if (col) {
+      const duree = Number(tacheGlissee.duree) || 60;
+      const m = Math.min(minuteSous(col, e.clientY), 1440 - Math.min(duree, 1440));
+      if (!fantomeTache) { fantomeTache = document.createElement('div'); fantomeTache.className = 'fantome'; }
+      if (fantomeTache.parentNode !== col) col.append(fantomeTache);
+      fantomeTache.style.setProperty('--d', m);
+      fantomeTache.style.setProperty('--l', Math.min(duree, 1440 - m));
+      fantomeTache.textContent = `${heure(m)} · ${tacheGlissee.titre}`;
+    } else retirerFantome();
+  });
+  vueEl.addEventListener('dragleave', e => { if (!vueEl.contains(e.relatedTarget)) { retirerFantome(); $$('.is-cible').forEach(x => x.classList.remove('is-cible')); } });
+  vueEl.addEventListener('drop', e => {
+    if (!tacheGlissee) return;
+    e.preventDefault();
+    const t = tacheGlissee;
+    tacheGlissee = null;
+    retirerFantome();
+    $$('.is-cible').forEach(x => x.classList.remove('is-cible'));
+    const col = e.target.closest('.g-col');
+    if (col) {
+      const duree = Number(t.duree) || 60;
+      bloquerTemps(t, col.dataset.date, Math.min(minuteSous(col, e.clientY), 1440 - Math.min(duree, 1440)));
+      return;
+    }
+    const jourCible = e.target.closest('.g-jt, .m-case');
+    if (jourCible) {
+      operation({ type: 'tache', tache: { ...clone(t), date: jourCible.dataset.date } });
+      toast(`« ${t.titre} » prévue ${leJour(jourCible.dataset.date)}`, { texte: 'Annuler', faire: () => operation({ type: 'tache', tache: t }) });
+    }
+  });
+
+  /* ---------- Corbeille ---------- */
+  const corbeilleDlg = $('#corbeille');
+  const TYPES_CORBEILLE = { rdv: ['calendrier', 'Rendez-vous'], occurrence: ['repete', 'Rendez-vous d\'une série'], tache: ['coche', 'Tâche'], client: ['clients', 'Client'], modele: ['modele', 'Modèle'] };
+  function ouvrirCorbeille() {
+    rendreCorbeille();
+    corbeilleDlg.showModal();
+  }
+  function rendreCorbeille() {
+    const liste = corbeille().slice().sort((a, b) => String(b.le).localeCompare(String(a.le)));
+    const quandSuppr = le => (Date.parse(le) ? new Date(le).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
+    const detail = c => {
+      const x = c.element;
+      if (c.type === 'rdv') return x.date ? `${fmt(x.date, { weekday: 'short', day: 'numeric', month: 'short' })}${x.journee ? '' : ` · ${x.debut}`}${x.repetition ? ' · série' : ''}` : '';
+      if (c.type === 'occurrence') return fmt(x.date, { weekday: 'short', day: 'numeric', month: 'short' });
+      if (c.type === 'tache') return x.date ? fmt(x.date, { day: 'numeric', month: 'short' }) : 'À planifier';
+      return '';
+    };
+    $('#corbeille-corps').innerHTML = `<p class="r-aide">Ce que tu supprimes reste ici ${CORBEILLE_JOURS} jours : tu peux le restaurer en un clic.</p>`
+      + (liste.length ? `<ul class="cb-liste">${liste.map(c => {
+        const [ic, type] = TYPES_CORBEILLE[c.type] || ['corbeille', 'Élément'];
+        const titre = c.element.titre || c.element.nom || 'Sans titre';
+        return `<li class="cb-ligne"><span class="cb-ic">${icone(ic)}</span><span class="cb-txt"><b>${esc(titre)}</b><small>${esc([type, detail(c)].filter(Boolean).join(' · '))} · supprimé le ${esc(quandSuppr(c.le))}</small></span>`
+          + `<button type="button" class="btn btn--ghost btn--petit" data-restaurer="${esc(c.cid)}">${icone('restaurer')}Restaurer</button></li>`;
+      }).join('')}</ul><div class="r-boutons"><button type="button" class="btn btn--danger btn--petit" data-vider-corbeille>${icone('corbeille')}Vider la corbeille</button></div>`
+        : `<div class="vide"><span class="vide-icone">${icone('corbeille')}</span><h3>La corbeille est vide</h3><p>Rien n'a été supprimé ces ${CORBEILLE_JOURS} derniers jours.</p></div>`);
+  }
+  corbeilleDlg.addEventListener('click', e => {
+    const b = e.target.closest('[data-restaurer]');
+    if (b) {
+      const c = corbeille().find(x => x.cid === b.dataset.restaurer);
+      if (!c) return;
+      const titre = c.element.titre || c.element.nom || '';
+      operation({ type: 'restaurer', cid: c.cid, titre });
+      toast(`« ${titre} » restauré`);
+      rendreCorbeille();
+      return;
+    }
+    if (e.target.closest('[data-vider-corbeille]') && confirm('Vider la corbeille ? Ces éléments ne pourront plus être restaurés (sauf depuis l\'historique des versions).')) {
+      operation({ type: 'viderCorbeille' });
+      rendreCorbeille();
+    }
+  });
+
+  /* ---------- Historique des versions (commits du dépôt privé) ---------- */
+  const histoDlg = $('#historique');
+  let histo = { page: 0, liste: [], fin: false, charge: false };
+  function ouvrirHistorique() {
+    histo = { page: 0, liste: [], fin: false, charge: false };
+    $('#historique-corps').innerHTML = '';
+    histoDlg.showModal();
+    chargerHisto();
+  }
+  async function chargerHisto() {
+    if (histo.charge || histo.fin) return;
+    histo.charge = true;
+    rendreHisto();
+    try {
+      const rep = await fetch(`${SERVEUR}/depot/commits?page=${histo.page + 1}`, { cache: 'no-store', headers: { Authorization: `Bearer ${etat.session ? etat.session.jeton : ''}` } });
+      if (rep.status === 401) throw new ErreurAgenda('session', 'Ta session a expiré. Reconnecte-toi avec Discord.');
+      if (rep.status === 404) throw new ErreurAgenda('acces', "L'historique demande la dernière version du serveur de l'agenda (à recoller dans Cloudflare).");
+      if (!rep.ok) throw new ErreurAgenda('reseau', `Le serveur a répondu une erreur (${rep.status}).`);
+      const liste = await rep.json();
+      histo.page++;
+      histo.liste.push(...liste);
+      histo.fin = liste.length < 30;
+      histo.erreur = '';
+    } catch (err) {
+      histo.erreur = err.code === 'reseau' && err.message.startsWith('Impossible') ? "Pas de connexion : l'historique n'est disponible qu'en ligne." : err.message || "L'historique n'a pas pu être chargé.";
+    } finally {
+      histo.charge = false;
+      rendreHisto();
+    }
+  }
+  function rendreHisto() {
+    const parJour = new Map();
+    histo.liste.forEach(c => {
+      const d = iso(new Date(c.date));
+      if (!parJour.has(d)) parJour.set(d, []);
+      parJour.get(d).push(c);
+    });
+    let html = '<p class="r-aide">Chaque changement est une version enregistrée dans ton dépôt privé. Ouvre une version pour voir ce qui changerait, puis restaure-la si besoin.</p>';
+    for (const [d, liste] of parJour) {
+      html += `<h3 class="cl-h">${esc(maj1(quand(d) === fmt(d, { weekday: 'short', day: 'numeric', month: 'short' }) ? fmt(d, { weekday: 'long', day: 'numeric', month: 'long' }) : quand(d)))}</h3><ul class="hi-liste">`
+        + liste.map(c => `<li><button type="button" class="hi-ligne" data-version="${esc(c.sha)}" data-date="${esc(c.date)}"><time>${esc(new Date(c.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }))}</time><span>${esc(c.message)}</span>${icone('droite')}</button></li>`).join('') + '</ul>';
+    }
+    if (histo.erreur) html += `<p class="f-erreur">${esc(histo.erreur)}</p>`;
+    if (histo.charge) html += '<div class="c-chargement hi-charge" role="status"><span class="c-roue" aria-hidden="true"></span>Chargement de l\'historique…</div>';
+    else if (!histo.fin && !histo.erreur) html += '<div class="r-boutons"><button type="button" class="btn btn--ghost btn--petit" data-histo-plus>Versions plus anciennes</button></div>';
+    $('#historique-corps').innerHTML = html;
+  }
+  // Ce qui changerait en revenant à une version : par identifiant, avec les titres
+  function differences(version, actuel) {
+    const diff = (a, b, cle) => {
+      const ida = new Map((a[cle] || []).map(x => [x.id, x]));
+      const idb = new Map((b[cle] || []).map(x => [x.id, x]));
+      return {
+        reviennent: [...ida.values()].filter(x => !idb.has(x.id)),
+        partent: [...idb.values()].filter(x => !ida.has(x.id)),
+        changent: [...ida.values()].filter(x => idb.has(x.id) && JSON.stringify(x) !== JSON.stringify(idb.get(x.id))),
+      };
+    };
+    return { rdv: diff(version, actuel, 'rendezvous'), taches: diff(version, actuel, 'taches'), clients: diff(version, actuel, 'clients') };
+  }
+  async function voirVersion(sha, date) {
+    $('#historique-corps').innerHTML = '<div class="c-chargement hi-charge" role="status"><span class="c-roue" aria-hidden="true"></span>Lecture de cette version…</div>';
+    let version;
+    try {
+      const rep = await gh(`/contents/${DEPOT.fichier}?ref=${encodeURIComponent(sha)}`);
+      if (!rep.ok) throw await erreurGh(rep, false);
+      version = normaliser(JSON.parse(b64.decoder((await rep.json()).content)));
+    } catch (err) {
+      $('#historique-corps').innerHTML = `<button type="button" class="btn btn--lien btn--petit cl-retour" data-histo-retour>${icone('gauche')}Toutes les versions</button><p class="f-erreur">${esc(err.message || 'Cette version n\'a pas pu être lue.')}</p>`;
+      return;
+    }
+    const d = differences(version, donnees());
+    const quandTxt = new Date(date).toLocaleString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+    const noms = l => l.slice(0, 6).map(x => `« ${esc(x.titre || x.nom)} »`).join(', ') + (l.length > 6 ? ` et ${l.length - 6} autre${l.length > 7 ? 's' : ''}` : '');
+    const bloc = (titre, g) => {
+      const lignes = [
+        g.reviennent.length && `<li class="hi-plus"><b>${g.reviennent.length} reviendrai${g.reviennent.length > 1 ? 'ent' : 't'}</b> : ${noms(g.reviennent)}</li>`,
+        g.partent.length && `<li class="hi-moins"><b>${g.partent.length} disparaîtrai${g.partent.length > 1 ? 'ent' : 't'}</b> : ${noms(g.partent)}</li>`,
+        g.changent.length && `<li><b>${g.changent.length} redeviendrai${g.changent.length > 1 ? 'ent' : 't'} comme avant</b> : ${noms(g.changent)}</li>`,
+      ].filter(Boolean);
+      return lignes.length ? `<h3 class="cl-h">${titre}</h3><ul class="hi-diff">${lignes.join('')}</ul>` : '';
+    };
+    const contenu = bloc('Rendez-vous', d.rdv) + bloc('Tâches', d.taches) + bloc('Clients', d.clients);
+    $('#historique-corps').innerHTML = `<button type="button" class="btn btn--lien btn--petit cl-retour" data-histo-retour>${icone('gauche')}Toutes les versions</button>`
+      + `<div class="hi-tete"><small>Version du</small><b>${esc(maj1(quandTxt))}</b><span>${version.rendezvous.length} rendez-vous · ${version.taches.length} tâches · ${version.clients.length} clients</span></div>`
+      + (contenu || '<p class="av-vide">Cette version est identique à ton agenda actuel.</p>')
+      + (contenu ? `<p class="r-aide">Restaurer remet tout l'agenda dans cet état (rendez-vous, tâches, clients, réglages). Tu pourras annuler juste après.</p><div class="r-boutons"><button type="button" class="btn btn--primaire btn--petit" data-histo-restaurer="${esc(sha)}">${icone('restaurer')}Restaurer cette version</button></div>` : '');
+    histo.version = { sha, date, donnees: version, quand: quandTxt };
+  }
+  histoDlg.addEventListener('click', e => {
+    if (e.target.closest('[data-histo-plus]')) { chargerHisto(); return; }
+    if (e.target.closest('[data-histo-retour]')) { rendreHisto(); return; }
+    const v = e.target.closest('[data-version]');
+    if (v) { voirVersion(v.dataset.version, v.dataset.date); return; }
+    const r = e.target.closest('[data-histo-restaurer]');
+    if (r && histo.version && histo.version.sha === r.dataset.histoRestaurer) {
+      if (!confirm(`Remettre l'agenda tel qu'il était le ${histo.version.quand} ?`)) return;
+      const avant = clone(donnees());
+      operation({ type: 'remplacer', donnees: histo.version.donnees, message: `Retour à la version du ${histo.version.quand}` });
+      histoDlg.close();
+      toast('Agenda restauré', { texte: 'Annuler', faire: () => operation({ type: 'remplacer', donnees: avant, message: 'Restauration annulée' }) }, 9000);
     }
   });
 
@@ -1565,6 +2500,8 @@
       s: () => changerVue('semaine'),
       m: () => changerVue('mois'),
       l: () => changerVue('liste'),
+      c: () => ouvrirClients(),
+      f: () => ouvrirFactu(),
       arrowleft: () => naviguer(-1),
       arrowright: () => naviguer(1),
       '/': () => { $('#barre').classList.add('cherche'); recherche.focus(); },
@@ -1590,6 +2527,12 @@
   window.addEventListener('online', synchroniser);
   window.addEventListener('offline', () => statut('hors-ligne'));
   petit.addEventListener('change', () => rendre());
+
+  // Ouverture sans réseau : la page et ses fichiers sont gardés par le service worker (sw.js) ;
+  // les rendez-vous sont déjà gardés sur l'appareil (cache) et les changements attendent le réseau.
+  if ('serviceWorker' in navigator && window.isSecureContext) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { /* pas de mode hors ligne */ }));
+  }
 
   ouvrir();
 })();

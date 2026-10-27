@@ -11,6 +11,8 @@
    - Commandes Discord (/rdv, /tache, /aujourdhui…) : adresse /interactions,
      à coller dans l'application Discord (« Interactions Endpoint URL »).
    - Réservation d'appels : créneaux libres et demandes pour mvriuus.fr/rendez-vous/.
+   - Historique : liste des versions de l'agenda (commits du dépôt privé).
+   - Résumé de la semaine, le dimanche soir (réglage dans l'agenda).
 
    Variables à créer dans Cloudflare (Worker › Settings › Variables and Secrets) :
      DISCORD_CLIENT_ID      texte   identifiant de l'application Discord
@@ -32,7 +34,7 @@ const DUREE_SESSION = 30 * 24 * 3600; // secondes
 const PERIODE = 5 * 60 * 1000; // intervalle du Cron Trigger, en millisecondes
 const MAX_DEMANDES = 5; // demandes de réservation en attente en même temps, au plus
 const RESA_DEFAUT = {
-  actif: false, duree: 30, pause: 10, delai: 24, horizon: 14,
+  actif: false, duree: 30, pause: 10, delai: 24, horizon: 14, feries: true, message: '',
   plages: { 1: [['10:00', '12:00'], ['14:00', '18:00']], 2: [['10:00', '12:00'], ['14:00', '18:00']], 3: [['10:00', '12:00'], ['14:00', '18:00']], 4: [['10:00', '12:00'], ['14:00', '18:00']], 5: [['10:00', '12:00'], ['14:00', '18:00']] },
 };
 
@@ -47,6 +49,7 @@ export default {
       if (chemin === '/connexion' && req.method === 'GET') return connexion(url, env);
       if (chemin === '/retour' && req.method === 'GET') return await retour(req, url, env, page);
       if (chemin === '/depot' || chemin === `/depot/contents/${FICHIER}`) return await avecCors(() => depot(req, url, env));
+      if (chemin === '/depot/commits') return await avecCors(() => versions(req, url, env));
       if (chemin === '/rappels/test') return await avecCors(() => rappelTest(req, env, page));
       if (chemin === '/commandes/installer') return await avecCors(() => installerCommandes(req, env));
       if (chemin === '/reservation/creneaux') return await avecCors(() => creneauxPublics(req, env));
@@ -160,6 +163,18 @@ async function depot(req, url, env) {
   // 401 de GitHub : c'est la clé GitHub du serveur qui est refusée, pas la session
   if (rep.status === 401) return json({ message: 'GitHub refuse la clé GITHUB_TOKEN du serveur (expirée ?).' }, 502);
   return new Response(rep.body, { status: rep.status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' } });
+}
+
+// Versions de l'agenda : les commits qui ont modifié agenda.json, 30 par page
+async function versions(req, url, env) {
+  if (req.method !== 'GET') return json({ message: 'Méthode refusée.' }, 405);
+  if (!(await sessionDe(req, env))) return json({ message: 'Session expirée.' }, 401);
+  const page = Math.max(1, Math.min(100, parseInt(url.searchParams.get('page'), 10) || 1));
+  const rep = await fetch(`https://api.github.com/repos/${DEPOT}/commits?path=${encodeURIComponent(FICHIER)}&per_page=30&page=${page}`, { headers: enteteGithub(env) });
+  if (rep.status === 401) return json({ message: 'GitHub refuse la clé GITHUB_TOKEN du serveur (expirée ?).' }, 502);
+  if (!rep.ok) return json({ message: `GitHub a répondu ${rep.status}.` }, rep.status === 404 ? 502 : rep.status);
+  const liste = await rep.json();
+  return json(liste.map(c => ({ sha: c.sha, message: String((c.commit && c.commit.message) || '').split('\n')[0].slice(0, 200), date: c.commit && (c.commit.committer || c.commit.author || {}).date })), 200);
 }
 
 const enteteGithub = env => ({ Authorization: `Bearer ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'agenda-mvrius' });
@@ -292,6 +307,12 @@ async function envoyerRappels(t, env, page) {
       if (message) messages.push(message);
     }
   }
+  // Résumé de la semaine, le dimanche soir
+  const semaine = donnees.reglages && donnees.reglages.resumeSemaine;
+  if (semaine && semaine.actif && jourDeLaSemaine(auj) === 7) {
+    const instant = parisVersUtc(auj, HEURE.test(semaine.heure) ? semaine.heure : '19:00');
+    if (instant > apres && instant <= t) messages.push(messageSemaine(donnees, decale(auj, 1), page));
+  }
   if (!messages.length) return 0;
   // Discord demande qu'un bot se soit connecté au Gateway avant d'envoyer des messages
   await connecterBot(env).catch(() => {});
@@ -368,6 +389,13 @@ async function connecterBot(env) {
   });
 }
 
+// Même format que l'agenda (app.js) : restaurable 30 jours depuis la corbeille
+function mettreALaCorbeille(donnees, type, element) {
+  const le = new Date().toISOString();
+  const limite = new Date(Date.now() - 30 * 864e5).toISOString();
+  donnees.corbeille = [{ cid: nouvelId(), type, element: JSON.parse(JSON.stringify(element)), le }, ...(donnees.corbeille || []).filter(c => String(c.le) >= limite)].slice(0, 200);
+}
+
 /* ---------- Messages ---------- */
 const COULEUR_PAR_DEFAUT = 0xe8b46a;
 const couleurDe = (donnees, r) => {
@@ -424,14 +452,18 @@ function rendezvousDu(donnees, d) {
   return liste.sort((a, b) => (a.r.journee || a.continue ? '' : a.r.debut).localeCompare(b.r.journee || b.continue ? '' : b.r.debut));
 }
 const ligneRdv = x => `${x.r.journee || x.continue ? '🗓️' : `**${x.r.debut}**`} · ${x.r.titre || 'Rendez-vous'}${x.r.avec ? ` (avec ${x.r.avec})` : ''}${x.r.statut === 'attente' ? ' · *en attente*' : ''}`;
-const tachesEnCours = (donnees, auj) => (donnees.taches || []).filter(t => !t.fait && DATE.test(t.date) && t.date <= auj);
-const ligneTache = (t, auj) => `☐ ${t.titre}${t.date < auj ? ` *(depuis le ${new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', day: 'numeric', month: 'short' }).format(new Date(`${t.date}T12:00:00Z`))})*` : ''}`;
+// Tâches du jour : prévues aujourd'hui ou en retard, et celles sans jour dont l'échéance est arrivée
+const tachesEnCours = (donnees, auj) => (donnees.taches || []).filter(t => !t.fait && ((DATE.test(t.date) && t.date <= auj) || (!t.date && DATE.test(t.echeance) && t.echeance <= auj)));
+const jourCourtTexte = d => new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', day: 'numeric', month: 'short' }).format(new Date(`${d}T12:00:00Z`));
+const ligneTache = (t, auj) => `${Number(t.priorite) === 2 ? '🔴' : Number(t.priorite) === 1 ? '🟠' : '☐'} ${t.titre}`
+  + `${t.date && t.date < auj ? ` *(depuis le ${jourCourtTexte(t.date)})*` : ''}${DATE.test(t.echeance) ? ` · ⏳ ${t.echeance <= auj ? '**échéance dépassée ou aujourd\'hui**' : jourCourtTexte(t.echeance)}` : ''}`;
 
 function messageResume(donnees, auj, page) {
   const rdv = rendezvousDu(donnees, auj);
   const taches = tachesEnCours(donnees, auj);
   if (!rdv.length && !taches.length) return null;
   const parties = [];
+  if ((donnees.reglages || {}).feries !== false && ferieDe(auj)) parties.push(`🇫🇷 Jour férié : **${ferieDe(auj)}**`);
   if (rdv.length) parties.push(rdv.map(ligneRdv).join('\n'));
   if (taches.length) parties.push(`**Tâches**\n${taches.map(t => ligneTache(t, auj)).join('\n')}`);
   return {
@@ -441,6 +473,42 @@ function messageResume(donnees, auj, page) {
       url: page,
       color: COULEUR_PAR_DEFAUT,
       footer: { text: [rdv.length && `${rdv.length} rendez-vous`, taches.length && `${taches.length} tâche${taches.length > 1 ? 's' : ''}`].filter(Boolean).join(' · ') },
+    }],
+    components: [lienAgenda(page)],
+  };
+}
+
+// Résumé du dimanche soir : la semaine qui commence le lendemain
+function messageSemaine(donnees, lundi, page) {
+  const dimanche = decale(lundi, 6);
+  const feries = (donnees.reglages || {}).feries !== false;
+  const jours = [];
+  let nbRdv = 0;
+  let minutesRdv = 0;
+  for (let d = lundi; d <= dimanche; d = decale(d, 1)) {
+    const rdv = rendezvousDu(donnees, d);
+    nbRdv += rdv.filter(x => !x.continue).length;
+    rdv.forEach(x => { if (!x.continue && !x.r.journee && x.r.statut !== 'attente') minutesRdv += Math.max(0, ((minutesDe(x.r.fin) || 1440) - minutesDe(x.r.debut)) + etendueDe(x.r) * 1440); });
+    const ferie = feries ? ferieDe(d) : '';
+    if (!rdv.length && !ferie) continue;
+    jours.push(`**${majuscule(jourTexte(d))}**${ferie ? ` · 🇫🇷 ${ferie}` : ''}\n${rdv.map(ligneRdv).join('\n') || '*Jour férié*'}`);
+  }
+  const taches = (donnees.taches || []).filter(t => !t.fait && DATE.test(t.date) && t.date >= lundi && t.date <= dimanche);
+  const echeances = (donnees.taches || []).filter(t => !t.fait && DATE.test(t.echeance) && t.echeance <= dimanche).sort((a, b) => a.echeance.localeCompare(b.echeance));
+  const attente = (donnees.rendezvous || []).filter(r => r.statut === 'attente' && DATE.test(r.date) && r.date >= decale(lundi, -1));
+  const champs = [];
+  if (taches.length) champs.push({ name: `Tâches prévues (${taches.length})`, value: coupe(taches.slice(0, 12).map(t => `${ligneTache(t, lundi)} · ${jourCourtTexte(t.date)}`).join('\n'), 1024) });
+  if (echeances.length) champs.push({ name: `Échéances (${echeances.length})`, value: coupe(echeances.slice(0, 12).map(t => `⏳ ${t.titre} · ${t.echeance < lundi ? '**en retard**' : jourCourtTexte(t.echeance)}`).join('\n'), 1024) });
+  if (attente.length) champs.push({ name: `Demandes en attente (${attente.length})`, value: coupe(attente.map(r => `📅 ${r.titre} · ${jourCourtTexte(r.date)} ${r.debut || ''}`).join('\n'), 1024) });
+  const heures = Math.floor(minutesRdv / 60);
+  return {
+    embeds: [{
+      title: `🗓️ Ta semaine du ${jourTexte(lundi)} au ${jourTexte(dimanche)}`,
+      description: coupe(jours.join('\n\n') || 'Aucun rendez-vous prévu cette semaine.', 4000),
+      url: page,
+      color: COULEUR_PAR_DEFAUT,
+      fields: champs,
+      footer: { text: `${nbRdv} rendez-vous${minutesRdv ? ` · ${heures} h${minutesRdv % 60 ? ` ${deux(minutesRdv % 60)}` : ''} de rendez-vous` : ''}` },
     }],
     components: [lienAgenda(page)],
   };
@@ -639,9 +707,14 @@ async function bouton(i, env, page) {
     const { resultat } = await modifierAgenda(env, action === 'resa-non' ? 'Demande de rendez-vous refusée' : 'Rendez-vous annulé depuis Discord', donnees => {
       const r = trouver(donnees);
       if (!r) return false;
-      if (action === 'annuler' && r.repetition) r.exceptions = [...new Set([...(r.exceptions || []), d])].sort();
-      else if (action === 'annuler') { r.statut = 'annule'; r.modifie = instant; delete r.relance; }
-      else donnees.rendezvous.splice(donnees.rendezvous.indexOf(r), 1);
+      if (action === 'annuler' && r.repetition) {
+        if (!(r.exceptions || []).includes(d)) mettreALaCorbeille(donnees, 'occurrence', { id: r.id, date: d, titre: r.titre });
+        r.exceptions = [...new Set([...(r.exceptions || []), d])].sort();
+      } else if (action === 'annuler') { r.statut = 'annule'; r.modifie = instant; delete r.relance; }
+      else {
+        donnees.rendezvous.splice(donnees.rendezvous.indexOf(r), 1);
+        mettreALaCorbeille(donnees, 'rdv', r);
+      }
       return r;
     });
     if (!resultat) return absent;
@@ -649,7 +722,9 @@ async function bouton(i, env, page) {
     return fini(action === 'supprimer' ? "🗑️ Retiré de ton agenda." : '❌ Rendez-vous annulé.', 0x646b80);
   }
   if (action === 'resa-ok') {
+    let donneesConfirmees = null;
     const { resultat } = await modifierAgenda(env, 'Demande de rendez-vous confirmée', donnees => {
+      donneesConfirmees = donnees;
       const r = trouver(donnees);
       if (!r) return false;
       r.statut = 'confirme';
@@ -659,7 +734,8 @@ async function bouton(i, env, page) {
     if (!resultat) return absent;
     const dm = resultat.demande || {};
     const contact = [dm.email, dm.discord && `Discord : ${dm.discord}`].filter(Boolean).join(' · ');
-    return fini(`✅ Confirmé. Pense à prévenir ${dm.nom || 'la personne'}${contact ? ` (${contact})` : ''}.`, 0x3ddc84);
+    const texte = messageConfirmation(reglagesResa(donneesConfirmees || {}), resultat);
+    return fini(`✅ Confirmé. Envoie ce message à ${dm.nom || 'la personne'}${contact ? ` (${contact})` : ''} :\n\`\`\`\n${texte.replace(/`/g, "'")}\n\`\`\``, 0x3ddc84);
   }
   return fini('Action inconnue.');
 }
@@ -787,6 +863,7 @@ function creneauxLibres(donnees, t) {
   const minimum = t + (Number(c.delai) || 0) * 3600000;
   const jours = [];
   for (let d = auj; d <= fin; d = decale(d, 1)) {
+    if (c.feries !== false && ferieDe(d)) continue; // pas de réservation les jours fériés
     const creneaux = [];
     for (const [a, b] of (c.plages || {})[jourDeLaSemaine(d)] || []) {
       if (!HEURE.test(a) || !HEURE.test(b)) continue;
@@ -866,6 +943,16 @@ async function reserver(req, env, page, ctx) {
   return json({ ok: true, date: resultat.date, heure: resultat.debut, fin: resultat.fin }, 200);
 }
 
+// « 10:00 » → « 10 h », « 10:30 » → « 10 h 30 »
+const heureParlee = h => { const [a, b] = String(h).split(':'); return b === '00' ? `${Number(a)} h` : `${Number(a)} h ${b}`; };
+const MESSAGE_CONFIRMATION = "Bonjour {nom} ! C'est validé pour notre appel du {date} à {heure} ({duree} min) sur Discord. À très vite, Mvrius";
+function messageConfirmation(resa, r) {
+  const d = r.demande || {};
+  const duree = Math.max(0, (minutesDe(r.fin) || 1440) - minutesDe(r.debut));
+  const valeurs = { nom: d.nom || '', date: jourTexte(r.date), heure: heureParlee(r.debut), fin: heureParlee(r.fin), duree: String(duree), sujet: d.sujet || '' };
+  return (String(resa.message || '').trim() || MESSAGE_CONFIRMATION).replace(/\{(nom|date|heure|fin|duree|sujet)\}/g, (_, k) => valeurs[k]);
+}
+
 function messageDemande(r, page) {
   const d = r.demande;
   const champs = [];
@@ -883,6 +970,26 @@ function messageDemande(r, page) {
     ] }],
   };
 }
+
+/* ---------- Jours fériés (France métropolitaine) ---------- */
+const feriesCache = new Map();
+function feriesDe(a) {
+  if (feriesCache.has(a)) return feriesCache.get(a);
+  const b = a % 19, c = Math.floor(a / 100), e = a % 100, f = Math.floor(c / 4), g = c % 4;
+  const h = (19 * b + c - f - Math.floor((c - Math.floor((c + 8) / 25) + 1) / 3) + 15) % 30;
+  const l = (32 + 2 * g + 2 * Math.floor(e / 4) - h - (e % 4)) % 7;
+  const m = Math.floor((b + 11 * h + 22 * l) / 451);
+  const paques = `${a}-${deux(Math.floor((h + l - 7 * m + 114) / 31))}-${deux(((h + l - 7 * m + 114) % 31) + 1)}`;
+  const liste = new Map([
+    [`${a}-01-01`, "Jour de l'an"], [decale(paques, 1), 'Lundi de Pâques'], [`${a}-05-01`, 'Fête du Travail'],
+    [`${a}-05-08`, 'Victoire 1945'], [decale(paques, 39), 'Ascension'], [decale(paques, 50), 'Lundi de Pentecôte'],
+    [`${a}-07-14`, 'Fête nationale'], [`${a}-08-15`, 'Assomption'], [`${a}-11-01`, 'Toussaint'],
+    [`${a}-11-11`, 'Armistice 1918'], [`${a}-12-25`, 'Noël'],
+  ]);
+  feriesCache.set(a, liste);
+  return liste;
+}
+const ferieDe = d => feriesDe(Number(d.slice(0, 4))).get(d) || '';
 
 /* ---------- Dates (heure de Paris) ---------- */
 const DATE = /^\d{4}-\d{2}-\d{2}$/;

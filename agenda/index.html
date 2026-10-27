@@ -19,9 +19,9 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="preload" href="../assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="../assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="app.css?v=5">
+  <link rel="stylesheet" href="app.css?v=6">
   <script src="config.js?v=2" defer></script>
-  <script src="app.js?v=6" defer></script>
+  <script src="app.js?v=7" defer></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -50,6 +50,15 @@
     <symbol id="b-discord" viewBox="0 0 24 24"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.211.375-.445.865-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.058a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .078-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.1.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.331c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.332-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.086-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.332-.946 2.418-2.157 2.418z"/></symbol>
     <symbol id="i-coche" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 12 3 3 5-6"/></symbol>
     <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+    <symbol id="i-alerte" viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/></symbol>
+    <symbol id="i-modele" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 9h16M9 9v11"/></symbol>
+    <symbol id="i-clients" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/></symbol>
+    <symbol id="i-euro" viewBox="0 0 24 24"><path d="M18 6.5A7 7 0 1 0 18 17.5"/><path d="M4 10h10M4 14h10"/></symbol>
+    <symbol id="i-drapeau" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+    <symbol id="i-sablier" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9s10 4 10 9"/></symbol>
+    <symbol id="i-historique" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></symbol>
+    <symbol id="i-restaurer" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></symbol>
+    <symbol id="i-planifier" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M9 15l2 2 4-4"/></symbol>
   </svg>
 
   <!-- Connexion : rien ne s'affiche sans la clé d'accès -->
@@ -98,9 +107,14 @@
         <button class="icone-btn b-compte" id="menu" type="button" aria-label="Compte et options" aria-haspopup="true" aria-expanded="false"><svg class="i"><use href="#i-plus-options"/></svg></button>
         <div class="menu" id="menu-liste" hidden>
           <div class="menu-compte" id="menu-compte"></div>
-          <button type="button" data-menu="reglages"><svg class="i"><use href="#i-reglages"/></svg>Réglages et catégories</button>
+          <button type="button" data-menu="clients"><svg class="i"><use href="#i-clients"/></svg>Clients</button>
+          <button type="button" data-menu="factu"><svg class="i"><use href="#i-euro"/></svg>Heures et facturation</button>
+          <hr>
+          <button type="button" data-menu="reglages"><svg class="i"><use href="#i-reglages"/></svg>Réglages, catégories et modèles</button>
           <button type="button" data-menu="ics"><svg class="i"><use href="#i-calendrier"/></svg>Exporter vers un autre calendrier (.ics)</button>
           <button type="button" data-menu="json"><svg class="i"><use href="#i-telecharger"/></svg>Télécharger une sauvegarde (.json)</button>
+          <button type="button" data-menu="corbeille"><svg class="i"><use href="#i-corbeille"/></svg>Corbeille</button>
+          <button type="button" data-menu="historique"><svg class="i"><use href="#i-historique"/></svg>Historique des versions</button>
           <button type="button" data-menu="raccourcis"><svg class="i"><use href="#i-clavier"/></svg>Raccourcis clavier</button>
           <hr>
           <button type="button" class="danger" data-menu="deconnexion"><svg class="i"><use href="#i-sortie"/></svg>Se déconnecter</button>
@@ -118,6 +132,18 @@
       <section class="bloc">
         <h2>Tâches <span class="bloc-quand" id="taches-quand"></span></h2>
         <div id="taches-cote"></div>
+      </section>
+      <section class="bloc">
+        <h2>À planifier <span class="bloc-quand" id="aplanifier-compte"></span></h2>
+        <div id="aplanifier"></div>
+        <p class="bloc-aide">Glisse une tâche dans l'agenda pour lui réserver du temps.</p>
+      </section>
+      <section class="bloc">
+        <h2>Outils</h2>
+        <div class="outils">
+          <button type="button" class="outil" data-menu="clients"><svg class="i"><use href="#i-clients"/></svg><span>Clients</span><small id="clients-compte"></small></button>
+          <button type="button" class="outil" data-menu="factu"><svg class="i"><use href="#i-euro"/></svg><span>Heures et facturation</span></button>
+        </div>
       </section>
       <section class="bloc">
         <h2>Catégories</h2>
@@ -141,6 +167,7 @@
       </header>
       <div class="f-corps">
         <input class="f-nom" name="titre" placeholder="Titre du rendez-vous" aria-label="Titre du rendez-vous" maxlength="120" autocomplete="off" required>
+        <div class="f-modeles" id="f-modeles" hidden></div>
         <div class="f-demande" id="f-demande" hidden></div>
         <fieldset class="f-choix" id="f-cats"><legend class="sr">Catégorie</legend></fieldset>
         <div class="f-ligne f-quand">
@@ -149,6 +176,7 @@
           <label class="champ"><span data-l-fin>Fin</span><input type="date" name="dateFin" required></label>
           <label class="champ" data-horaire><span>Heure</span><input type="time" name="fin" step="300" aria-label="Heure de fin"></label>
         </div>
+        <div class="f-conflit" id="f-conflit" role="status" hidden></div>
         <label class="interrupteur"><input type="checkbox" name="journee"><span aria-hidden="true"></span>Toute la journée</label>
         <fieldset class="f-choix f-choix--rappels" id="f-rappels"><legend class="f-legende">Rappels sur Discord</legend></fieldset>
         <div class="f-ligne">
@@ -157,7 +185,12 @@
         </div>
         <p class="f-info" data-serie hidden><svg class="i" aria-hidden="true"><use href="#i-repete"/></svg><span>Ce rendez-vous se répète&nbsp;: tes changements s'appliquent à toute la série.</span></p>
         <fieldset class="f-choix f-choix--statut" id="f-statut"><legend class="f-legende">Statut</legend></fieldset>
-        <label class="champ"><span>Avec</span><input name="avec" placeholder="Nom, pseudo Discord…" maxlength="120" autocomplete="off"></label>
+        <div class="champ">
+          <label class="champ-tete" for="f-avec">Avec <button class="f-lien" type="button" id="f-client" hidden>Fiche client<svg class="i" aria-hidden="true"><use href="#i-lien"/></svg></button><button class="f-lien" type="button" id="f-client-creer" hidden>+ Créer la fiche client</button></label>
+          <input id="f-avec" name="avec" list="clients-noms" placeholder="Client, nom, pseudo Discord…" maxlength="120" autocomplete="off">
+          <datalist id="clients-noms"></datalist>
+        </div>
+        <label class="interrupteur" id="f-facturable-l" hidden><input type="checkbox" name="facturable"><span aria-hidden="true"></span>Compter dans les heures facturées</label>
         <label class="champ">
           <span>Lieu ou lien <a class="f-lien" id="f-lien" target="_blank" rel="noopener noreferrer" hidden>Ouvrir<svg class="i" aria-hidden="true"><use href="#i-lien"/></svg></a></span>
           <input name="lieu" placeholder="Adresse, salon vocal, lien de visio…" maxlength="300" autocomplete="off">
@@ -173,6 +206,7 @@
       <footer class="f-pied">
         <button class="icone-btn icone-btn--danger" type="button" data-action="supprimer" aria-label="Supprimer" title="Supprimer"><svg class="i"><use href="#i-corbeille"/></svg></button>
         <button class="icone-btn" type="button" data-action="dupliquer" aria-label="Dupliquer" title="Dupliquer"><svg class="i"><use href="#i-copie"/></svg></button>
+        <button class="icone-btn" type="button" data-action="modele" aria-label="Enregistrer comme modèle" title="Enregistrer comme modèle"><svg class="i"><use href="#i-modele"/></svg></button>
         <button class="icone-btn" type="button" data-action="ics" aria-label="Ajouter à un autre calendrier (.ics)" title="Ajouter à un autre calendrier (.ics)"><svg class="i"><use href="#i-calendrier"/></svg></button>
         <span class="espace"></span>
         <button class="btn btn--ghost f-annuler" type="button" data-fermer>Annuler</button>
@@ -209,6 +243,11 @@
           <button class="btn btn--ghost btn--petit" type="button" id="cat-ajout"><svg class="i"><use href="#i-plus"/></svg>Ajouter une catégorie</button>
         </section>
         <section class="r-bloc">
+          <h3>Modèles</h3>
+          <p class="r-aide">Pour créer un modèle, ouvre un rendez-vous et clique sur <svg class="i i--texte" aria-hidden="true"><use href="#i-modele"/></svg> en bas de la fiche. Il apparaît ensuite en haut de chaque nouveau rendez-vous.</p>
+          <div class="cats" id="modeles-edit"></div>
+        </section>
+        <section class="r-bloc">
           <h3>Heures de travail</h3>
           <p class="r-aide">En dehors de ces horaires et de ces jours, l'agenda est grisé.</p>
           <fieldset class="f-choix r-jours" id="r-jours"><legend class="sr">Jours travaillés</legend></fieldset>
@@ -218,6 +257,7 @@
           </div>
           <label class="interrupteur"><input type="checkbox" id="r-t-griser"><span aria-hidden="true"></span>Griser les heures hors travail</label>
           <label class="interrupteur"><input type="checkbox" id="r-t-semaine"><span aria-hidden="true"></span>Vue Semaine : seulement les jours travaillés</label>
+          <label class="interrupteur"><input type="checkbox" id="r-feries"><span aria-hidden="true"></span>Afficher les jours fériés (grisés comme des jours de repos)</label>
         </section>
         <section class="r-bloc">
           <h3>Réservation d'appels</h3>
@@ -230,11 +270,18 @@
             <label class="champ"><span>Délai minimum</span><select id="r-resa-delai"><option value="1">1 h avant</option><option value="3">3 h avant</option><option value="12">12 h avant</option><option value="24">24 h avant</option><option value="48">48 h avant</option></select></label>
             <label class="champ"><span>Réservable sur</span><select id="r-resa-horizon"><option value="7">7 jours</option><option value="14">14 jours</option><option value="30">30 jours</option><option value="60">60 jours</option></select></label>
           </div>
+          <label class="interrupteur"><input type="checkbox" id="r-resa-feries"><span aria-hidden="true"></span>Pas de réservation les jours fériés</label>
+          <label class="champ r-message"><span>Message de confirmation, prêt à copier</span><textarea id="r-resa-message" rows="3" maxlength="800"></textarea></label>
+          <p class="r-aide r-aide--apres">Remplacés automatiquement&nbsp;: <code>{nom}</code> <code>{date}</code> <code>{heure}</code> <code>{fin}</code> <code>{duree}</code> <code>{sujet}</code>. Le message s'affiche dans la fiche de la demande et dans le MP Discord quand tu confirmes.</p>
         </section>
         <section class="r-bloc">
           <h3>Rappels Discord</h3>
           <p class="r-aide">Le bot de ton application Discord t'envoie un message privé avant chaque rendez-vous. Le moment du rappel se choisit dans chaque fiche.</p>
           <label class="interrupteur"><input type="checkbox" id="r-resume"><span aria-hidden="true"></span>Résumé de ma journée chaque matin à 8:00</label>
+          <div class="r-semaine">
+            <label class="interrupteur"><input type="checkbox" id="r-semaine"><span aria-hidden="true"></span>Résumé de ma semaine le dimanche à</label>
+            <select id="r-semaine-heure" aria-label="Heure du résumé de la semaine"><option>17:00</option><option>18:00</option><option>19:00</option><option>20:00</option><option>21:00</option><option>22:00</option></select>
+          </div>
           <div class="r-boutons r-boutons--espace">
             <button class="btn btn--ghost btn--petit" type="button" id="r-test"><svg class="i i--plein" aria-hidden="true"><use href="#b-discord"/></svg>Envoyer un message test</button>
             <button class="btn btn--ghost btn--petit" type="button" id="r-commandes"><svg class="i" aria-hidden="true"><use href="#i-clavier"/></svg>Installer les commandes Discord</button>
@@ -247,6 +294,8 @@
           <div class="r-boutons">
             <button class="btn btn--ghost btn--petit" type="button" data-menu="json"><svg class="i"><use href="#i-telecharger"/></svg>Sauvegarde (.json)</button>
             <button class="btn btn--ghost btn--petit" type="button" data-menu="ics"><svg class="i"><use href="#i-calendrier"/></svg>Exporter (.ics)</button>
+            <button class="btn btn--ghost btn--petit" type="button" data-menu="historique"><svg class="i"><use href="#i-historique"/></svg>Historique des versions</button>
+            <button class="btn btn--ghost btn--petit" type="button" data-menu="corbeille"><svg class="i"><use href="#i-corbeille"/></svg>Corbeille</button>
           </div>
         </section>
         <section class="r-bloc">
@@ -261,6 +310,92 @@
         <button class="btn btn--primaire" type="submit">Enregistrer</button>
       </footer>
     </form>
+  </dialog>
+
+  <!-- Nom d'un nouveau modèle -->
+  <dialog class="dialogue dialogue--petit" id="modele-nom" aria-labelledby="modele-nom-titre">
+    <form method="dialog" class="d-simple" id="modele-nom-form">
+      <h2 id="modele-nom-titre">Enregistrer comme modèle</h2>
+      <p>Durée, catégorie, rappels, liste à cocher, client, lieu et notes seront repris à chaque fois.</p>
+      <label class="champ"><span>Nom du modèle</span><input id="modele-nom-champ" maxlength="40" autocomplete="off" required></label>
+      <div class="d-boutons d-boutons--ligne">
+        <button class="btn btn--lien" value="">Annuler</button>
+        <button class="btn btn--primaire" value="ok">Enregistrer le modèle</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Tâche -->
+  <dialog class="dialogue" id="tache-dialog" aria-labelledby="tache-titre">
+    <form id="tache-form" novalidate>
+      <header class="f-tete">
+        <h2 id="tache-titre">Tâche</h2>
+        <button class="icone-btn" type="button" data-fermer aria-label="Fermer"><svg class="i"><use href="#i-fermer"/></svg></button>
+      </header>
+      <div class="f-corps">
+        <input class="f-nom" name="titre" placeholder="Titre de la tâche" aria-label="Titre de la tâche" maxlength="200" autocomplete="off" required>
+        <fieldset class="f-choix" id="t-priorite"><legend class="f-legende">Priorité</legend></fieldset>
+        <div class="f-ligne">
+          <label class="champ"><span>Jour</span><input type="date" name="date"></label>
+          <label class="champ"><span>Échéance (facultatif)</span><input type="date" name="echeance"></label>
+          <label class="champ"><span>Durée estimée</span><select name="duree"></select></label>
+        </div>
+        <label class="interrupteur"><input type="checkbox" name="aplanifier"><span aria-hidden="true"></span>Pas encore de jour (« À planifier »)</label>
+        <label class="champ"><span>Notes</span><textarea name="notes" rows="3" maxlength="2000" placeholder="Détails, liens…"></textarea></label>
+        <p class="f-info" id="t-bloc" hidden></p>
+        <p class="f-erreur" id="t-erreur" role="alert"></p>
+      </div>
+      <footer class="f-pied">
+        <button class="icone-btn icone-btn--danger" type="button" data-tache-action="supprimer" aria-label="Supprimer la tâche" title="Supprimer la tâche"><svg class="i"><use href="#i-corbeille"/></svg></button>
+        <button class="btn btn--ghost btn--petit" type="button" data-tache-action="planifier"><svg class="i"><use href="#i-planifier"/></svg>Réserver du temps</button>
+        <span class="espace"></span>
+        <button class="btn btn--primaire" type="submit">Enregistrer</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- Clients -->
+  <dialog class="dialogue dialogue--large" id="clients" aria-labelledby="clients-titre">
+    <div class="d-cadre">
+      <header class="f-tete">
+        <h2 id="clients-titre">Clients</h2>
+        <button class="icone-btn" type="button" data-fermer aria-label="Fermer"><svg class="i"><use href="#i-fermer"/></svg></button>
+      </header>
+      <div class="f-corps" id="clients-corps"></div>
+    </div>
+  </dialog>
+
+  <!-- Heures et facturation -->
+  <dialog class="dialogue dialogue--large" id="factu" aria-labelledby="factu-titre">
+    <div class="d-cadre">
+      <header class="f-tete">
+        <h2 id="factu-titre">Heures et facturation</h2>
+        <button class="icone-btn" type="button" data-fermer aria-label="Fermer"><svg class="i"><use href="#i-fermer"/></svg></button>
+      </header>
+      <div class="f-corps" id="factu-corps"></div>
+    </div>
+  </dialog>
+
+  <!-- Corbeille -->
+  <dialog class="dialogue" id="corbeille" aria-labelledby="corbeille-titre">
+    <div class="d-cadre">
+      <header class="f-tete">
+        <h2 id="corbeille-titre">Corbeille</h2>
+        <button class="icone-btn" type="button" data-fermer aria-label="Fermer"><svg class="i"><use href="#i-fermer"/></svg></button>
+      </header>
+      <div class="f-corps" id="corbeille-corps"></div>
+    </div>
+  </dialog>
+
+  <!-- Historique des versions -->
+  <dialog class="dialogue dialogue--large" id="historique" aria-labelledby="historique-titre">
+    <div class="d-cadre">
+      <header class="f-tete">
+        <h2 id="historique-titre">Historique des versions</h2>
+        <button class="icone-btn" type="button" data-fermer aria-label="Fermer"><svg class="i"><use href="#i-fermer"/></svg></button>
+      </header>
+      <div class="f-corps" id="historique-corps"></div>
+    </div>
   </dialog>
 
   <div class="toasts" id="toasts" aria-live="polite"></div>
