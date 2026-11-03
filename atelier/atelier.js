@@ -293,7 +293,7 @@ ${accepte}`;
   if (typeof window.ModelesCreateurs === 'function') {
     try { Object.assign(MODELES, window.ModelesCreateurs({ role, salon, cat, embed, btnRole, accesDefaut, reglagesDefaut, BASE, MODERATION, nouvelId })); } catch (e) { console.error(e); }
   }
-  const THEMES = [['', 'Pour commencer', ''], ['createurs', 'Créateurs de contenu', 'Modèles complets : hiérarchie du staff, rôles de niveaux, rôles communautaires et de notifications, zone réservée, production. Pense à remplacer les liens « ton-pseudo » dans le message des réseaux.']];
+  const THEMES = [['createurs', 'Créateurs de contenu', 'Modèles complets : hiérarchie du staff, rôles de niveaux, rôles communautaires et de notifications, zone réservée, production. Pense à remplacer les liens « ton-pseudo » dans le message des réseaux.'], ['', 'Modèles simples', '']];
   function nouveauModele(type, nom) {
     const base = MODELES[type] || MODELES.vierge;
     const instant = new Date().toISOString();
@@ -484,9 +484,34 @@ ${accepte}`;
       etat.vue = etat.id ? 'modele' : 'accueil';
       statut(etat.aEnregistrer.size ? 'modifie' : 'ok');
       rendreTout();
+      if (!(donnees.packs || []).includes(PACK_CREATEURS)) ajouterPackCreateurs();
     } catch (e) {
       if (e.status === 401) return;
       montrerConnexion(e.message);
+    }
+  }
+  // Les modèles « Créateurs de contenu » arrivent une fois dans « Mes modèles » ; atelier.json garde
+  // la trace (« packs ») pour qu'un modèle supprimé ne revienne pas
+  const PACK_CREATEURS = 'createurs-1';
+  async function ajouterPackCreateurs() {
+    const cles = Object.keys(MODELES).filter(k => MODELES[k].theme === 'createurs');
+    if (!cles.length) return;
+    try {
+      for (let essai = 0; essai < 4; essai++) {
+        const { donnees, sha } = await lireFichier();
+        const packs = Array.isArray(donnees.packs) ? donnees.packs : [];
+        if (packs.includes(PACK_CREATEURS)) return;
+        const nouveaux = cles.map(k => nouveauModele(k));
+        const res = await ecrireFichier({ ...donnees, format: 1, packs: [...packs, PACK_CREATEURS], modeles: [...nouveaux, ...donnees.modeles] }, sha, `Atelier : ${nouveaux.length} modèles « Créateurs de contenu » ajoutés`);
+        if (res.conflit) continue;
+        etat.sha = res.sha;
+        etat.modeles = [...nouveaux, ...etat.modeles];
+        if (etat.vue === 'accueil' || !etat.id) { etat.id = nouveaux[0].id; etat.vue = 'modele'; etat.onglet = 'roles'; rendreTout(); } else rendreCote();
+        toast(`${nouveaux.length} modèles « Créateurs de contenu » ajoutés à Mes modèles`, null, 6000);
+        return;
+      }
+    } catch (e) {
+      if (e.status !== 401) toast(`Les modèles « Créateurs de contenu » n'ont pas pu être ajoutés : ${e.message}`);
     }
   }
 
