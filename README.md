@@ -66,22 +66,35 @@ par changement).
   en minutes avant le début ; absent = 15 min, ou 9:00 le jour même pour une journée entière ;
   `null` = aucun). Le résumé du matin se règle dans Réglages (`reglages.resume`). Le bouton
   « Envoyer un message test » des réglages vérifie tout de bout en bout.
-- **Factures** : dans l'agenda (menu › Factures). Une facture émise reçoit le numéro suivant
+- **Factures** : dans l'agenda (menu › Devis et factures). Une facture émise reçoit le numéro suivant
   (`F-2026-001`…, sans trou, calculé quand l'opération est appliquée) et une copie des
   informations du vendeur et du client ; elle ne se modifie plus (seulement payée, ou annulée par
   un avoir `AV-…`). Les informations du vendeur sont dans Réglages › Facturation
   (`reglages.facturation`). Le PDF est fabriqué dans le navigateur par `agenda/facture.js`
   (sans bibliothèque), partagé avec l'espace client.
+- **Devis** : onglet « Devis » de la même fenêtre (liste `devis` d'`agenda.json`). Un devis émis
+  reçoit le numéro suivant (`D-2026-001`…), une date de validité (30 jours par défaut) et la copie
+  du vendeur et du client ; il ne se modifie plus : « Nouvelle version » en fait un brouillon, et
+  l'ancien est retiré quand la nouvelle version est émise. Statuts : `brouillon`, `envoye`
+  (affiché « Expiré » après la validité), `accepte`, `refuse`, `annule` (retiré). La réponse est
+  dans `reponse` (`date`, `nom`, `par` : `espace` ou `manuel`, `motif`). Un devis accepté devient
+  un brouillon de facture en un clic (`facture` dans le devis, `devis` dans la facture). Le PDF a
+  un cadre « Bon pour accord », ou la mention de l'acceptation.
 - Après un changement de `agenda/app.js`, `agenda/app.css` ou `agenda/facture.js`, augmenter `?v=`
   dans `agenda/index.html` (et dans `espace/index.html` et `atelier/index.html`, qui les utilisent aussi).
 
 ## Espace client (`/espace/#clé`)
 
 Page publique mais sans contenu : tout vient du Worker (`GET /espace`, en-tête `Authorization: Cle …`),
-qui ne renvoie que les rendez-vous, le projet (`projet`, `etapes`, `messageEspace`) et les factures
-émises du client dont la fiche contient cette clé (`espace.cle`, 32 caractères aléatoires). Le lien
-se crée, se change ou se désactive dans la fiche client de l'agenda. La clé reste après le `#` :
-elle n'apparaît dans aucun journal de serveur.
+qui ne renvoie que les rendez-vous, le projet (`projet`, `etapes`, `messageEspace`), les devis
+émis (sauf ceux retirés) et les factures émises du client dont la fiche contient cette clé
+(`espace.cle`, 32 caractères aléatoires). Le lien se crée, se change ou se désactive dans la fiche
+client de l'agenda. La clé reste après le `#` : elle n'apparaît dans aucun journal de serveur.
+
+Le client répond à un devis en attente avec `POST /espace/devis` (même en-tête ; `id`, `action` :
+`accepter` avec `nom` et `accord: true`, ou `refuser` avec un `motif` facultatif). Le Worker vérifie
+que le devis est à ce client, encore en attente et pas expiré, l'écrit dans `agenda.json`, puis
+t'envoie un message privé Discord.
 
 ## Atelier de serveurs Discord (`/atelier/`)
 
@@ -93,6 +106,19 @@ fois au Worker (`POST /atelier/action` : rôle, salon, réglages, message…) et
 répond 429. Les boutons de rôle (`custom_id` `role|<id>|a` ou `role|<id>|b`) passent par
 `/interactions` et marchent pour tous les membres ; le Worker refuse de donner un rôle qui a des
 permissions de modération.
+
+**Auditer un serveur** (outil de l'atelier) : la page lit le serveur (`GET /atelier/serveur`, qui
+renvoie aussi le nombre de membres, l'A2F de modération et les règles AutoMod si le bot a « Gérer le
+serveur ») et calcule dans le navigateur une note sur 100 : chaque point retire 20 (critique),
+8 (important) ou 3 (conseil), et un point critique plafonne la note à 39. Aucun message n'est lu,
+rien n'est modifié. Pour un prospect, l'atelier donne un lien d'invitation du bot sans aucune
+permission. Les notes sont gardées dans `atelier.json` (`audits`, un par serveur et par demi-heure)
+pour comparer avec l'audit précédent. Le rapport se copie (texte pour Discord ou un e-mail) ou
+s'imprime en PDF.
+
+Après un changement de `tools/agenda-worker.js`, recopier le fichier dans le Worker sur Cloudflare
+(Edit code › Deploy) : sans ça, l'audit n'a pas le nombre de membres, l'A2F ni l'AutoMod, et les
+clients ne voient pas leurs devis.
 
 ## Avant chaque publication
 

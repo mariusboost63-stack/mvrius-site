@@ -365,7 +365,7 @@ input.at-champ-nom:focus { border-color: rgba(232, 180, 106, .5); background: rg
   .at { display: block; height: auto; }
   .at-barre, .at-cote, .toasts, dialog, .au-barre, .connexion { display: none !important; }
   .at-main { overflow: visible; padding: 0; }
-  .au { max-width: none; gap: 14px; color: #1d1a16; }
+  .au { max-width: none; gap: 14px; color: #1d1a16; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .au-tete small, .au-pied, .au-pb-tete small, .au-avant { color: #6f665a !important; }
   .au-sur { color: #b9792b; }
   .au-score { background: #f6f1e8; border-color: #e3dccf; }

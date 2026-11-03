@@ -3307,7 +3307,12 @@
     el.innerHTML = `<span>${esc(texte)}</span>${action ? `<button type="button">${esc(action.texte)}</button>` : ''}`;
     const fermer = () => { el.classList.remove('is-on'); setTimeout(() => el.remove(), 350); };
     if (action) $('button', el).addEventListener('click', () => { action.faire(); fermer(); });
-    $('#toasts').append(el);
+    // Une fenêtre ouverte (showModal) rend le reste de la page inactif : la notification va
+    // dans la fenêtre du dessus, sinon son bouton « Annuler » ne serait pas cliquable
+    const zone = $('#toasts');
+    const hote = $$('dialog[open]').pop() || document.body;
+    if (zone.parentElement !== hote) hote.append(zone);
+    zone.append(el);
     requestAnimationFrame(() => el.classList.add('is-on'));
     setTimeout(fermer, duree || (action ? 6000 : 3200));
   }
