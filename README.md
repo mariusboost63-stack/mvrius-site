@@ -107,6 +107,14 @@ répond 429. Les boutons de rôle (`custom_id` `role|<id>|a` ou `role|<id>|b`) p
 `/interactions` et marchent pour tous les membres ; le Worker refuse de donner un rôle qui a des
 permissions de modération.
 
+**Modèles « Créateurs de contenu »** (`atelier/modeles-createurs.js`, chargé avant `atelier.js`) :
+Streamer Twitch, YouTubeur, Créateur TikTok et réseaux, Podcast et émission, Artiste et illustrateur.
+Chacun a une hiérarchie du staff sur 8 rangs, l'équipe de contenu et sa catégorie Production, des
+rôles communautaires, 8 rôles de niveaux (1, 5, 10, 20, 30, 50, 75, 100 ; émojis externes au
+niveau 5, messages vocaux au niveau 10, zone réservée dès le niveau 20), des rôles membres, de
+profil, de notifications et de centres d'intérêt, des rôles séparateurs, environ 50 salons et 13
+messages. Après un changement de ce fichier, augmenter son `?v=` dans `atelier/index.html`.
+
 **Auditer un serveur** (outil de l'atelier) : la page lit le serveur (`GET /atelier/serveur`, qui
 renvoie aussi le nombre de membres, l'A2F de modération et les règles AutoMod si le bot a « Gérer le
 serveur ») et calcule dans le navigateur une note sur 100 : chaque point retire 20 (critique),

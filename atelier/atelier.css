@@ -377,3 +377,10 @@ input.at-champ-nom:focus { border-color: rgba(232, 180, 106, .5); background: rg
   .at-info { background: #faf6ef; border-color: #e3dccf; color: #3c362e; }
   .au-jauge .au-anneau { transition: none; }
 }
+
+/* Galerie : groupes de modèles */
+.at-galerie-groupe { display: flex; flex-direction: column; gap: 8px; }
+.at-galerie-groupe + .at-galerie-groupe { margin-top: 10px; }
+.at-galerie-groupe h3 { font: 700 16px var(--f-titre); }
+.at-points { display: flex; flex-wrap: wrap; gap: 4px; }
+.at-points i { padding: 2px 8px; border-radius: 999px; background: rgba(232, 180, 106, .1); color: var(--doux); font-size: 11.5px; font-style: normal; }

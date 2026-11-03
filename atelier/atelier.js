@@ -289,6 +289,11 @@ ${accepte}`;
       }),
     },
   };
+  // Modèles complets pour les créateurs de contenu (fichier à part : modeles-createurs.js)
+  if (typeof window.ModelesCreateurs === 'function') {
+    try { Object.assign(MODELES, window.ModelesCreateurs({ role, salon, cat, embed, btnRole, accesDefaut, reglagesDefaut, BASE, MODERATION, nouvelId })); } catch (e) { console.error(e); }
+  }
+  const THEMES = [['', 'Pour commencer', ''], ['createurs', 'Créateurs de contenu', 'Modèles complets : hiérarchie du staff, rôles de niveaux, rôles communautaires et de notifications, zone réservée, production. Pense à remplacer les liens « ton-pseudo » dans le message des réseaux.']];
   function nouveauModele(type, nom) {
     const base = MODELES[type] || MODELES.vierge;
     const instant = new Date().toISOString();
@@ -1526,13 +1531,18 @@ ${accepte}`;
   /* ---------- Galerie : nouveau modèle ---------- */
   const galerie = $('#galerie');
   function ouvrirGalerie() {
-    $('#galerie-corps').innerHTML = `<p class="r-aide">Choisis un point de départ : tout se modifie ensuite (rôles, salons, permissions, messages).</p><ul class="at-galerie">`
-      + Object.entries(MODELES).map(([id, x]) => {
-        const exemple = x.creer();
-        const nb = exemple.libres.length + exemple.categories.reduce((t, c) => t + c.salons.length, 0);
-        return `<li><button type="button" class="at-carte-modele" data-creer="${id}"><b>${esc(x.nom)}</b><span>${esc(x.resume)}</span>`
-          + `<small>${exemple.roles.length} rôles · ${exemple.categories.length} catégories · ${nb} salons · ${exemple.messages.length} message${exemple.messages.length > 1 ? 's' : ''}</small></button></li>`;
-      }).join('') + '</ul>';
+    const carte = ([id, x]) => {
+      const exemple = x.creer();
+      const nb = exemple.libres.length + exemple.categories.reduce((t, c) => t + c.salons.length, 0);
+      return `<li><button type="button" class="at-carte-modele" data-creer="${id}"><b>${esc(x.nom)}</b><span>${esc(x.resume)}</span>`
+        + (x.points ? `<span class="at-points">${x.points.map(p => `<i>${esc(p)}</i>`).join('')}</span>` : '')
+        + `<small>${exemple.roles.length} rôles · ${exemple.categories.length} catégories · ${nb} salons · ${exemple.messages.length} message${exemple.messages.length > 1 ? 's' : ''}</small></button></li>`;
+    };
+    $('#galerie-corps').innerHTML = `<p class="r-aide">Choisis un point de départ : tout se modifie ensuite (rôles, salons, permissions, messages).</p>`
+      + THEMES.map(([t, titre, aide]) => {
+        const liste = Object.entries(MODELES).filter(([, x]) => (x.theme || '') === t);
+        return liste.length ? `<section class="at-galerie-groupe"><h3>${esc(titre)}</h3>${aide ? `<p class="r-aide">${esc(aide)}</p>` : ''}<ul class="at-galerie">${liste.map(carte).join('')}</ul></section>` : '';
+      }).join('');
     galerie.showModal();
   }
   galerie.addEventListener('click', e => {
