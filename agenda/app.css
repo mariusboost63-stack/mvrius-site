@@ -695,6 +695,13 @@ body.glisse-tache .g-col, body.glisse-tache .g-jt, body.glisse-tache .m-case { t
 .mo-ic .i { width: 15px; height: 15px; }
 
 /* ---------- Factures ---------- */
+.fa-onglets { display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: rgba(245, 236, 222, .035); width: max-content; max-width: 100%; }
+.fa-onglets button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; color: var(--doux); white-space: nowrap; transition: background-color .2s, color .2s; }
+.fa-onglets button:hover { color: var(--texte); }
+.fa-onglets button[aria-selected="true"] { background: rgba(232, 180, 106, .16); color: var(--texte); }
+.fa-onglets small { font-size: 12px; font-weight: 600; color: var(--accent); }
+.de-afacturer { color: var(--accent); }
+.fa-paiement .de-signataire { width: 240px; }
 .fa-alerte { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(232, 180, 106, .35); background: rgba(232, 180, 106, .08); font-size: 13.5px; }
 .fa-alerte .i { color: var(--accent); }
 .fa-alerte span { flex: 1; }
@@ -713,6 +720,7 @@ body.glisse-tache .g-col, body.glisse-tache .g-jt, body.glisse-tache .m-case { t
 .fa-statut::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--c); }
 .fa-form { display: flex; flex-direction: column; gap: 14px; }
 .fa-haut { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 12px; }
+.fa-haut.fa-haut--3 { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); }
 .fa-lignes { display: flex; flex-direction: column; gap: 6px; }
 .fa-l { display: grid; grid-template-columns: minmax(0, 1fr) 76px 92px 104px 96px 34px; align-items: center; gap: 8px; }
 .fa-l input, .fa-l select { width: 100%; height: 38px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--ligne-2); background: rgba(245, 236, 222, .03); color: var(--texte); outline: 0; font-variant-numeric: tabular-nums; }
@@ -771,6 +779,9 @@ body.glisse-tache .g-col, body.glisse-tache .g-jt, body.glisse-tache .m-case { t
 .fx-franchise { margin: 6px 0 0; text-align: right; color: var(--g); font-size: 11.5px; }
 .fx-paye { margin: 0; font-weight: 700; color: #1d8a4e; }
 .fx-reglement, .fx-notes { margin: 0; }
+.fx-accord { align-self: flex-end; width: min(100%, 300px); min-height: 92px; padding: 10px 14px; border: 1px solid var(--t); }
+.fx-accord b { display: block; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--g); }
+.fx-accord span { color: var(--g); font-size: 11.5px; }
 .fx-pied { padding-top: 10px; border-top: 1px solid var(--t); color: var(--g); font-size: 10.5px; }
 /* Fiche client : adresse, espace client */
 .cl-adresse { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; }
@@ -872,7 +883,7 @@ body.glisse-tache .g-col, body.glisse-tache .g-jt, body.glisse-tache .m-case { t
   .fa-ligne .cl-txt { grid-column: 1 / -1; grid-row: 2; }
   .fa-montant { grid-column: 2; grid-row: 1; }
   .fa-ligne .fa-statut { grid-column: 2; grid-row: 2; }
-  .fa-haut, .cl-adresse, .r-grille { grid-template-columns: minmax(0, 1fr); }
+  .fa-haut, .fa-haut.fa-haut--3, .cl-adresse, .r-grille { grid-template-columns: minmax(0, 1fr); }
   .fa-l { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 10px; border-radius: 12px; border: 1px solid var(--ligne); }
   .fa-l [data-l="desc"] { grid-column: 1 / -1; }
   .fa-l--tete { display: none; }

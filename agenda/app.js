@@ -45,6 +45,9 @@
   // Factures : informations du vendeur (Réglages › Facturation). Par défaut : franchise de TVA (micro-entreprise)
   const FACTURATION_DEFAUT = { nom: 'Mvrius', identite: '', adresse: '', siret: '', email: '', tva: false, taux: 20, tvaNum: '', iban: '', bic: '', delai: 30, prefixe: 'F', mentions: '' };
   const STATUTS_FACTURE = { brouillon: ['Brouillon', '#9ba3ba'], emise: ['À encaisser', '#e8b46a'], retard: ['En retard', '#ff6b8b'], payee: ['Payée', '#3ddc84'], annulee: ['Annulée', '#7c705f'], avoir: ['Avoir', '#c3a6ff'], rembourse: ['Remboursé', '#3ddc84'] };
+  // Devis : D-2026-001… ; le client peut l'accepter (ou le refuser) depuis son espace client
+  const STATUTS_DEVIS = { brouillon: ['Brouillon', '#9ba3ba'], envoye: ['En attente', '#e8b46a'], expire: ['Expiré', '#7c705f'], accepte: ['Accepté', '#3ddc84'], facture: ['Facturé', '#c3a6ff'], refuse: ['Refusé', '#ff6b8b'], annule: ['Retiré', '#7c705f'] };
+  const VALIDITE_DEVIS = 30; // jours, par défaut
   const MESSAGE_CONFIRMATION = 'Bonjour {nom} ! C\'est validé pour notre appel du {date} à {heure} ({duree} min) sur Discord. À très vite, Mvrius';
   const DATE = /^\d{4}-\d{2}-\d{2}$/;
   const HEURE = /^\d{2}:\d{2}$/;
@@ -152,7 +155,7 @@
   const vueEffective = () => (petit.matches && etat.vue === 'semaine' ? 'trois' : etat.vue);
 
   /* ---------- Données ---------- */
-  const vide = () => ({ format: 1, categories: clone(CATEGORIES), rendezvous: [], taches: [], reglages: {}, clients: [], modeles: [], corbeille: [], factures: [] });
+  const vide = () => ({ format: 1, categories: clone(CATEGORIES), rendezvous: [], taches: [], reglages: {}, clients: [], modeles: [], corbeille: [], factures: [], devis: [] });
   function normaliser(d) {
     d = d && typeof d === 'object' ? d : {};
     const cats = Array.isArray(d.categories) && d.categories.length
@@ -168,8 +171,9 @@
     const modeles = liste(d.modeles, m => m.id && typeof m.nom === 'string');
     const corbeille = liste(d.corbeille, c => c.cid && c.type && c.element);
     const factures = liste(d.factures, f => f.id && Array.isArray(f.lignes));
+    const devis = liste(d.devis, x => x.id && Array.isArray(x.lignes));
     // Les autres champs éventuels (ajoutés par le serveur) sont gardés tels quels
-    return { ...d, format: 1, categories: cats, rendezvous: rdv, taches, reglages, clients, modeles, corbeille, factures };
+    return { ...d, format: 1, categories: cats, rendezvous: rdv, taches, reglages, clients, modeles, corbeille, factures, devis };
   }
   // Un changement = une opération rejouable : en cas de conflit avec un autre appareil,
   // on relit le fichier sur GitHub et on rejoue les opérations par-dessus.
@@ -190,8 +194,8 @@
     return null;
   }
   const LISTES = { tache: 'taches', client: 'clients', modele: 'modeles' };
-  // Pour la corbeille : un brouillon de facture supprimé revient dans « factures »
-  const LISTES_CORBEILLE = { ...LISTES, facture: 'factures' };
+  // Pour la corbeille : un brouillon de facture (ou de devis) supprimé revient dans sa liste
+  const LISTES_CORBEILLE = { ...LISTES, facture: 'factures', devis: 'devis' };
   // Un élément revenu dans l'agenda (bouton « Annuler », restauration) sort de la corbeille
   function nettoyerCorbeille(d) {
     if (!(d.corbeille || []).length) return;
@@ -256,8 +260,58 @@
     }
   }
   const OPS_FACTURE = ['facture', 'supprimerFacture', 'emettreFacture', 'payerFacture', 'avoirFacture'];
+  // Devis émis : numéro suivant (calculé à l'application de l'opération), copie du vendeur et du client
+  function emettreDevisDans(d, x, op) {
+    const reg = { ...FACTURATION_DEFAUT, ...((d.reglages || {}).facturation || {}) };
+    const date = DATE.test(op.date) ? op.date : x.date;
+    const c = (d.clients || []).find(y => y.id === x.client) || {};
+    Object.assign(x, {
+      date,
+      numero: window.Facture.numeroSuivant(d.devis, 'D', date.slice(0, 4)),
+      statut: 'envoye',
+      tva: reg.tva ? Number(reg.taux) || 20 : null,
+      validite: DATE.test(x.validite) && x.validite >= date ? x.validite : decale(date, VALIDITE_DEVIS),
+      vendeur: { nom: reg.nom, identite: reg.identite, adresse: reg.adresse, siret: reg.siret, email: reg.email, tvaNum: reg.tva ? reg.tvaNum : '', mentions: reg.mentions },
+      acheteur: { nom: c.nom || x.clientNom || '', adresse: c.adresse || '', email: c.email || '', siren: c.siren || '' },
+      reponse: null, emis: op.le, modifie: op.le,
+    });
+  }
+  function opDevis(d, op) {
+    d.devis = d.devis || [];
+    const x = d.devis.find(y => y.id === (op.devis ? op.devis.id : op.id));
+    if (op.type === 'devis') {
+      // Un devis émis ne se modifie plus : on en fait une nouvelle version (« Dupliquer »)
+      if (x && x.statut !== 'brouillon') return;
+      majListe(d, 'devis', { ...op.devis, type: 'devis', statut: 'brouillon', numero: null });
+    } else if (op.type === 'supprimerDevis') {
+      if (!x || x.statut !== 'brouillon') return;
+      d.devis.splice(d.devis.indexOf(x), 1);
+      if (!op.sansCorbeille) mettreALaCorbeille(d, op, 'devis', x);
+    } else if (op.type === 'emettreDevis') {
+      if (x && x.statut === 'brouillon') emettreDevisDans(d, x, op);
+    } else if (op.type === 'reponseDevis') {
+      // Accepté, refusé, retiré… (ou retour « en attente » pour annuler)
+      if (!x || !x.numero || !['envoye', 'accepte', 'refuse', 'annule'].includes(op.statut)) return;
+      x.statut = op.statut;
+      x.reponse = op.reponse ? clone(op.reponse) : null;
+      x.modifie = op.le;
+    } else if (op.type === 'prolongerDevis') {
+      if (!x || x.statut !== 'envoye' || !DATE.test(op.validite)) return;
+      x.validite = op.validite;
+      x.modifie = op.le;
+    } else if (op.type === 'factureDevis') {
+      // Devis accepté → brouillon de facture avec les mêmes lignes
+      if (!x || x.statut !== 'accepte' || !op.facture) return;
+      d.factures = d.factures || [];
+      if (!d.factures.some(f => f.id === op.facture.id)) d.factures.push({ ...clone(op.facture), statut: 'brouillon', numero: null });
+      x.facture = op.facture.id;
+      x.modifie = op.le;
+    }
+  }
+  const OPS_DEVIS = ['devis', 'supprimerDevis', 'emettreDevis', 'reponseDevis', 'prolongerDevis', 'factureDevis'];
   function appliquerOp(d, op) {
     if (OPS_FACTURE.includes(op.type)) { opFacture(d, op); return; }
+    if (OPS_DEVIS.includes(op.type)) { opDevis(d, op); return; }
     const listes = LISTES;
     const retraits = { supprimerTache: 'tache', supprimerClient: 'client', supprimerModele: 'modele' };
     if (listes[op.type]) { majListe(d, listes[op.type], op[op.type]); return; }
@@ -325,6 +379,7 @@
   const modeles = () => donnees().modeles || [];
   const corbeille = () => donnees().corbeille || [];
   const factures = () => donnees().factures || [];
+  const devisListe = () => donnees().devis || [];
   const facturation = () => ({ ...FACTURATION_DEFAUT, ...((donnees().reglages || {}).facturation || {}) });
   const feriesActifs = () => (donnees().reglages || {}).feries !== false;
   const reservation = () => ({ ...RESA_DEFAUT, ...((donnees().reglages || {}).reservation || {}) });
@@ -480,6 +535,12 @@
     if (op.type === 'emettreFacture') return `Facture émise : ${op.titre || ''}`;
     if (op.type === 'payerFacture') return `Facture ${op.numero || ''} : ${op.paiement ? 'payée' : 'paiement annulé'}`;
     if (op.type === 'avoirFacture') return `Avoir pour la facture ${op.numero || ''}`;
+    if (op.type === 'devis') return `${op.nouveau ? 'Nouveau brouillon de devis' : 'Brouillon de devis modifié'} : ${op.titre || ''}`;
+    if (op.type === 'supprimerDevis') return `Brouillon de devis supprimé : ${op.titre || ''}`;
+    if (op.type === 'emettreDevis') return `Devis émis : ${op.titre || ''}`;
+    if (op.type === 'reponseDevis') return `Devis ${op.numero || ''} : ${{ accepte: 'accepté', refuse: 'refusé', annule: 'retiré', envoye: 'de nouveau en attente' }[op.statut] || 'mis à jour'}`;
+    if (op.type === 'prolongerDevis') return `Devis ${op.numero || ''} prolongé`;
+    if (op.type === 'factureDevis') return `Devis ${op.numero || ''} : facture créée`;
     return 'Catégories mises à jour';
   }
 
@@ -904,7 +965,8 @@
     $('#aplanifier-compte').textContent = nbAPlanifier ? `· ${nbAPlanifier}` : '';
     $('#clients-compte').textContent = clients().length || '';
     const aEncaisser = factures().filter(f => f.statut === 'emise' && f.type !== 'avoir').length;
-    $('#factures-compte').textContent = aEncaisser ? `${aEncaisser} à encaisser` : '';
+    const aFacturer = devisListe().filter(x => statutDevis(x) === 'accepte').length;
+    $('#factures-compte').textContent = [aEncaisser ? `${aEncaisser} à encaisser` : '', aFacturer ? `${aFacturer} devis à facturer` : ''].filter(Boolean).join(' · ');
     rendreFiltres();
   }
 
@@ -2071,7 +2133,10 @@
   }
   function blocFacturesClient(c) {
     const liste = factures().filter(f => f.client === c.id).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
-    return `<div class="cl-h-ligne"><h3 class="cl-h">Factures</h3><button type="button" class="btn btn--ghost btn--petit" data-cl="facture">${icone('plus')}Nouvelle facture</button></div>`
+    const ds = devisListe().filter(x => x.client === c.id).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    return `<div class="cl-h-ligne"><h3 class="cl-h">Devis</h3><button type="button" class="btn btn--ghost btn--petit" data-cl="devis">${icone('plus')}Nouveau devis</button></div>`
+      + (ds.length ? `<ul class="fa-liste">${ds.slice(0, 8).map(ligneDevis).join('')}</ul>` : '<p class="av-vide">Pas encore de devis.</p>')
+      + `<div class="cl-h-ligne"><h3 class="cl-h">Factures</h3><button type="button" class="btn btn--ghost btn--petit" data-cl="facture">${icone('plus')}Nouvelle facture</button></div>`
       + (liste.length ? `<ul class="fa-liste">${liste.slice(0, 12).map(ligneFacture).join('')}</ul>` : '<p class="av-vide">Pas encore de facture.</p>');
   }
   function rendreListeClients(q) {
@@ -2105,6 +2170,13 @@
       const f = factures().find(x => x.id === fa.dataset.faOuvrir);
       clientsDlg.close();
       if (f) ouvrirFactures(f.statut === 'brouillon' ? 'edition' : 'voir', f.id);
+      return;
+    }
+    const dv = e.target.closest('[data-de-ouvrir]');
+    if (dv) {
+      const x = devisListe().find(y => y.id === dv.dataset.deOuvrir);
+      clientsDlg.close();
+      if (x) ouvrirDevis(x.statut === 'brouillon' ? 'edition' : 'voir', x.id);
       return;
     }
     if (e.target.closest('[data-etape-suppr]')) { e.target.closest('li').remove(); return; }
@@ -2141,6 +2213,10 @@
       const c = clientDe(clientsEtat.id);
       clientsDlg.close();
       nouvelleFacture({ client: c ? c.id : '' });
+    } else if (action === 'devis') {
+      const c = clientDe(clientsEtat.id);
+      clientsDlg.close();
+      nouveauDevis({ client: c ? c.id : '' });
     } else if (action === 'rdv') {
       const c = clientDe(clientsEtat.id);
       clientsDlg.close();
@@ -2290,8 +2366,8 @@
 
   /* ---------- Factures ---------- */
   const facturesDlg = $('#factures');
-  let facturesEtat = { vue: 'liste', id: null, filtre: 'tout' };
-  let brouillonFacture = null; // facture en cours d'écriture (copie, enregistrée avec « Enregistrer » ou « Émettre »)
+  let facturesEtat = { vue: 'liste', id: null, filtre: 'tout', onglet: 'factures', filtreDevis: 'tout' };
+  let brouillonFacture = null; // facture ou devis en cours d'écriture (copie, enregistrée avec « Enregistrer » ou « Émettre »)
   const F = () => window.Facture;
   const nomClientFacture = f => (clientDe(f.client) || {}).nom || (f.acheteur || {}).nom || f.clientNom || 'Sans client';
   const totalFacture = f => F().totaux(f).ttc;
@@ -2325,7 +2401,7 @@
   }
 
   function ouvrirFactures(vue = 'liste', id = null) {
-    facturesEtat = { ...facturesEtat, vue, id };
+    facturesEtat = { ...facturesEtat, vue, id, ...(vue !== 'liste' ? { onglet: 'factures' } : {}) };
     if (vue === 'edition') brouillonFacture = clone(factures().find(f => f.id === id));
     rendreFactures();
     if (!facturesDlg.open) facturesDlg.showModal();
@@ -2340,7 +2416,7 @@
       brouillonFacture.objet = `Accompagnement — ${moisTexte(mois)}`;
     }
     if (!brouillonFacture.lignes.length) brouillonFacture.lignes.push({ desc: '', qte: 1, unite: 'forfait', pu: 0 });
-    facturesEtat = { ...facturesEtat, vue: 'edition', id: brouillonFacture.id };
+    facturesEtat = { ...facturesEtat, vue: 'edition', id: brouillonFacture.id, onglet: 'factures' };
     rendreFactures();
     if (!facturesDlg.open) facturesDlg.showModal();
     $('#factures-corps').scrollTop = 0;
@@ -2351,7 +2427,10 @@
     const f = factures().find(x => x.id === facturesEtat.id);
     if (facturesEtat.vue === 'edition' && brouillonFacture) { rendreEditionFacture(corps); return; }
     if (facturesEtat.vue === 'voir' && f) { rendreVoirFacture(corps, f); return; }
+    const dv = devisListe().find(x => x.id === facturesEtat.id);
+    if (facturesEtat.vue === 'voirDevis' && dv) { rendreVoirDevis(corps, dv); return; }
     facturesEtat.vue = 'liste';
+    if (facturesEtat.onglet === 'devis') { rendreListeDevis(corps); return; }
     $('#factures-titre').textContent = 'Factures';
     const auj = aujourdhui();
     const annee = auj.slice(0, 4);
@@ -2362,7 +2441,8 @@
     const trimestres = [1, 2, 3, 4].map(t => encaisse(`${annee}-${pad(t * 3 - 2)}-01`, `${annee}-${pad(t * 3)}-31`));
     const filtres = { tout: () => true, brouillon: x => x.statut === 'brouillon', encaisser: x => x.statut === 'emise' && x.type !== 'avoir', payee: x => !!x.paiement };
     const liste = toutes.filter(filtres[facturesEtat.filtre] || filtres.tout);
-    corps.innerHTML = (reglagesFacturationOk() ? '' : `<div class="fa-alerte">${icone('info')}<span>Avant ta première facture, complète tes informations (nom, adresse, SIRET) : elles doivent apparaître sur chaque facture.</span><button type="button" class="btn btn--ghost btn--petit" data-fa="reglages">Compléter</button></div>`)
+    corps.innerHTML = ongletsFactures()
+      + (reglagesFacturationOk() ? '' : `<div class="fa-alerte">${icone('info')}<span>Avant ta première facture, complète tes informations (nom, adresse, SIRET) : elles doivent apparaître sur chaque facture.</span><button type="button" class="btn btn--ghost btn--petit" data-fa="reglages">Compléter</button></div>`)
       + `<div class="cartes">`
       + `<div class="carte carte--or"><small>À encaisser</small><b>${esc(euros(aEncaisser.reduce((t, x) => t + totalFacture(x), 0)))}</b><span>${aEncaisser.length} facture${aEncaisser.length > 1 ? 's' : ''}${enRetard.length ? ` · <em class="fa-retard">${enRetard.length} en retard</em>` : ''}</span></div>`
       + `<div class="carte"><small>Encaissé en ${esc(fmt(auj, { month: 'long' }))}</small><b>${esc(euros(encaisse(`${mois}-01`, `${mois}-31`)))}</b><span>chiffre d'affaires du mois</span></div>`
@@ -2381,25 +2461,29 @@
 
   function rendreEditionFacture(corps) {
     const f = brouillonFacture;
-    $('#factures-titre').textContent = f.nouveau ? 'Nouvelle facture' : 'Brouillon de facture';
+    const devis = f.type === 'devis';
+    $('#factures-titre').textContent = devis ? (f.nouveau ? 'Nouveau devis' : 'Brouillon de devis') : f.nouveau ? 'Nouvelle facture' : 'Brouillon de facture';
     const liste = clients().slice().sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
     const moisCourant = aujourdhui().slice(0, 7);
     const moisPrecedent = iso(new Date(Number(moisCourant.slice(0, 4)), Number(moisCourant.slice(5)) - 2, 1)).slice(0, 7);
+    const remplace = devis && f.remplace ? devisListe().find(x => x.id === f.remplace) : null;
     corps.innerHTML = `<form class="fa-form" id="fa-form" novalidate>`
-      + `<button type="button" class="btn btn--lien btn--petit cl-retour" data-fa="liste">${icone('gauche')}Toutes les factures</button>`
-      + `<div class="fa-haut"><label class="champ"><span>Client</span><select name="client"><option value="">— Choisir un client —</option>${liste.map(c => `<option value="${esc(c.id)}"${c.id === f.client ? ' selected' : ''}>${esc(c.nom)}</option>`).join('')}</select></label>`
-      + `<label class="champ"><span>Date de la facture</span><input type="date" name="date" value="${esc(f.date || aujourdhui())}"></label></div>`
-      + (liste.length ? '' : `<p class="r-aide">Les factures se font pour une fiche client. <button type="button" class="btn--lien lien-tab" data-fa="clients">Créer une fiche client</button></p>`)
+      + `<button type="button" class="btn btn--lien btn--petit cl-retour" data-fa="liste">${icone('gauche')}${devis ? 'Tous les devis' : 'Toutes les factures'}</button>`
+      + (remplace ? `<p class="r-aide">Nouvelle version du devis ${esc(remplace.numero || '')}. Quand tu l'émettras, l'ancien sera retiré de l'espace client.</p>` : '')
+      + `<div class="fa-haut${devis ? ' fa-haut--3' : ''}"><label class="champ"><span>Client</span><select name="client"><option value="">— Choisir un client —</option>${liste.map(c => `<option value="${esc(c.id)}"${c.id === f.client ? ' selected' : ''}>${esc(c.nom)}</option>`).join('')}</select></label>`
+      + `<label class="champ"><span>Date ${devis ? 'du devis' : 'de la facture'}</span><input type="date" name="date" value="${esc(f.date || aujourdhui())}"></label>`
+      + (devis ? `<label class="champ"><span>Valable jusqu'au</span><input type="date" name="validite" value="${esc(f.validite || decale(f.date || aujourdhui(), VALIDITE_DEVIS))}"></label>` : '') + '</div>'
+      + (liste.length ? '' : `<p class="r-aide">${devis ? 'Les devis' : 'Les factures'} se font pour une fiche client. <button type="button" class="btn--lien lien-tab" data-fa="clients">Créer une fiche client</button></p>`)
       + `<label class="champ"><span>Objet</span><input name="objet" value="${esc(f.objet || '')}" maxlength="160" placeholder="Ex. Création du serveur Discord" autocomplete="off"></label>`
       + `<div class="fa-lignes" id="fa-lignes"></div>`
       + `<div class="fa-ajouts"><button type="button" class="btn btn--ghost btn--petit" data-fa="ligne">${icone('plus')}Ajouter une ligne</button>`
-      + `<label class="fa-heures"><span class="sr">Ajouter les heures d'un mois</span><select data-fa-heures><option value="">Ajouter les heures de…</option>${[moisCourant, moisPrecedent].map(m => `<option value="${m}">${esc(maj1(moisTexte(m)))}</option>`).join('')}</select></label></div>`
-      + `<label class="champ"><span>Note sur la facture (facultatif)</span><textarea name="notes" rows="2" maxlength="600" placeholder="Ex. Merci pour votre confiance !">${esc(f.notes || '')}</textarea></label>`
+      + (devis ? '' : `<label class="fa-heures"><span class="sr">Ajouter les heures d'un mois</span><select data-fa-heures><option value="">Ajouter les heures de…</option>${[moisCourant, moisPrecedent].map(m => `<option value="${m}">${esc(maj1(moisTexte(m)))}</option>`).join('')}</select></label>`) + '</div>'
+      + `<label class="champ"><span>Note sur ${devis ? 'le devis' : 'la facture'} (facultatif)</span><textarea name="notes" rows="2" maxlength="600" placeholder="${devis ? 'Ex. Réalisation sous 2 semaines après acceptation. Acompte de 30 % à la commande.' : 'Ex. Merci pour votre confiance !'}">${esc(f.notes || '')}</textarea></label>`
       + `<div class="fa-total" id="fa-total"></div>`
       + `<p class="f-erreur" id="fa-erreur" role="alert"></p>`
       + `<div class="cl-actions fa-boutons">${f.nouveau ? '' : `<button type="button" class="icone-btn icone-btn--danger" data-fa="supprimer" aria-label="Supprimer le brouillon" title="Supprimer le brouillon">${icone('corbeille')}</button>`}`
       + `<button type="button" class="btn btn--ghost btn--petit" data-fa="apercu">${icone('telecharger')}Aperçu PDF</button><span class="espace"></span>`
-      + `<button type="submit" class="btn btn--ghost">Enregistrer le brouillon</button><button type="button" class="btn btn--primaire" data-fa="emettre">${icone('facture')}Émettre</button></div></form>`;
+      + `<button type="submit" class="btn btn--ghost">Enregistrer le brouillon</button><button type="button" class="btn btn--primaire" data-fa="emettre">${icone(devis ? 'devis' : 'facture')}${devis ? 'Émettre le devis' : 'Émettre'}</button></div></form>`;
     rendreLignesFacture();
   }
   function rendreLignesFacture() {
@@ -2420,7 +2504,7 @@
     const reg = facturation();
     $('#fa-total').innerHTML = (t.taux ? `<div><span>Total HT</span><b>${esc(euros(t.ht))}</b></div><div><span>TVA ${esc(F().nombre(t.taux))} %</span><b>${esc(euros(t.tva))}</b></div>` : '')
       + `<div class="fa-total-ttc"><span>${t.taux ? 'Total TTC' : 'Total'}</span><b>${esc(euros(t.ttc))}</b></div>`
-      + `<small>${t.taux ? '' : `${F().FRANCHISE} · `}${Number(reg.delai) ? `à régler sous ${Number(reg.delai)} jours` : 'à régler à réception'}</small>`;
+      + `<small>${t.taux ? '' : `${F().FRANCHISE} · `}${brouillonFacture.type === 'devis' ? `valable jusqu'au ${DATE.test(brouillonFacture.validite || '') ? fmt(brouillonFacture.validite, { day: 'numeric', month: 'long' }) : '…'}` : Number(reg.delai) ? `à régler sous ${Number(reg.delai)} jours` : 'à régler à réception'}</small>`;
   }
   function lireFormFacture() {
     const form = $('#fa-form');
@@ -2431,6 +2515,7 @@
     f.date = DATE.test(form.elements.date.value) ? form.elements.date.value : aujourdhui();
     f.objet = form.elements.objet.value.trim();
     f.notes = form.elements.notes.value.trim();
+    if (form.elements.validite) f.validite = DATE.test(form.elements.validite.value) ? form.elements.validite.value : decale(f.date, VALIDITE_DEVIS);
     const nombreDe = v => { const n = Number(String(v).replace(',', '.')); return Number.isFinite(n) ? n : 0; };
     $$('#fa-lignes .fa-l[data-k]').forEach(el => {
       const l = f.lignes[Number(el.dataset.k)];
@@ -2448,7 +2533,9 @@
     const propre = { ...f, lignes: f.lignes.map(l => ({ ...l, desc: String(l.desc).trim() })).filter(l => l.desc || Number(l.pu)), cree: f.cree || instant, modifie: instant };
     delete propre.nouveau;
     if (!propre.lignes.length) propre.lignes = [{ desc: '', qte: 1, unite: 'forfait', pu: 0 }];
-    operation({ type: 'facture', facture: propre, nouveau: !!f.nouveau, titre: [propre.clientNom, propre.objet].filter(Boolean).join(' · ') });
+    const titre = [propre.clientNom, propre.objet].filter(Boolean).join(' · ');
+    if (propre.type === 'devis') operation({ type: 'devis', devis: propre, nouveau: !!f.nouveau, titre });
+    else operation({ type: 'facture', facture: propre, nouveau: !!f.nouveau, titre });
     brouillonFacture = clone(propre);
     return propre;
   }
@@ -2534,8 +2621,206 @@
     location.href = `mailto:${encodeURIComponent(c.email || '')}?subject=${encodeURIComponent(`${f.type === 'avoir' ? 'Avoir' : 'Facture'} ${f.numero} — ${reg.nom || 'Mvrius'}`)}&body=${encodeURIComponent(corps)}`;
   }
 
+  /* ---------- Devis ---------- */
+  // Onglets en haut de la fenêtre : Factures · Devis
+  function ongletsFactures() {
+    const attente = devisListe().filter(x => statutDevis(x) === 'envoye').length;
+    return `<nav class="fa-onglets" role="tablist" aria-label="Factures ou devis">`
+      + [['factures', 'Factures', ''], ['devis', 'Devis', attente ? `${attente} en attente` : '']].map(([k, t, n]) => `<button type="button" role="tab" aria-selected="${facturesEtat.onglet === k}" data-fa-onglet="${k}">${t}${n ? ` <small>${n}</small>` : ''}</button>`).join('')
+      + '</nav>';
+  }
+  // Statut affiché : « Expiré » après la date de validité ; « Facturé » quand la facture existe
+  function statutDevis(x) {
+    if (x.statut === 'envoye' && DATE.test(x.validite || '') && x.validite < aujourdhui()) return 'expire';
+    if (x.statut === 'accepte' && x.facture && factures().some(f => f.id === x.facture)) return 'facture';
+    return STATUTS_DEVIS[x.statut] ? x.statut : 'brouillon';
+  }
+  const pastilleDevis = x => { const [t, c] = STATUTS_DEVIS[statutDevis(x)]; return `<span class="fa-statut" style="--c:${c}">${esc(t)}</span>`; };
+  const totalDevis = x => totalFacture(factureComplete(x));
+  const ligneDevis = x => `<li><button type="button" class="fa-ligne" data-de-ouvrir="${esc(x.id)}"><span class="fa-num">${x.numero ? esc(x.numero) : '<i>Brouillon</i>'}</span>`
+    + `<span class="cl-txt"><b>${esc(nomClientFacture(x))}</b><small>${esc([x.objet, x.date ? fmt(x.date, { day: 'numeric', month: 'short', year: 'numeric' }) : ''].filter(Boolean).join(' · ') || ' ')}</small></span>`
+    + `<span class="fa-montant">${esc(euros(totalDevis(x)))}</span>${pastilleDevis(x)}</button></li>`;
+  const jourLong = d => (DATE.test(d || '') ? fmt(d, { day: 'numeric', month: 'long', year: 'numeric' }) : '');
+
+  function ouvrirDevis(vue = 'liste', id = null) {
+    facturesEtat = { ...facturesEtat, onglet: 'devis', vue: vue === 'voir' ? 'voirDevis' : vue, id };
+    brouillonFacture = vue === 'edition' ? clone(devisListe().find(x => x.id === id)) : null;
+    if (vue === 'edition' && !brouillonFacture) facturesEtat.vue = 'liste';
+    rendreFactures();
+    if (!facturesDlg.open) facturesDlg.showModal();
+    $('#factures-corps').scrollTop = 0;
+  }
+  // Nouveau brouillon de devis ; « depuis » : nouvelle version d'un devis déjà émis
+  function nouveauDevis({ client = '', depuis = null } = {}) {
+    const c = clientDe(depuis ? depuis.client : client);
+    const auj = aujourdhui();
+    brouillonFacture = { id: nouvelId(), type: 'devis', client: c ? c.id : '', clientNom: c ? c.nom : '', date: auj, validite: decale(auj, VALIDITE_DEVIS), objet: depuis ? depuis.objet || '' : '',
+      lignes: depuis ? clone(depuis.lignes) : [{ desc: '', qte: 1, unite: 'forfait', pu: 0 }], notes: depuis ? depuis.notes || '' : '', statut: 'brouillon', nouveau: true, ...(depuis ? { remplace: depuis.id } : {}) };
+    facturesEtat = { ...facturesEtat, onglet: 'devis', vue: 'edition', id: brouillonFacture.id };
+    rendreFactures();
+    if (!facturesDlg.open) facturesDlg.showModal();
+    $('#factures-corps').scrollTop = 0;
+  }
+
+  function rendreListeDevis(corps) {
+    $('#factures-titre').textContent = 'Devis';
+    const annee = aujourdhui().slice(0, 4);
+    const tous = devisListe().slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.numero || '~').localeCompare(String(a.numero || '~')));
+    const st = x => statutDevis(x);
+    const gagne = x => ['accepte', 'facture'].includes(st(x));
+    const attente = tous.filter(x => st(x) === 'envoye');
+    const acceptes = tous.filter(x => gagne(x) && String((x.reponse && x.reponse.date) || x.date).startsWith(annee));
+    const aFacturer = tous.filter(x => st(x) === 'accepte');
+    const decides = tous.filter(x => gagne(x) || ['refuse', 'expire'].includes(st(x)));
+    const taux = decides.length ? Math.round(decides.filter(gagne).length / decides.length * 100) : null;
+    const filtres = { tout: () => true, brouillon: x => st(x) === 'brouillon', attente: x => st(x) === 'envoye', accepte: gagne, perdu: x => ['refuse', 'expire', 'annule'].includes(st(x)) };
+    const liste = tous.filter(filtres[facturesEtat.filtreDevis] || filtres.tout);
+    const somme = l => l.reduce((t, x) => t + totalDevis(x), 0);
+    corps.innerHTML = ongletsFactures()
+      + (reglagesFacturationOk() ? '' : `<div class="fa-alerte">${icone('info')}<span>Avant ton premier devis, complète tes informations (nom, adresse, SIRET) : elles apparaissent sur chaque devis.</span><button type="button" class="btn btn--ghost btn--petit" data-fa="reglages">Compléter</button></div>`)
+      + `<div class="cartes">`
+      + `<div class="carte carte--or"><small>En attente de réponse</small><b>${esc(euros(somme(attente)))}</b><span>${attente.length} devis</span></div>`
+      + `<div class="carte"><small>Acceptés en ${annee}</small><b>${esc(euros(somme(acceptes)))}</b><span>${acceptes.length} devis${aFacturer.length ? ` · <em class="fa-retard de-afacturer">${aFacturer.length} à facturer</em>` : ''}</span></div>`
+      + `<div class="carte"><small>Taux d'acceptation</small><b>${taux === null ? '—' : `${taux} %`}</b><span>${decides.length ? `sur ${decides.length} devis avec une réponse` : 'pas encore de réponse'}</span></div></div>`
+      + `<div class="fa-barre"><div class="fa-filtres">${[['tout', 'Tous'], ['brouillon', 'Brouillons'], ['attente', 'En attente'], ['accepte', 'Acceptés'], ['perdu', 'Refusés ou expirés']].map(([k, t]) => `<label class="choix" style="--c:#e8b46a"><input type="radio" name="de-filtre" value="${k}"${facturesEtat.filtreDevis === k ? ' checked' : ''}><span>${t}</span></label>`).join('')}</div>`
+      + `<button type="button" class="btn btn--primaire btn--petit" data-de="nouveau">${icone('plus')}Nouveau devis</button></div>`
+      + (liste.length ? `<ul class="fa-liste">${liste.map(ligneDevis).join('')}</ul>`
+        : `<div class="vide"><span class="vide-icone">${icone('devis')}</span><h3>${tous.length ? 'Aucun devis ici' : 'Pas encore de devis'}</h3><p>${tous.length ? 'Essaie un autre filtre.' : 'Prépare un devis pour un client : il pourra l\'accepter en ligne depuis son espace client.'}</p></div>`)
+      + `<p class="r-aide">Un devis émis reçoit le numéro suivant (D-${annee}-001, -002…) et ne se modifie plus : pour le changer, fais-en une nouvelle version. Ton client l'accepte depuis son espace client (« Bon pour accord » avec son nom) et tu reçois un message privé sur Discord. Une fois accepté, un clic crée la facture.</p>`;
+  }
+
+  function rendreVoirDevis(corps, x) {
+    $('#factures-titre').textContent = `Devis ${x.numero}`;
+    const st = statutDevis(x);
+    const c = clientDe(x.client);
+    const nom = nomClientFacture(x);
+    const lien = lienEspace(c);
+    const r = x.reponse || {};
+    const par = r.par === 'espace' ? ' depuis son espace client' : '';
+    const fa = x.facture ? factures().find(f => f.id === x.facture) : null;
+    const etatTxt = {
+      envoye: `En attente de la réponse de ${nom}, jusqu'au ${jourLong(x.validite)}.${lien ? ` ${nom} peut l'accepter depuis son espace client.` : ''}`,
+      expire: `Expiré le ${jourLong(x.validite)} sans réponse. Tu peux le prolonger ou en faire une nouvelle version.`,
+      accepte: `Accepté le ${jourLong(r.date)}${r.nom ? ` par ${r.nom}` : ''}${par}. Il reste à créer la facture.`,
+      facture: `Accepté le ${jourLong(r.date)}${r.nom ? ` par ${r.nom}` : ''}${par}. Facture ${fa && fa.numero ? fa.numero : '(brouillon)'} créée.`,
+      refuse: `Refusé le ${jourLong(r.date)}${par}${r.motif ? ` : « ${r.motif} »` : '.'}`,
+      annule: `Retiré le ${jourLong(r.date)}${r.motif ? ` (${r.motif})` : ''} : ${nom} ne le voit plus dans son espace client.`,
+    }[st] || '';
+    const enAttente = st === 'envoye' || st === 'expire';
+    const bouton = (action, texte, ic, primaire) => `<button type="button" class="btn ${primaire ? 'btn--primaire' : 'btn--ghost'} btn--petit" data-de="${action}">${ic ? icone(ic) : ''}${texte}</button>`;
+    corps.innerHTML = `<button type="button" class="btn btn--lien btn--petit cl-retour" data-fa="liste">${icone('gauche')}Tous les devis</button>`
+      + `<div class="fa-etat">${pastilleDevis(x)}<span>${esc(etatTxt)}</span></div>`
+      + (enAttente && !lien ? `<div class="fa-alerte">${icone('info')}<span>Pour que ${esc(nom)} puisse accepter ce devis en ligne, crée son espace client (dans sa fiche).</span>${c ? '<button type="button" class="btn btn--ghost btn--petit" data-de="fiche">Ouvrir la fiche</button>' : ''}</div>` : '')
+      + `<div class="fa-actions">`
+      + (st === 'accepte' ? bouton('facturer', 'Créer la facture', 'facture', true) : '')
+      + (st === 'facture' ? bouton('voir-facture', 'Voir la facture', 'facture', true) : '')
+      + bouton('pdf', 'Télécharger le PDF', 'telecharger', !['accepte', 'facture'].includes(st))
+      + (enAttente ? bouton('accepter', 'Marquer comme accepté', 'coche') + bouton('refuser', 'Marquer comme refusé', 'fermer') : '')
+      + (enAttente ? bouton('prolonger', `Prolonger de ${VALIDITE_DEVIS} jours`, 'horloge') : '')
+      + (['accepte', 'refuse', 'annule'].includes(st) ? bouton('attente', 'Remettre en attente', 'restaurer') : '')
+      + bouton('version', 'Nouvelle version', 'copie')
+      + (enAttente ? bouton('retirer', 'Retirer', 'corbeille') : '')
+      + (c && c.email ? bouton('email', 'Envoyer par e-mail', 'mail') : '')
+      + (lien ? bouton('lien', "Lien de l'espace client", 'lien') : '')
+      + `</div>`
+      + `<form class="fa-paiement" id="de-reponse" hidden><label class="champ"><span>Date de l'accord</span><input type="date" name="date" value="${aujourdhui()}" required></label>`
+      + `<label class="champ de-signataire"><span>Signé par (facultatif)</span><input name="nom" maxlength="80" placeholder="Nom du signataire" autocomplete="off"></label>`
+      + `<button type="submit" class="btn btn--primaire btn--petit">Confirmer</button></form>`
+      + `<div class="fa-papier">${F().html(factureComplete(x))}</div>`;
+  }
+
+  function problemesDevis(f) {
+    const manques = [];
+    if (!reglagesFacturationOk()) manques.push('tes informations de facturation (nom, adresse et SIRET, dans Réglages › Facturation)');
+    if (!clientDe(f.client)) manques.push('le client');
+    if (!f.lignes.some(l => l.desc && Number(l.qte) && Number(l.pu))) manques.push('au moins une ligne avec une description, une quantité et un prix');
+    if (manques.length) return `Pour émettre, il manque ${manques.join(', ')}.`;
+    if (!DATE.test(f.validite || '') || f.validite < f.date) return "La date de validité doit être le jour du devis ou après.";
+    if (f.validite < aujourdhui()) return 'La date de validité est déjà passée : choisis une date à venir.';
+    return '';
+  }
+  async function emettreDevis() {
+    const f = enregistrerBrouillonFacture();
+    const probleme = problemesDevis(f);
+    if (probleme) { rendreFactures(); $('#fa-erreur').textContent = probleme; return; }
+    const c = clientDe(f.client);
+    const numero = F().numeroSuivant(devisListe(), 'D', f.date.slice(0, 4));
+    const lien = lienEspace(c);
+    const ok = await confirmer(`Émettre le devis ${numero} ?`,
+      `${euros(totalDevis(f))} pour ${c.nom}, valable jusqu'au ${jourLong(f.validite)}. Une fois émis, il ne se modifie plus : pour le changer, tu en feras une nouvelle version. ${lien ? `${c.nom} pourra l'accepter depuis son espace client.` : `Crée l'espace client de ${c.nom} (dans sa fiche) pour qu'il puisse l'accepter en ligne.`}`,
+      'Émettre le devis');
+    if (!ok) { rendreFactures(); return; }
+    operation({ type: 'emettreDevis', id: f.id, date: f.date, titre: `${c.nom} · ${euros(totalDevis(f))}` });
+    brouillonFacture = null;
+    const emis = devisListe().find(x => x.id === f.id);
+    // Nouvelle version : l'ancien devis, s'il attendait encore une réponse, est retiré
+    const ancien = f.remplace ? devisListe().find(x => x.id === f.remplace) : null;
+    if (ancien && ancien.statut === 'envoye') operation({ type: 'reponseDevis', id: ancien.id, numero: ancien.numero, statut: 'annule', reponse: { date: aujourdhui(), le: new Date().toISOString(), par: 'manuel', motif: `remplacé par le devis ${emis ? emis.numero : ''}`.trim() } });
+    ouvrirDevis('voir', f.id);
+    toast(`Devis ${emis ? emis.numero : ''} émis`);
+  }
+  // Devis accepté → brouillon de facture avec les mêmes lignes
+  function facturerDevis(x) {
+    const instant = new Date().toISOString();
+    const c = clientDe(x.client);
+    const fa = { id: nouvelId(), type: 'facture', client: x.client, clientNom: c ? c.nom : x.clientNom || '', date: aujourdhui(), objet: x.objet || '', lignes: clone(x.lignes),
+      notes: `Selon le devis ${x.numero}${x.reponse && x.reponse.date ? ` accepté le ${jourLong(x.reponse.date)}` : ''}.`, statut: 'brouillon', devis: x.id, cree: instant, modifie: instant };
+    operation({ type: 'factureDevis', id: x.id, numero: x.numero, facture: fa });
+    ouvrirFactures('edition', fa.id);
+    toast(`Brouillon de facture créé depuis le devis ${x.numero} : vérifie-le, puis émets-le`);
+  }
+  function mailDevis(x) {
+    const c = clientDe(x.client) || {};
+    const lien = lienEspace(c);
+    const reg = facturation();
+    const corps = [`Bonjour ${c.nom || ''},`, '',
+      `Voici le devis ${x.numero} d'un montant de ${euros(totalDevis(x))}, valable jusqu'au ${jourLong(x.validite)}.`,
+      lien ? `Vous pouvez le consulter et l'accepter en ligne depuis votre espace client : ${lien}` : 'Vous le trouverez en pièce jointe. Pour l\'accepter, renvoyez-le daté et signé avec la mention « Bon pour accord ».',
+      '', 'Je reste disponible pour toute question.', reg.nom || 'Mvrius'].join('\n');
+    if (!lien) F().telecharger(factureComplete(x));
+    location.href = `mailto:${encodeURIComponent(c.email || '')}?subject=${encodeURIComponent(`Devis ${x.numero} — ${reg.nom || 'Mvrius'}`)}&body=${encodeURIComponent(corps)}`;
+  }
+  async function actionDevis(a) {
+    if (a === 'nouveau') { nouveauDevis(); return; }
+    const x = devisListe().find(y => y.id === facturesEtat.id);
+    if (!x) return;
+    const avant = { statut: x.statut, reponse: x.reponse || null };
+    const annuler = texte => toast(texte, { texte: 'Annuler', faire: () => { operation({ type: 'reponseDevis', id: x.id, numero: x.numero, ...avant }); if (facturesDlg.open) rendreFactures(); } });
+    if (a === 'pdf') F().telecharger(factureComplete(x));
+    else if (a === 'accepter') { const p = $('#de-reponse'); p.hidden = !p.hidden; if (!p.hidden) p.elements.date.focus(); }
+    else if (a === 'refuser') {
+      if (!(await confirmer(`Devis ${x.numero} refusé ?`, `Il restera dans ta liste avec la mention « Refusé » et ${nomClientFacture(x)} ne pourra plus l'accepter en ligne.`, 'Marquer comme refusé'))) return;
+      operation({ type: 'reponseDevis', id: x.id, numero: x.numero, statut: 'refuse', reponse: { date: aujourdhui(), le: new Date().toISOString(), par: 'manuel' } });
+      annuler(`Devis ${x.numero} marqué comme refusé`);
+      rendreFactures();
+    } else if (a === 'retirer') {
+      if (!(await confirmer(`Retirer le devis ${x.numero} ?`, `${nomClientFacture(x)} ne le verra plus dans son espace client et ne pourra plus l'accepter. Il reste dans ta liste.`, 'Retirer le devis'))) return;
+      operation({ type: 'reponseDevis', id: x.id, numero: x.numero, statut: 'annule', reponse: { date: aujourdhui(), le: new Date().toISOString(), par: 'manuel' } });
+      annuler(`Devis ${x.numero} retiré`);
+      rendreFactures();
+    } else if (a === 'attente') {
+      if (x.facture && factures().some(f => f.id === x.facture)) { toast('Une facture a déjà été créée depuis ce devis.'); return; }
+      operation({ type: 'reponseDevis', id: x.id, numero: x.numero, statut: 'envoye', reponse: null });
+      annuler(`Devis ${x.numero} de nouveau en attente`);
+      rendreFactures();
+    } else if (a === 'prolonger') {
+      const base = DATE.test(x.validite || '') && x.validite > aujourdhui() ? x.validite : aujourdhui();
+      const validite = decale(base, VALIDITE_DEVIS);
+      const ancienne = x.validite;
+      operation({ type: 'prolongerDevis', id: x.id, numero: x.numero, validite });
+      toast(`Devis valable jusqu'au ${jourLong(validite)}`, { texte: 'Annuler', faire: () => { operation({ type: 'prolongerDevis', id: x.id, numero: x.numero, validite: ancienne }); if (facturesDlg.open) rendreFactures(); } });
+      rendreFactures();
+    } else if (a === 'facturer') facturerDevis(x);
+    else if (a === 'voir-facture') { const f = factures().find(y => y.id === x.facture); if (f) ouvrirFactures(f.statut === 'brouillon' ? 'edition' : 'voir', f.id); }
+    else if (a === 'version') nouveauDevis({ depuis: x });
+    else if (a === 'email') mailDevis(x);
+    else if (a === 'lien') toast((await copier(lienEspace(clientDe(x.client)))) ? "Lien de l'espace client copié" : 'Copie impossible.');
+    else if (a === 'fiche') { facturesDlg.close(); ouvrirClients(x.client); }
+  }
+
   facturesDlg.addEventListener('change', e => {
     if (e.target.name === 'fa-filtre') { facturesEtat.filtre = e.target.value; rendreFactures(); return; }
+    if (e.target.name === 'de-filtre') { facturesEtat.filtreDevis = e.target.value; rendreFactures(); return; }
     if (e.target.matches('[data-fa-heures]')) {
       const mois = e.target.value;
       e.target.value = '';
@@ -2561,6 +2846,15 @@
       enregistrerBrouillonFacture();
       toast('Brouillon enregistré');
       ouvrirFactures('liste');
+    } else if (e.target.id === 'de-reponse') {
+      const x = devisListe().find(y => y.id === facturesEtat.id);
+      const date = e.target.elements.date.value;
+      if (!x || !DATE.test(date)) return;
+      const avant = { statut: x.statut, reponse: x.reponse || null };
+      const nom = e.target.elements.nom.value.trim().slice(0, 80);
+      operation({ type: 'reponseDevis', id: x.id, numero: x.numero, statut: 'accepte', reponse: { date, le: new Date().toISOString(), par: 'manuel', ...(nom ? { nom } : {}) } });
+      toast(`Devis ${x.numero} accepté 🎉`, { texte: 'Annuler', faire: () => operation({ type: 'reponseDevis', id: x.id, numero: x.numero, ...avant }) });
+      rendreFactures();
     } else if (e.target.id === 'fa-paiement') {
       const f = factures().find(x => x.id === facturesEtat.id);
       const date = e.target.elements.date.value;
@@ -2571,6 +2865,16 @@
     }
   });
   facturesDlg.addEventListener('click', async e => {
+    const onglet = e.target.closest('[data-fa-onglet]');
+    if (onglet) { facturesEtat = { ...facturesEtat, onglet: onglet.dataset.faOnglet, vue: 'liste', id: null }; brouillonFacture = null; rendreFactures(); return; }
+    const ouvrirDv = e.target.closest('[data-de-ouvrir]');
+    if (ouvrirDv) {
+      const x = devisListe().find(y => y.id === ouvrirDv.dataset.deOuvrir);
+      if (x) ouvrirDevis(x.statut === 'brouillon' ? 'edition' : 'voir', x.id);
+      return;
+    }
+    const de = e.target.closest('[data-de]');
+    if (de) { await actionDevis(de.dataset.de); return; }
     const ouvrir = e.target.closest('[data-fa-ouvrir]');
     if (ouvrir) {
       const f = factures().find(x => x.id === ouvrir.dataset.faOuvrir);
@@ -2595,8 +2899,16 @@
       rendreLignesFacture();
       $$('#fa-lignes [data-l="desc"]').pop().focus();
     } else if (a === 'apercu') { lireFormFacture(); F().telecharger(factureComplete(brouillonFacture)); }
-    else if (a === 'emettre') emettreFacture();
-    else if (a === 'supprimer') {
+    else if (a === 'emettre') { if (brouillonFacture && brouillonFacture.type === 'devis') emettreDevis(); else emettreFacture(); }
+    else if (a === 'supprimer' && brouillonFacture && brouillonFacture.type === 'devis') {
+      const ancien = devisListe().find(x => x.id === brouillonFacture.id);
+      if (ancien) {
+        operation({ type: 'supprimerDevis', id: ancien.id, titre: [ancien.clientNom, ancien.objet].filter(Boolean).join(' · ') });
+        toast('Brouillon de devis mis à la corbeille', { texte: 'Annuler', faire: () => operation({ type: 'devis', devis: ancien }) });
+      }
+      brouillonFacture = null;
+      ouvrirFactures('liste');
+    } else if (a === 'supprimer') {
       const ancien = factures().find(x => x.id === brouillonFacture.id);
       if (ancien) {
         operation({ type: 'supprimerFacture', id: ancien.id, titre: [ancien.clientNom, ancien.objet].filter(Boolean).join(' · ') });
@@ -2788,7 +3100,7 @@
 
   /* ---------- Corbeille ---------- */
   const corbeilleDlg = $('#corbeille');
-  const TYPES_CORBEILLE = { rdv: ['calendrier', 'Rendez-vous'], occurrence: ['repete', 'Rendez-vous d\'une série'], tache: ['coche', 'Tâche'], client: ['clients', 'Client'], modele: ['modele', 'Modèle'], facture: ['facture', 'Brouillon de facture'] };
+  const TYPES_CORBEILLE = { rdv: ['calendrier', 'Rendez-vous'], occurrence: ['repete', 'Rendez-vous d\'une série'], tache: ['coche', 'Tâche'], client: ['clients', 'Client'], modele: ['modele', 'Modèle'], facture: ['facture', 'Brouillon de facture'], devis: ['devis', 'Brouillon de devis'] };
   function ouvrirCorbeille() {
     rendreCorbeille();
     corbeilleDlg.showModal();

@@ -18,7 +18,11 @@
      dans le fichier atelier.json du même dépôt privé. Boutons de rôle : n'importe quel
      membre peut cliquer (le bot donne ou retire le rôle, jamais un rôle de modération).
    - Espace client (mvriuus.fr/espace/#…) : un lien secret par client, qui montre ses
-     rendez-vous, l'avancement de son projet et ses factures. Rien d'autre.
+     rendez-vous, l'avancement de son projet, ses devis et ses factures. Rien d'autre.
+     Le client peut y accepter (« Bon pour accord », avec son nom) ou refuser un devis :
+     tu reçois alors un message privé.
+   - Audit de serveur (atelier) : /atelier/serveur renvoie aussi le nombre de membres,
+     l'A2F de modération et les règles AutoMod (si le bot peut les lire).
 
    Variables à créer dans Cloudflare (Worker › Settings › Variables and Secrets) :
      DISCORD_CLIENT_ID      texte   identifiant de l'application Discord
@@ -66,6 +70,7 @@ export default {
       if (chemin === '/atelier/serveur') return await avecCors(() => atelierServeur(req, url, env));
       if (chemin === '/atelier/action') return await avecCors(() => atelierAction(req, env));
       if (chemin === '/espace') return await avecCors(() => espaceClient(req, env));
+      if (chemin === '/espace/devis') return await avecCors(() => reponseDevisClient(req, env, page, ctx));
       if (chemin === '/interactions' && req.method === 'POST') return await interactions(req, env, ctx, page);
       return new Response("Serveur de l'agenda de Mvrius.", { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
     } catch (e) {
@@ -1091,12 +1096,16 @@ async function atelierServeur(req, url, env) {
   const id = url.searchParams.get('id') || '';
   if (!ID.test(id)) return json({ message: 'Serveur inconnu.' }, 400);
   const [g, salons, moi] = await Promise.all([
-    apiDiscord(env, 'GET', `/guilds/${id}`),
+    apiDiscord(env, 'GET', `/guilds/${id}?with_counts=true`),
     apiDiscord(env, 'GET', `/guilds/${id}/channels`),
     apiDiscord(env, 'GET', '/users/@me'),
   ]);
   for (const r of [g, salons, moi]) if (!r.ok) return reponseDiscord(r);
-  const membre = await apiDiscord(env, 'GET', `/guilds/${id}/members/${moi.donnees.id}`);
+  // Règles AutoMod : lisibles seulement si le bot peut « Gérer le serveur » (sinon null, pour l'audit)
+  const [membre, automod] = await Promise.all([
+    apiDiscord(env, 'GET', `/guilds/${id}/members/${moi.donnees.id}`),
+    apiDiscord(env, 'GET', `/guilds/${id}/auto-moderation/rules`),
+  ]);
   if (!membre.ok) return reponseDiscord(membre);
   const roles = g.donnees.roles || [];
   const rolesBot = roles.filter(r => (membre.donnees.roles || []).includes(r.id));
@@ -1106,8 +1115,10 @@ async function atelierServeur(req, url, env) {
     id: d.id, nom: d.name, icone: iconeServeur(d), features: d.features || [],
     verification: d.verification_level, notifications: d.default_message_notifications, filtre: d.explicit_content_filter,
     systeme: d.system_channel_id, reglement: d.rules_channel_id, majs: d.public_updates_channel_id, afk: d.afk_channel_id, afkDelai: d.afk_timeout,
+    mfa: d.mfa_level, membres: d.approximate_member_count ?? null, enLigne: d.approximate_presence_count ?? null,
+    automod: automod.ok && Array.isArray(automod.donnees) ? automod.donnees.map(r => ({ nom: r.name, type: r.trigger_type, actif: !!r.enabled })) : null,
     bot: { id: moi.donnees.id, admin, position: Math.max(0, ...rolesBot.map(r => r.position)) },
-    roles: roles.map(r => ({ id: r.id, nom: r.name, couleur: r.color, permissions: r.permissions, position: r.position, separe: !!r.hoist, mentionnable: !!r.mentionable, gere: !!r.managed })),
+    roles: roles.map(r => ({ id: r.id, nom: r.name, couleur: r.color, permissions: r.permissions, position: r.position, separe: !!r.hoist, mentionnable: !!r.mentionable, gere: !!r.managed, botId: (r.tags && r.tags.bot_id) || null })),
     salons: (salons.donnees || []).map(c => ({
       id: c.id, nom: c.name, type: c.type, parent: c.parent_id || null, position: c.position, sujet: c.topic || '',
       lent: c.rate_limit_per_user || 0, limite: c.user_limit || 0,
@@ -1265,6 +1276,14 @@ async function espaceClient(req, env) {
       vendeur: f.vendeur || {}, acheteur: f.acheteur || {}, paiement: f.paiement ? { date: f.paiement.date } : null,
     }))
     .sort((a, b) => b.date.localeCompare(a.date) || b.numero.localeCompare(a.numero));
+  // Devis émis (pas les brouillons ni les devis retirés) : le client peut répondre à ceux « en attente »
+  const devis = (donnees.devis || []).filter(x => x && x.client === c.id && x.numero && ['envoye', 'accepte', 'refuse'].includes(x.statut))
+    .map(x => ({
+      id: x.id, type: 'devis', numero: x.numero, statut: x.statut, date: x.date, validite: x.validite || null, expire: x.statut === 'envoye' && DATE.test(x.validite) && x.validite < auj,
+      objet: x.objet || '', lignes: x.lignes || [], tva: x.tva ?? null, notes: x.notes || '', vendeur: x.vendeur || {}, acheteur: x.acheteur || {},
+      reponse: x.reponse ? { date: x.reponse.date, nom: x.reponse.nom || '', par: x.reponse.par === 'espace' ? 'espace' : 'manuel' } : null,
+    }))
+    .sort((a, b) => b.date.localeCompare(a.date) || b.numero.localeCompare(a.numero));
   const etapes = (Array.isArray(c.etapes) ? c.etapes : []).filter(e => e && e.t).map(e => ({ t: coupe(e.t, 200), fait: !!e.fait }));
   return json({
     client: { nom: c.nom },
@@ -1272,9 +1291,75 @@ async function espaceClient(req, env) {
     message: c.messageEspace || '',
     projet: c.projet || etapes.length ? { titre: c.projet || '', etapes } : null,
     rdv: { aVenir: occ.filter(x => !x.passe).slice(0, 20).map(({ passe, ...x }) => x), passes: passes.slice(-30).reverse().map(({ passe, statut, ...x }) => x), total: passes.length, minutes: Math.round(passes.reduce((s, x) => s + x.duree, 0)) },
+    devis,
     factures,
     maj: new Date(t).toISOString(),
   }, 200);
+}
+
+// Réponse du client à un devis, depuis son espace : accepté (nom + « Bon pour accord ») ou refusé
+async function reponseDevisClient(req, env, page, ctx) {
+  if (req.method !== 'POST') return json({ message: 'Méthode refusée.' }, 405);
+  const cle = (req.headers.get('Authorization') || '').replace(/^Cle\s+/i, '');
+  if (!/^[A-Za-z0-9_-]{20,80}$/.test(cle)) return json({ message: "Ce lien n'est pas valide." }, 401);
+  let corps;
+  try { corps = await req.json(); } catch (e) { return json({ message: 'Requête invalide.' }, 400); }
+  const texte = (v, n) => String(v || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').trim().slice(0, n);
+  const action = ['accepter', 'refuser'].includes(corps && corps.action) ? corps.action : '';
+  const nom = texte(corps && corps.nom, 80);
+  const motif = texte(corps && corps.motif, 500);
+  if (!action || typeof corps.id !== 'string' || corps.id.length > 40) return json({ message: 'Requête invalide.' }, 400);
+  if (action === 'accepter' && nom.length < 2) return json({ message: 'Indiquez votre nom pour accepter le devis.' }, 400);
+  if (action === 'accepter' && corps.accord !== true) return json({ message: 'Cochez « Bon pour accord » pour accepter le devis.' }, 400);
+  const t = Date.now();
+  const auj = jourParis(t);
+  let raison = '';
+  let client = null;
+  const { resultat } = await modifierAgenda(env, `Devis ${action === 'accepter' ? 'accepté' : 'refusé'} depuis l'espace client`, donnees => {
+    raison = '';
+    const c = (donnees.clients || []).find(x => x && x.espace && x.espace.cle === cle && x.espace.actif !== false);
+    if (!c) { raison = 'lien'; return false; }
+    client = c;
+    const x = (donnees.devis || []).find(y => y && y.id === corps.id && y.client === c.id && y.numero);
+    if (!x) { raison = 'introuvable'; return false; }
+    if (x.statut !== 'envoye') { raison = x.statut === 'accepte' ? 'deja' : 'ferme'; return false; }
+    if (DATE.test(x.validite) && x.validite < auj) { raison = 'expire'; return false; }
+    const le = new Date(t).toISOString();
+    x.statut = action === 'accepter' ? 'accepte' : 'refuse';
+    x.reponse = { date: auj, le, par: 'espace', ...(nom ? { nom } : {}), ...(motif ? { motif } : {}) };
+    x.modifie = le;
+    return JSON.parse(JSON.stringify(x));
+  });
+  if (!resultat) {
+    const messages = {
+      lien: "Ce lien n'est plus valide. Demandez un nouveau lien à Mvrius.",
+      introuvable: 'Ce devis est introuvable.',
+      deja: 'Ce devis a déjà été accepté.',
+      ferme: "Ce devis n'attend plus de réponse.",
+      expire: 'Ce devis a expiré : demandez-en une nouvelle version à Mvrius.',
+    };
+    return json({ message: messages[raison] || "La réponse n'a pas pu être enregistrée." }, raison === 'lien' ? 404 : 409);
+  }
+  if (env.DISCORD_BOT_TOKEN) {
+    ctx.waitUntil(connecterBot(env).catch(() => {}).then(() => envoyerMp(env, messageDevis(resultat, client || {}, page))).catch(e => console.error(`Devis : MP non envoyé — ${e.message}`)));
+  }
+  return json({ ok: true, statut: resultat.statut, reponse: { date: resultat.reponse.date, nom: resultat.reponse.nom || '', par: 'espace' } }, 200);
+}
+
+function messageDevis(x, c, page) {
+  const ok = x.statut === 'accepte';
+  const champs = [{ name: 'Client', value: coupe(c.nom || '—', 100), inline: true }, { name: 'Montant', value: eurosTexte(totalFacture(x)), inline: true }];
+  if (ok && x.reponse.nom) champs.push({ name: 'Signé par', value: coupe(x.reponse.nom, 100), inline: true });
+  if (x.objet) champs.push({ name: 'Objet', value: coupe(x.objet, 1024) });
+  if (!ok && x.reponse.motif) champs.push({ name: 'Motif', value: coupe(x.reponse.motif, 1024) });
+  return {
+    embeds: [{
+      title: coupe(`${ok ? '✅ Devis accepté' : '❌ Devis refusé'} : ${x.numero}`, 256),
+      description: ok ? "Bon pour accord donné depuis l'espace client. Crée la facture depuis l'agenda (Devis et factures)." : "Refusé depuis l'espace client.",
+      color: ok ? 0x3ddc84 : 0xff6b8b, url: page, fields: champs,
+    }],
+    components: [lienAgenda(page)],
+  };
 }
 
 /* ---------- Jours fériés (France métropolitaine) ---------- */

@@ -1,6 +1,6 @@
 /* ==========================================================================
-   Factures de Mvrius — calculs, aperçu et PDF
-   Partagé par l'agenda (création des factures) et l'espace client (téléchargement).
+   Factures et devis de Mvrius — calculs, aperçu et PDF
+   Partagé par l'agenda (création) et l'espace client (téléchargement, acceptation des devis).
    Le PDF est fabriqué ici, sans bibliothèque : polices standard Helvetica,
    encodage WinAnsi (accents, €, guillemets français).
    ========================================================================== */
@@ -31,7 +31,13 @@
     const max = (factures || []).reduce((m, f) => { const x = motif.exec((f && f.numero) || ''); return x ? Math.max(m, Number(x[1])) : m; }, 0);
     return `${prefixe}-${annee}-${String(max + 1).padStart(3, '0')}`;
   }
-  const nomFichier = f => `${f.type === 'avoir' ? 'avoir' : 'facture'}-${String(f.numero || 'brouillon').replace(/[^\w-]+/g, '')}.pdf`;
+  const nomFichier = f => `${f.type === 'avoir' ? 'avoir' : f.type === 'devis' ? 'devis' : 'facture'}-${String(f.numero || 'brouillon').replace(/[^\w-]+/g, '')}.pdf`;
+  // Devis : texte de l'acceptation (« Bon pour accord »), ou '' s'il n'est pas accepté
+  function accordTexte(f) {
+    if (f.type !== 'devis' || f.statut !== 'accepte' || !f.reponse) return '';
+    const r = f.reponse;
+    return `Bon pour accord : devis accepté le ${dateLongue(r.date)}${r.nom ? ` par ${r.nom}` : ''}${r.par === 'espace' ? ", depuis l'espace client" : ''}.`;
+  }
 
   /* ---------- Aperçu (HTML) ---------- */
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -44,19 +50,23 @@
     const v = f.vendeur || {};
     const a = f.acheteur || {};
     const avoir = f.type === 'avoir';
+    const devis = f.type === 'devis';
     const lignes = t.lignes.map(l => `<tr><td>${esc(l.desc).replace(/\n/g, '<br>')}</td><td class="fx-n">${esc(nombre(Number(l.qte) || 0))}${l.unite && l.unite !== 'unite' ? ` ${esc(uniteDe(l.unite))}` : ''}</td><td class="fx-n">${esc(euros(Number(l.pu) || 0))}</td><td class="fx-n">${esc(euros(l.total))}</td></tr>`).join('');
     return `<article class="fx">`
       + `<header class="fx-tete"><div><b class="fx-vendeur">${esc(v.nom || 'Mvrius')}</b>${coordonnees(v).map(x => `<span>${esc(x)}</span>`).join('')}</div>`
-      + `<div class="fx-titre"><b>${avoir ? 'Avoir' : 'Facture'}</b><span>${f.numero ? `N° ${esc(f.numero)}` : 'Brouillon (pas encore numérotée)'}</span><span>Date : ${esc(dateLongue(f.date))}</span>${!avoir && f.echeance ? `<span>Échéance : ${esc(dateLongue(f.echeance))}</span>` : ''}</div></header>`
-      + `<section class="fx-client"><small>${avoir ? 'Client' : 'Facturé à'}</small><b>${esc(a.nom || '—')}</b>${coordonnees(a).map(x => `<span>${esc(x)}</span>`).join('')}</section>`
+      + `<div class="fx-titre"><b>${avoir ? 'Avoir' : devis ? 'Devis' : 'Facture'}</b><span>${f.numero ? `N° ${esc(f.numero)}` : `Brouillon (pas encore numéroté${devis ? '' : 'e'})`}</span><span>Date : ${esc(dateLongue(f.date))}</span>`
+      + `${devis && f.validite ? `<span>Valable jusqu'au ${esc(dateLongue(f.validite))}</span>` : ''}${!avoir && !devis && f.echeance ? `<span>Échéance : ${esc(dateLongue(f.echeance))}</span>` : ''}</div></header>`
+      + `<section class="fx-client"><small>${avoir || devis ? 'Client' : 'Facturé à'}</small><b>${esc(a.nom || '—')}</b>${coordonnees(a).map(x => `<span>${esc(x)}</span>`).join('')}</section>`
       + (f.objet ? `<p class="fx-objet"><b>Objet :</b> ${esc(f.objet)}</p>` : '')
       + (avoir && f.refNumero ? `<p class="fx-objet">Avoir relatif à la facture n° ${esc(f.refNumero)}.</p>` : '')
       + `<table class="fx-table"><thead><tr><th>Description</th><th class="fx-n">Qté</th><th class="fx-n">Prix unitaire${t.taux ? ' HT' : ''}</th><th class="fx-n">Total${t.taux ? ' HT' : ''}</th></tr></thead><tbody>${lignes || '<tr><td colspan="4" class="fx-vide">Aucune ligne</td></tr>'}</tbody></table>`
       + `<dl class="fx-totaux">${t.taux ? `<div><dt>Total HT</dt><dd>${esc(euros(t.ht))}</dd></div><div><dt>TVA ${esc(nombre(t.taux))} %</dt><dd>${esc(euros(t.tva))}</dd></div><div class="fx-ttc"><dt>Total TTC</dt><dd>${esc(euros(t.ttc))}</dd></div>`
         : `<div class="fx-ttc"><dt>Total</dt><dd>${esc(euros(t.ttc))}</dd></div><p class="fx-franchise">${FRANCHISE}</p>`}</dl>`
-      + (f.paiement && f.paiement.date ? `<p class="fx-paye">${avoir ? 'Remboursé' : 'Payée'} le ${esc(dateLongue(f.paiement.date))}</p>`
+      + (devis ? (f.validite ? `<p class="fx-reglement">Devis valable jusqu'au ${esc(dateLongue(f.validite))}.</p>` : '')
+        : f.paiement && f.paiement.date ? `<p class="fx-paye">${avoir ? 'Remboursé' : 'Payée'} le ${esc(dateLongue(f.paiement.date))}</p>`
         : !avoir && (v.iban || v.bic) ? `<p class="fx-reglement"><b>Paiement par virement</b>${v.iban ? ` · IBAN ${esc(v.iban)}` : ''}${v.bic ? ` · BIC ${esc(v.bic)}` : ''}</p>` : '')
       + (f.notes ? `<p class="fx-notes">${esc(f.notes).replace(/\n/g, '<br>')}</p>` : '')
+      + (devis ? (accordTexte(f) ? `<p class="fx-paye">${esc(accordTexte(f))}</p>` : '<div class="fx-accord"><b>Bon pour accord</b><span>Date, nom et signature du client</span></div>') : '')
       + `<footer class="fx-pied">${esc(v.mentions || MENTIONS)}</footer></article>`;
   }
 
@@ -122,17 +132,20 @@
     const v = f.vendeur || {};
     const a = f.acheteur || {};
     const avoir = f.type === 'avoir';
-    const tete = f.numero ? `${avoir ? 'Avoir' : 'Facture'} n° ${f.numero}` : 'Brouillon';
+    const devis = f.type === 'devis';
+    const nature = avoir ? 'Avoir' : devis ? 'Devis' : 'Facture';
+    const tete = f.numero ? `${nature} n° ${f.numero}` : devis ? 'Brouillon de devis' : 'Brouillon';
     nouvellePage();
 
     // En-tête : vendeur à gauche, titre à droite
     texte(M, y + 16, v.nom || 'Mvrius', { gras: true, taille: 18 });
     let yg = y + 34;
     for (const l of coordonnees(v)) for (const x of couper(l, LARGE * 0.5, false, 8.8)) { texte(M, yg, x, { taille: 8.8, couleur: GRIS }); yg += 12; }
-    texte(W - M, y + 18, avoir ? 'AVOIR' : 'FACTURE', { gras: true, taille: 22, couleur: OR, align: 'd' });
+    texte(W - M, y + 18, nature.toUpperCase(), { gras: true, taille: 22, couleur: OR, align: 'd' });
     let yd = y + 38;
-    const droite = [[f.numero ? `N° ${f.numero}` : 'Brouillon (non numérotée)', true], [`Date : ${dateLongue(f.date)}`, false]];
-    if (!avoir && f.echeance) droite.push([`Échéance : ${dateLongue(f.echeance)}`, false]);
+    const droite = [[f.numero ? `N° ${f.numero}` : `Brouillon (non numéroté${devis ? '' : 'e'})`, true], [`Date : ${dateLongue(f.date)}`, false]];
+    if (devis && f.validite) droite.push([`Valable jusqu'au ${dateLongue(f.validite)}`, false]);
+    else if (!avoir && !devis && f.echeance) droite.push([`Échéance : ${dateLongue(f.echeance)}`, false]);
     for (const [l, g] of droite) { texte(W - M, yd, l, { gras: g, taille: 9.5, align: 'd' }); yd += 14; }
     y = Math.max(yg, yd) + 18;
 
@@ -141,7 +154,7 @@
     const lignesClient = [a.nom || '—', ...coordonnees(a)].flatMap((l, k) => couper(l, W - M - xc - 16, k === 0, k === 0 ? 11 : 9));
     const hClient = 30 + lignesClient.length * 13;
     rect(xc, y, W - M - xc, hClient, FOND);
-    texte(xc + 12, y + 17, avoir ? 'CLIENT' : 'FACTURÉ À', { gras: true, taille: 7.5, couleur: GRIS });
+    texte(xc + 12, y + 17, avoir || devis ? 'CLIENT' : 'FACTURÉ À', { gras: true, taille: 7.5, couleur: GRIS });
     lignesClient.forEach((l, k) => texte(xc + 12, y + 33 + k * 13, l, { gras: k === 0, taille: k === 0 ? 11 : 9, couleur: k === 0 ? ENCRE : GRIS }));
     y += hClient + 22;
     if (f.objet) { for (const l of couper(`Objet : ${f.objet}`, LARGE, false, 10)) { texte(M, y, l, { taille: 10 }); y += 14; } y += 4; }
@@ -187,7 +200,8 @@
 
     // Paiement, notes
     const blocs = [];
-    if (f.paiement && f.paiement.date) blocs.push([`${avoir ? 'Remboursé' : 'Payée'} le ${dateLongue(f.paiement.date)}.`, true]);
+    if (devis) { if (f.validite) blocs.push([`Devis valable jusqu'au ${dateLongue(f.validite)}.`, true]); }
+    else if (f.paiement && f.paiement.date) blocs.push([`${avoir ? 'Remboursé' : 'Payée'} le ${dateLongue(f.paiement.date)}.`, true]);
     else if (!avoir) {
       if (f.echeance) blocs.push([`À régler au plus tard le ${dateLongue(f.echeance)}.`, true]);
       if (v.iban) blocs.push([`Paiement par virement : IBAN ${v.iban}${v.bic ? ` · BIC ${v.bic}` : ''}`, false]);
@@ -199,6 +213,22 @@
         texte(M, y, l, { gras: g, taille: 9.5 }); y += 13.5;
       }
       y += 5;
+    }
+    // Devis : acceptation, ou cadre « Bon pour accord » à signer
+    if (devis) {
+      const accord = accordTexte(f);
+      if (accord) {
+        for (const l of couper(accord, LARGE, true, 9.5)) { if (y + 14 > BAS) nouvellePage(); texte(M, y + 6, l, { gras: true, taille: 9.5, couleur: OR }); y += 13.5; }
+      } else {
+        const hCadre = 78;
+        if (y + hCadre + 10 > BAS) nouvellePage();
+        const xa = M + LARGE * 0.5;
+        y += 6;
+        ops.push(`${couleurPdf(TRAIT)} RG 0.8 w ${fx(xa)} ${fx(H - y - hCadre)} ${fx(W - M - xa)} ${fx(hCadre)} re S`);
+        texte(xa + 12, y + 17, 'BON POUR ACCORD', { gras: true, taille: 8, couleur: GRIS });
+        texte(xa + 12, y + 30, 'Date, nom et signature du client', { taille: 8, couleur: GRIS });
+        y += hCadre;
+      }
     }
 
     // Pied de page : mentions sur chaque page, numéro de page
@@ -248,5 +278,5 @@
     setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
 
-  window.Facture = { MENTIONS, FRANCHISE, UNITES, MODES, totaux, euros, nombre, dateLongue, numeroSuivant, nomFichier, html, pdf, telecharger };
+  window.Facture = { MENTIONS, FRANCHISE, UNITES, MODES, totaux, euros, nombre, dateLongue, numeroSuivant, nomFichier, accordTexte, html, pdf, telecharger };
 })();

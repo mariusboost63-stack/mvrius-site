@@ -95,3 +95,23 @@ body {
   .e-f-boutons { grid-column: 2; grid-row: 2; justify-self: end; }
   .e-prive { display: none; }
 }
+
+/* Devis : bandeau « à valider », réponse du client */
+.e-attente { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 16px 18px; border-radius: 18px; border: 1px solid rgba(232, 180, 106, .45); background: linear-gradient(160deg, rgba(232, 180, 106, .16), rgba(232, 180, 106, .03)); }
+.e-attente > div { flex: 1; min-width: min(100%, 240px); }
+.e-attente b { display: block; font: 700 17px var(--f-titre); }
+.e-attente p { color: var(--doux); font-size: 14px; }
+.e-attente-ic { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; background: rgba(232, 180, 106, .16); color: var(--accent); }
+.e-attente-ic .i { width: 22px; height: 22px; }
+.e-accord { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; padding: 18px; border-radius: 16px; border: 1px solid rgba(232, 180, 106, .35); background: rgba(232, 180, 106, .05); }
+.e-accord h3 { font: 700 18px var(--f-titre); }
+.e-accord .r-aide b { color: var(--texte); }
+.e-coche { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 14px; }
+.e-coche input { flex: none; width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); }
+.e-refus[hidden] { display: none; }
+.e-accord-boutons { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.e-reponse { display: flex; align-items: flex-start; gap: 10px; margin-top: 4px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--ligne-2); background: rgba(245, 236, 222, .03); color: var(--doux); }
+.e-reponse .i { flex: none; width: 18px; height: 18px; margin-top: 2px; color: var(--accent); }
+.e-reponse a { color: var(--accent); }
+.e-reponse--ok { border-color: rgba(61, 220, 132, .35); background: rgba(61, 220, 132, .07); color: var(--texte); }
+.e-reponse--ok .i { color: var(--ok); }

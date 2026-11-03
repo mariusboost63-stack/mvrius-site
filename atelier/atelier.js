@@ -319,12 +319,14 @@ ${accepte}`;
     aEnregistrer: new Set(),
     aSupprimer: new Set(),
     id: null, // modèle ouvert
-    vue: 'modele', // modele | envoyer | importer | accueil
+    vue: 'modele', // modele | envoyer | importer | audit | accueil
     onglet: 'roles',
     ouverts: new Set(), // rôles / salons dépliés
     message: null, // message déplié dans l'onglet Messages
     guildes: null,
     serveurs: new Map(), // détails des serveurs déjà chargés
+    audits: [], // historique des audits (notes), dans atelier.json
+    audit: {}, // audit affiché
   };
   const modele = () => etat.modeles.find(m => m.id === etat.id) || null;
 
@@ -456,6 +458,7 @@ ${accepte}`;
       const { donnees, sha } = await lireFichier();
       etat.sha = sha;
       etat.modeles = donnees.modeles;
+      etat.audits = Array.isArray(donnees.audits) ? donnees.audits.filter(x => x && x.guilde) : [];
       // Modifications pas encore enregistrées lors de la dernière visite
       const b = stock.lire(STOCK.brouillon, null);
       if (b && ((b.aEnregistrer || []).length || (b.aSupprimer || []).length)) {
@@ -499,6 +502,7 @@ ${accepte}`;
     const main = $('#main');
     if (etat.vue === 'envoyer') { rendreEnvoyer(main); return; }
     if (etat.vue === 'importer') { rendreImporter(main); return; }
+    if (etat.vue === 'audit') { rendreAudit(main); return; }
     const m = modele();
     if (!m) { rendreAccueil(main); return; }
     stock.ecrire(STOCK.dernier, m.id);
@@ -1195,6 +1199,280 @@ ${accepte}`;
     };
   }
 
+  /* ---------- Outil : auditer un serveur ---------- */
+  // Le bot lit la structure du serveur (rôles, permissions, salons, réglages) : aucune lecture de
+  // messages, aucun changement. Chaque point a une gravité, qui retire des points à la note sur 100.
+  const GRAVITES = { critique: ['Critique', '#ff6b8b', 20], important: ['Important', '#f5b971', 8], conseil: ['Conseil', '#8b9bff', 3] };
+  const CATS_AUDIT = { securite: 'Sécurité', organisation: 'Organisation', confort: 'Confort des membres' };
+  const VERIFICATIONS = ['Aucune', 'Faible', 'Moyenne', 'Élevée', 'Très élevée'];
+  // Ce que @everyone (tous les membres, même les nouveaux) ne devrait jamais avoir
+  const DANGER_EVERYONE = ['MANAGE_GUILD', 'MANAGE_ROLES', 'MANAGE_CHANNELS', 'MANAGE_WEBHOOKS', 'BAN_MEMBERS', 'KICK_MEMBERS', 'MODERATE_MEMBERS', 'MANAGE_MESSAGES', 'MANAGE_NICKNAMES', 'MANAGE_GUILD_EXPRESSIONS', 'MANAGE_THREADS', 'MANAGE_EVENTS', 'VIEW_AUDIT_LOG', 'MUTE_MEMBERS', 'DEAFEN_MEMBERS', 'MOVE_MEMBERS'];
+  // … et dans un salon précis (permission spéciale pour @everyone)
+  const DANGER_SALON = ['MANAGE_CHANNELS', 'MANAGE_ROLES', 'MANAGE_WEBHOOKS', 'MANAGE_MESSAGES', 'MANAGE_THREADS', 'MENTION_EVERYONE', 'MUTE_MEMBERS', 'DEAFEN_MEMBERS', 'MOVE_MEMBERS'];
+  const VERDICTS = [
+    [85, 'Serveur solide 💪', 'Les fondations sont saines : les conseils restants sont des finitions.'],
+    [65, 'Bonne base, à optimiser', "L'essentiel est là, mais quelques réglages feraient vraiment la différence."],
+    [40, 'Des points importants à corriger', 'Le serveur fonctionne, mais il est exposé ou difficile à prendre en main pour un nouveau.'],
+    [0, "Une remise à plat s'impose", 'Sécurité et organisation sont à reprendre avant de chercher à faire grandir la communauté.'],
+  ];
+
+  function auditer(s) {
+    const problemes = [];
+    const forts = [];
+    const notes = [];
+    const ajouter = (cat, gravite, titre, texte, conseil, details = []) => problemes.push({ cat, gravite, titre, texte, conseil, details });
+    const bitsDe2 = v => { try { return BigInt(v || '0'); } catch (e) { return 0n; } };
+    const a = (b, k) => (b & PERM[k].bit) === PERM[k].bit;
+    const membres = Number.isFinite(s.membres) ? s.membres : null;
+    const everyone = s.roles.find(r => r.id === s.id) || { permissions: '0' };
+    const roles = s.roles.filter(r => r.id !== s.id);
+    const humains = roles.filter(r => !r.gere);
+    const salons = s.salons.filter(c => c.type !== 4);
+    const cats = s.salons.filter(c => c.type === 4);
+    const nomSalon = c => (c.type === 4 ? `Catégorie ${c.nom}` : [2, 13].includes(c.type) ? `🔊 ${c.nom}` : `#${c.nom}`);
+    const nomPropre = c => sansAccents(c.nom);
+    const trouve = re => salons.find(c => re.test(nomPropre(c)));
+    const perm = k => PERM[k].nom.charAt(0).toLowerCase() + PERM[k].nom.slice(1);
+
+    /* Sécurité */
+    const be = bitsDe2(everyone.permissions);
+    if (a(be, 'ADMINISTRATOR')) {
+      ajouter('securite', 'critique', '@everyone est administrateur', "Tous les membres, même ceux qui viennent d'arriver, ont toutes les permissions : n'importe qui peut supprimer les salons, bannir le staff ou tout casser.", 'Paramètres du serveur › Rôles › @everyone : décoche « Administrateur ».');
+    } else {
+      const dang = DANGER_EVERYONE.filter(k => a(be, k));
+      if (dang.length) ajouter('securite', 'critique', `@everyone a ${dang.length > 1 ? `${dang.length} permissions` : 'une permission'} de modération`, 'Ces permissions sont données à tous les membres, y compris aux nouveaux venus et aux comptes créés pour un raid.', 'Paramètres du serveur › Rôles › @everyone : décoche-les, et donne-les seulement aux rôles du staff.', dang.map(k => PERM[k].nom));
+      else forts.push('@everyone sans permission de modération');
+      if (a(be, 'MENTION_EVERYONE')) ajouter('securite', 'important', 'Tout le monde peut mentionner @everyone', "N'importe quel membre peut notifier tout le serveur d'un coup et mentionner tous les rôles : c'est l'arme préférée des raids et du spam.", 'Paramètres du serveur › Rôles › @everyone : décoche « Mentionner @everyone, @here et tous les rôles ».');
+    }
+    const ouverts = [];
+    for (const c of s.salons) {
+      for (const o of c.perms || []) {
+        if (o.id !== s.id) continue;
+        const l = DANGER_SALON.filter(k => a(bitsDe2(o.allow), k));
+        if (l.length) ouverts.push(`${nomSalon(c)} : ${l.map(perm).join(', ')}`);
+      }
+    }
+    if (ouverts.length) ajouter('securite', 'important', ouverts.length > 1 ? `${ouverts.length} salons donnent trop de droits à @everyone` : 'Un salon donne trop de droits à @everyone', "Une permission spéciale y autorise tous les membres à gérer le salon, ses messages, ses webhooks ou les vocaux.", 'Modifier le salon › Permissions › @everyone : remets ces permissions sur « / » (neutre) ou sur ✕.', ouverts);
+    const admins = humains.filter(r => a(bitsDe2(r.permissions), 'ADMINISTRATOR'));
+    if (admins.length >= 3) ajouter('securite', 'important', `${admins.length} rôles sont administrateurs`, "Un rôle administrateur a tous les droits, sans aucune limite. Plus il y en a, plus un compte piraté ou une fausse manipulation peut faire de dégâts.", 'Garde un seul rôle administrateur (celui du fondateur) et donne au staff des permissions précises : modération, gestion des salons, des rôles…', admins.map(r => r.nom));
+    else if (admins.length) forts.push(admins.length === 1 ? 'Un seul rôle administrateur' : 'Deux rôles administrateurs seulement');
+    // botId n'existe qu'avec la dernière version du serveur de l'agenda : sans lui, on ne saurait pas reconnaître ton propre bot
+    if (roles.some(r => r.botId !== undefined)) {
+      const botsAdmin = roles.filter(r => r.gere && r.botId && r.botId !== s.bot.id && a(bitsDe2(r.permissions), 'ADMINISTRATOR'));
+      if (botsAdmin.length) ajouter('securite', 'important', botsAdmin.length > 1 ? `${botsAdmin.length} bots ont « Administrateur »` : 'Un bot a « Administrateur »', "Un bot administrateur peut tout faire sur le serveur : si son compte est piraté ou s'il a une faille, le serveur entier est exposé.", "Retire « Administrateur » de son rôle et donne-lui seulement ce dont il a besoin (gérer les messages, les rôles, expulser…).", botsAdmin.map(r => r.nom));
+    }
+    if (s.mfa === 0) ajouter('securite', 'important', "L'A2F n'est pas exigée pour modérer", "Un modérateur dont le compte est piraté peut bannir, expulser ou supprimer des messages, même sans double authentification sur son compte.", "Paramètres du serveur › Sécurité : exige l'authentification à deux facteurs (A2F) pour les actions de modération. Seul le propriétaire peut l'activer, avec l'A2F sur son propre compte.");
+    else if (s.mfa === 1) forts.push('A2F exigée pour la modération');
+    if (s.verification === 0) ajouter('securite', 'important', 'Aucun niveau de vérification', "N'importe quel compte peut écrire dès son arrivée, même sans adresse e-mail vérifiée : la porte est grande ouverte aux comptes jetables.", 'Paramètres du serveur › Sécurité › Niveau de vérification : choisis au moins « Moyen » (e-mail vérifié et compte créé depuis plus de 5 minutes).');
+    else if (s.verification === 1 && membres >= 1000) ajouter('securite', 'conseil', 'Vérification faible pour un serveur de cette taille', 'Avec le niveau « Faible », un compte créé il y a une minute peut écrire tout de suite : pratique pour les raids.', 'Paramètres du serveur › Sécurité › Niveau de vérification : passe à « Moyen » ou « Élevé ».');
+    else if (Number.isFinite(s.verification) && VERIFICATIONS[s.verification]) forts.push(`Vérification : ${VERIFICATIONS[s.verification].toLowerCase()}`);
+    if (s.filtre === 0) ajouter('securite', 'important', 'Le filtre de contenu explicite est désactivé', "Les images et vidéos choquantes envoyées sur le serveur ne sont pas analysées ni bloquées.", 'Paramètres du serveur › Sécurité › Filtre de contenu explicite : « Filtrer les messages de tous les membres ».');
+    else if (s.filtre === 1) ajouter('securite', 'conseil', 'Le filtre de contenu ne surveille que les membres sans rôle', "Dès qu'un membre a un rôle (souvent juste après avoir accepté le règlement), ses images ne sont plus analysées.", 'Paramètres du serveur › Sécurité › Filtre de contenu explicite : « Filtrer les messages de tous les membres ».');
+    else if (s.filtre === 2) forts.push('Filtre de contenu explicite actif pour tous');
+    if (Array.isArray(s.automod)) {
+      const actives = s.automod.filter(r => r.actif);
+      if (!actives.length) ajouter('securite', membres >= 500 ? 'important' : 'conseil', 'Aucune règle AutoMod active', "L'AutoMod de Discord bloque le spam, les mentions de masse et les mots interdits avant même qu'un modérateur ne les voie.", 'Paramètres du serveur › AutoMod : active au moins le blocage du spam de mentions et du contenu suspect, et ajoute tes mots interdits.');
+      else forts.push(`AutoMod : ${actives.length} règle${actives.length > 1 ? 's' : ''} active${actives.length > 1 ? 's' : ''}`);
+    } else if (s.automod === null) {
+      notes.push("AutoMod non vérifié : le bot n'a pas la permission « Gérer le serveur » sur ce serveur.");
+    }
+
+    /* Organisation */
+    const regles = (s.reglement && salons.find(c => c.id === s.reglement)) || trouve(/regle|reglement|rules|charte|cgu/);
+    if (!regles) ajouter('organisation', 'important', 'Pas de salon de règlement', "Sans règlement visible, les modérateurs n'ont rien sur quoi s'appuyer pour sanctionner, et les nouveaux ne savent pas ce qui est attendu d'eux.", 'Crée un salon #règlement en lecture seule, tout en haut, avec des règles courtes. Idéal : le faire accepter avec un bouton qui débloque le reste du serveur.');
+    else forts.push(`Règlement : ${nomSalon(regles)}`);
+    const accueil = (s.systeme && salons.find(c => c.id === s.systeme)) || trouve(/bienvenue|welcome|arrivee|arrival/);
+    if (!accueil) ajouter('organisation', 'conseil', "Pas de salon d'arrivée", "Les nouveaux membres arrivent sans message d'accueil ni repère pour savoir par où commencer.", "Crée un salon #bienvenue et choisis-le dans Paramètres du serveur › Vue d'ensemble › Salon des messages système, avec un message épinglé qui présente le serveur.");
+    else forts.push(`Accueil : ${nomSalon(accueil)}`);
+    if (!salons.some(c => c.type === 5) && !trouve(/annonce|news|nouveaute|announcement/)) ajouter('organisation', 'conseil', "Pas de salon d'annonces", 'Les informations importantes se perdent au milieu des discussions.', 'Crée un salon #annonces en lecture seule, où seul le staff écrit, et propose un rôle pour être notifié.');
+    const libres = salons.filter(c => !c.parent);
+    if (libres.length >= 3) ajouter('organisation', 'conseil', `${libres.length} salons hors catégorie`, "Les salons sans catégorie s'affichent tout en haut, en vrac : la liste devient difficile à lire.", 'Range-les dans des catégories (Accueil, Communauté, Vocal…) en les faisant glisser dans Discord.', libres.slice(0, 12).map(nomSalon));
+    const vides = cats.filter(c => !salons.some(x => x.parent === c.id));
+    if (vides.length) ajouter('organisation', 'conseil', vides.length > 1 ? `${vides.length} catégories vides` : 'Une catégorie vide', 'Une catégorie sans salon encombre la liste pour rien.', 'Supprime-la, ou range-y les salons qui lui correspondent.', vides.map(c => c.nom));
+    if (salons.length > 60) ajouter('organisation', salons.length > 120 ? 'important' : 'conseil', `${salons.length} salons`, "Au-delà de 40 à 50 salons, un nouveau ne sait plus où parler et l'activité se disperse : beaucoup de salons restent vides.", 'Fusionne les salons peu actifs, archive les anciens et regroupe les sujets proches (un forum remplace bien plusieurs salons).');
+    else if (salons.length && libres.length < 3 && !vides.length) forts.push(`${salons.length} salons bien rangés en ${cats.length} catégorie${cats.length > 1 ? 's' : ''}`);
+    const textes = salons.filter(c => [0, 5, 15].includes(c.type));
+    const sansSujet = textes.filter(c => !String(c.sujet || '').trim());
+    if (textes.length >= 4 && sansSujet.length / textes.length >= 0.5) ajouter('organisation', 'conseil', `${sansSujet.length} salons sur ${textes.length} sans description`, "La description (le sujet du salon) s'affiche en haut : elle dit en une phrase à quoi sert le salon.", 'Modifier le salon › Sujet du salon : une phrase suffit (« Présente-toi en quelques mots ! »).', sansSujet.slice(0, 12).map(nomSalon));
+    const groupes = (liste, cle) => { const m = new Map(); liste.forEach(x => { const k = cle(x); m.set(k, [...(m.get(k) || []), x]); }); return [...m.values()].filter(l => l.length > 1); };
+    const rolesDoubles = groupes(humains, r => cleNom(r.nom));
+    if (rolesDoubles.length) ajouter('organisation', 'conseil', rolesDoubles.length > 1 ? `${rolesDoubles.length} noms de rôles en double` : 'Un nom de rôle en double', 'Deux rôles qui portent le même nom sèment le doute : lequel donner, lequel a les bonnes permissions ?', "Garde un seul rôle et supprime l'autre, après avoir déplacé ses membres.", rolesDoubles.map(l => `${l[0].nom} (×${l.length})`));
+    const salonsDoubles = groupes(salons, c => `${c.parent || ''}|${[2, 13].includes(c.type) ? 'v' : 't'}|${cleNom(c.nom)}`);
+    if (salonsDoubles.length) ajouter('organisation', 'conseil', salonsDoubles.length > 1 ? `${salonsDoubles.length} noms de salons en double` : 'Un nom de salon en double', 'Deux salons identiques dans la même catégorie partagent la discussion en deux.', "Garde-en un seul, ou renomme-les pour qu'on sache lequel utiliser.", salonsDoubles.map(l => `${nomSalon(l[0])} (×${l.length})`));
+    const sansNom = humains.filter(r => /^(new role|nouveau role|nouveau-role)$/.test(sansAccents(r.nom).trim()));
+    if (sansNom.length) ajouter('organisation', 'conseil', sansNom.length > 1 ? `${sansNom.length} rôles jamais renommés` : 'Un rôle jamais renommé', "Un rôle « nouveau rôle » oublié est souvent un reste de test, parfois avec des permissions qu'on ne surveille plus.", "Renomme-le s'il sert, sinon supprime-le.", sansNom.map(r => r.nom));
+    if (humains.length > 100) ajouter('organisation', 'conseil', `${humains.length} rôles`, 'Avec autant de rôles, les permissions deviennent impossibles à vérifier et la liste des rôles illisible.', 'Supprime les rôles inutilisés et regroupe les rôles cosmétiques (couleurs, jeux…) dans un menu de sélection.');
+    if (humains.length >= 2 && !humains.some(r => r.separe)) ajouter('organisation', 'conseil', 'Aucun rôle affiché à part', 'Dans la liste des membres, le staff est mélangé avec tout le monde : les nouveaux ne savent pas à qui s\'adresser.', 'Paramètres du serveur › Rôles › (rôle du staff) : active « Afficher les membres ayant ce rôle séparément ».');
+
+    /* Confort des membres */
+    if (s.notifications === 0) ajouter('confort', membres === null || membres >= 50 ? 'important' : 'conseil', 'Notifications réglées sur « Tous les messages »', "Chaque nouveau membre reçoit une notification pour chaque message envoyé : beaucoup coupent le serveur, ou le quittent, dans les premières heures.", "Paramètres du serveur › Vue d'ensemble › Paramètres de notification par défaut : « Mentions uniquement ».");
+    else if (s.notifications === 1) forts.push('Notifications par défaut : mentions uniquement');
+    if (membres >= 1000) {
+      const rapides = salons.filter(c => c.type === 0 && !c.lent && /general|discussion|chat|blabla|tchat/.test(nomPropre(c)));
+      if (rapides.length) ajouter('confort', 'conseil', 'Pas de mode lent dans les salons de discussion', "Sur un serveur de cette taille, les salons généraux défilent trop vite pour suivre une conversation, et le spam passe inaperçu.", 'Modifier le salon › Mode lent : 3 à 5 secondes suffisent souvent.', rapides.map(nomSalon));
+    }
+    if (Array.isArray(s.features) && s.features.includes('COMMUNITY')) forts.push('Mode Communauté activé');
+    else if (membres >= 100) ajouter('confort', 'conseil', 'Mode Communauté désactivé', "Le mode Communauté débloque l'écran d'accueil avec questions à l'arrivée, le guide du serveur, les salons d'annonces et les forums, et les statistiques.", 'Paramètres du serveur › Activer la Communauté (il faut un salon de règles et un niveau de vérification au moins faible).');
+    if (salons.filter(c => c.type === 2).length >= 4 && !s.afk) ajouter('confort', 'conseil', 'Pas de salon AFK', 'Les membres inactifs restent dans les salons vocaux et les encombrent.', "Crée un salon vocal 💤 AFK et choisis-le dans Paramètres du serveur › Vue d'ensemble › Salon AFK.");
+
+    const ordre = ['critique', 'important', 'conseil'];
+    problemes.sort((x, y) => ordre.indexOf(x.gravite) - ordre.indexOf(y.gravite));
+    let score = Math.max(0, 100 - problemes.reduce((t, p) => t + GRAVITES[p.gravite][2], 0));
+    if (problemes.some(p => p.gravite === 'critique')) score = Math.min(score, 39);
+    const [, titre, texte] = VERDICTS.find(v => score >= v[0]);
+    const compte = g => problemes.filter(p => p.gravite === g).length;
+    return {
+      score, titre, texte, problemes, forts, notes,
+      compte: { critique: compte('critique'), important: compte('important'), conseil: compte('conseil') },
+      stats: { membres, enLigne: Number.isFinite(s.enLigne) ? s.enLigne : null, roles: humains.length, salons: salons.length, categories: cats.length },
+      le: new Date().toISOString(),
+    };
+  }
+
+  // Historique des audits (dans atelier.json) : pour voir la note progresser
+  const auditsDe = id => (etat.audits || []).filter(x => x.guilde === id).sort((a, b) => String(b.le).localeCompare(String(a.le)));
+  async function enregistrerAudit(s, r) {
+    const precedent = auditsDe(s.id)[0];
+    // Plusieurs audits du même serveur en moins de 30 min : on garde le dernier
+    const remplace = precedent && Date.now() - Date.parse(precedent.le) < 30 * 60000 ? precedent.id : null;
+    const entree = { id: remplace || nouvelId('au'), guilde: s.id, nom: s.nom, le: r.le, score: r.score, ...r.compte, membres: r.stats.membres };
+    const fusion = liste => [entree, ...(Array.isArray(liste) ? liste : []).filter(x => x && x.id !== entree.id)].slice(0, 300);
+    etat.audits = fusion(etat.audits);
+    try {
+      for (let essai = 0; essai < 4; essai++) {
+        const { donnees, sha } = await lireFichier();
+        const res = await ecrireFichier({ ...donnees, format: 1, audits: fusion(donnees.audits) }, sha, `Atelier : audit de « ${s.nom} » (${r.score}/100)`.slice(0, 200));
+        if (res.conflit) continue;
+        etat.sha = res.sha;
+        return;
+      }
+      throw new ErreurAtelier('Le fichier a changé plusieurs fois en même temps.');
+    } catch (e) {
+      if (e.status !== 401) toast(`Audit non gardé dans l'historique : ${e.message}`);
+    }
+  }
+
+  async function rendreAudit(main) {
+    const au = etat.audit || (etat.audit = {});
+    if (au.serveur && au.rapport) { main.innerHTML = rapportAudit(au); return; }
+    main.innerHTML = `<div class="at-tete"><div class="at-titre"><h1 class="at-h1">Auditer un serveur</h1><p class="r-aide">Le bot lit la structure du serveur (rôles, permissions, salons, réglages de sécurité) et en tire une note sur 100 avec les points à corriger. Il ne lit aucun message et ne change rien.</p></div></div>`
+      + `<div id="audit-liste"><div class="e-chargement"><span class="c-roue" aria-hidden="true"></span>Recherche de tes serveurs…</div></div>`;
+    try { await chargerGuildes(); } catch (e) { $('#audit-liste').innerHTML = `<p class="at-alerte">${icone('alerte')}${esc(e.message)}</p>`; return; }
+    rendreListeAudit();
+  }
+  // Pour un prospect : le bot arrive sans aucune permission (il voit la structure, rien d'autre)
+  const invitationAudit = () => String((etat.guildes && etat.guildes.invitation) || '').replace(/permissions=\d+/, 'permissions=0').replace(/scope=[^&]+/, 'scope=bot');
+  function rendreListeAudit() {
+    const zone = $('#audit-liste');
+    if (!zone || !etat.guildes) return;
+    const liste = etat.guildes.guildes;
+    const lien = invitationAudit();
+    zone.innerHTML = `<div class="au-invit"><b>${icone('lien')}Auditer le serveur d'un prospect</b><p>Envoie-lui ce lien : ton bot arrive <b>sans aucune permission</b>. Il voit seulement l'organisation du serveur, ne lit aucun message et ne peut rien modifier. Il pourra être retiré après l'audit.</p>`
+      + `<span class="at-lien-ligne"><input id="au-lien" value="${esc(lien)}" readonly aria-label="Lien d'invitation pour l'audit"><button type="button" class="btn btn--ghost btn--petit" data-au="copier-lien">${icone('copie')}Copier</button></span></div>`
+      + `<div class="at-guildes-tete"><b>Serveurs où ton bot est présent</b><button type="button" class="btn btn--ghost btn--petit" data-guildes="actualiser">${icone('actualiser')}Actualiser</button></div>`
+      + (liste.length ? `<ul class="at-guildes">${liste.map(x => {
+        const dernier = auditsDe(x.id)[0];
+        const couleur = dernier ? (dernier.score >= 85 ? '#3ddc84' : dernier.score >= 65 ? '#e8b46a' : dernier.score >= 40 ? '#f5b971' : '#ff6b8b') : '';
+        return `<li><button type="button" class="at-guilde" data-guilde="${esc(x.id)}">${pastilleServeur(x)}<span class="at-guilde-txt"><b>${esc(x.nom)}</b><small>${dernier ? `Dernier audit : <span class="au-note-mini" style="--c:${couleur}">${dernier.score}/100</span> le ${esc(new Date(dernier.le).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }))}` : 'Jamais audité'}</small></span><em>Auditer</em></button></li>`;
+      }).join('')}</ul>`
+        : `<p class="av-vide">Ton bot n'est encore sur aucun serveur.</p>`);
+  }
+  async function lancerAudit(id, bouton) {
+    if (bouton) bouton.disabled = true;
+    const zone = $('#audit-liste');
+    if (zone && !etat.audit.serveur) zone.insertAdjacentHTML('afterbegin', '<div class="e-chargement" id="au-chargement"><span class="c-roue" aria-hidden="true"></span>Lecture du serveur…</div>');
+    try {
+      const s = await chargerServeur(id, true);
+      const r = auditer(s);
+      const avant = auditsDe(s.id).find(x => Date.now() - Date.parse(x.le) >= 30 * 60000) || null;
+      etat.audit = { serveur: s, rapport: r, avant };
+      if (etat.vue === 'audit') { rendreMain(); $('#main').scrollTop = 0; }
+      enregistrerAudit(s, r);
+    } catch (e) {
+      toast(e.message);
+      if (bouton) bouton.disabled = false;
+      const ch = $('#au-chargement');
+      if (ch) ch.remove();
+    }
+  }
+  function jauge(score) {
+    const couleur = score >= 85 ? '#3ddc84' : score >= 65 ? '#e8b46a' : score >= 40 ? '#f5b971' : '#ff6b8b';
+    const tour = 2 * Math.PI * 52;
+    return `<div class="au-jauge" style="--c:${couleur}" role="img" aria-label="Note : ${score} sur 100"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="52"/><circle class="au-anneau" cx="60" cy="60" r="52" stroke-dasharray="${tour.toFixed(1)}" stroke-dashoffset="${(tour * (1 - score / 100)).toFixed(1)}"/></svg><p><b>${score}</b><small>/100</small></p></div>`;
+  }
+  function rapportAudit(au) {
+    const { serveur: s, rapport: r, avant } = au;
+    const date = new Date(r.le).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    const nombre = n => new Intl.NumberFormat('fr-FR').format(n);
+    const infos = [r.stats.membres !== null ? `${nombre(r.stats.membres)} membres` : '', `${r.stats.roles} rôles`, `${r.stats.salons} salons`].filter(Boolean).join(' · ');
+    const ecartTxt = avant ? (() => { const d = r.score - avant.score; return `Audit précédent : ${avant.score}/100 le ${new Date(avant.le).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} <b class="au-evol${d > 0 ? ' is-mieux' : d < 0 ? ' is-moins' : ''}">${d > 0 ? `+${d}` : d < 0 ? `−${-d}` : '='}</b>`; })() : '';
+    const pastille = (g, n) => (n ? `<span class="au-compte" style="--c:${GRAVITES[g][1]}"><b>${n}</b> ${GRAVITES[g][0].toLowerCase()}${n > 1 ? 's' : ''}</span>` : '');
+    const item = p => `<li class="au-pb" style="--c:${GRAVITES[p.gravite][1]}"><div class="au-pb-tete"><span class="au-gravite">${GRAVITES[p.gravite][0]}</span><small>${esc(CATS_AUDIT[p.cat])}</small></div>`
+      + `<b class="au-pb-titre">${esc(p.titre)}</b><p>${esc(p.texte)}</p><p class="au-corriger"><b>Comment corriger :</b> ${esc(p.conseil)}</p>`
+      + (p.details.length ? `<ul class="au-details">${p.details.map(d => `<li>${esc(d)}</li>`).join('')}</ul>` : '') + '</li>';
+    const prioritaires = r.problemes.filter(p => p.gravite !== 'conseil');
+    const conseils = r.problemes.filter(p => p.gravite === 'conseil');
+    return `<div class="au" id="audit-rapport"><div class="au-barre"><button type="button" class="btn btn--lien btn--petit" data-au="liste">${icone('gauche')}Tous les serveurs</button>`
+      + `<span class="espace"></span><button type="button" class="btn btn--ghost btn--petit" data-au="relancer">${icone('actualiser')}Relancer</button>`
+      + `<button type="button" class="btn btn--ghost btn--petit" data-au="copier">${icone('copie')}Copier le rapport</button>`
+      + `<button type="button" class="btn btn--primaire btn--petit" data-au="imprimer">${icone('telecharger')}PDF / imprimer</button></div>`
+      + `<header class="au-tete">${pastilleServeur(s)}<div><p class="au-sur">Audit du serveur</p><h1 class="at-h1">${esc(s.nom)}</h1><small>${esc(`${date} · ${infos}`)}</small></div></header>`
+      + `<section class="au-score">${jauge(r.score)}<div class="au-verdict"><b>${esc(r.titre)}</b><p>${esc(r.texte)}</p>`
+      + `<div class="au-comptes">${pastille('critique', r.compte.critique)}${pastille('important', r.compte.important)}${pastille('conseil', r.compte.conseil)}${r.forts.length ? `<span class="au-compte" style="--c:#3ddc84"><b>${r.forts.length}</b> point${r.forts.length > 1 ? 's' : ''} fort${r.forts.length > 1 ? 's' : ''}</span>` : ''}</div>`
+      + (ecartTxt ? `<p class="au-avant">${ecartTxt}</p>` : '') + '</div></section>'
+      + (prioritaires.length ? `<section class="au-groupe"><h2>À corriger en priorité</h2><ul class="au-liste">${prioritaires.map(item).join('')}</ul></section>` : '')
+      + (conseils.length ? `<section class="au-groupe"><h2>Conseils</h2><ul class="au-liste">${conseils.map(item).join('')}</ul></section>` : '')
+      + (!r.problemes.length ? `<p class="at-info">${icone('coche')}<span>Aucun problème détecté : bravo !</span></p>` : '')
+      + (r.forts.length ? `<section class="au-groupe"><h2>Points forts</h2><ul class="au-forts">${r.forts.map(f => `<li>${icone('coche')}${esc(f)}</li>`).join('')}</ul></section>` : '')
+      + r.notes.map(n => `<p class="at-info au-note">${icone('info')}<span>${esc(n)}</span></p>`).join('')
+      + `<p class="au-pied">Audit réalisé par Mvrius · mvriuus.fr — la note reflète la structure et les réglages du serveur à cette date, pas son activité.</p></div>`;
+  }
+  // Rapport en texte (Discord, e-mail)
+  function texteAudit(au) {
+    const { serveur: s, rapport: r } = au;
+    const date = new Date(r.le).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    const bloc = p => [`• **${p.titre}** — ${p.texte}`, `  → ${p.conseil}`, ...(p.details.length ? [`  (${p.details.slice(0, 8).join(' · ')}${p.details.length > 8 ? '…' : ''})`] : [])].join('\n');
+    const prioritaires = r.problemes.filter(p => p.gravite !== 'conseil');
+    const conseils = r.problemes.filter(p => p.gravite === 'conseil');
+    return [
+      `**Audit du serveur « ${s.nom} »** — ${r.score}/100 · ${r.titre}`,
+      `${date}${r.stats.membres !== null ? ` · ${new Intl.NumberFormat('fr-FR').format(r.stats.membres)} membres` : ''} · ${r.stats.roles} rôles · ${r.stats.salons} salons`,
+      '',
+      ...(prioritaires.length ? ['🔴 **À corriger en priorité**', ...prioritaires.map(bloc), ''] : []),
+      ...(conseils.length ? ['🟡 **Conseils**', ...conseils.map(bloc), ''] : []),
+      ...(r.forts.length ? ['✅ **Points forts**', ...r.forts.map(f => `• ${f}`), ''] : []),
+      'Audit réalisé par Mvrius — https://mvriuus.fr',
+    ].join('\n');
+  }
+  async function actionAudit(a) {
+    const au = etat.audit || {};
+    if (a === 'liste') { etat.audit = {}; rendreMain(); return; }
+    if (a === 'copier-lien') { toast((await copierTexte(invitationAudit())) ? "Lien d'invitation copié" : 'Copie impossible.'); return; }
+    if (!au.serveur) return;
+    if (a === 'relancer') { await lancerAudit(au.serveur.id); toast('Audit mis à jour'); }
+    else if (a === 'copier') toast((await copierTexte(texteAudit(au))) ? 'Rapport copié : colle-le dans Discord ou dans un e-mail' : 'Copie impossible.');
+    else if (a === 'imprimer') {
+      // Le titre de la page devient le nom du fichier PDF proposé par le navigateur
+      const titre = document.title;
+      document.title = `Audit ${au.serveur.nom} — ${new Date(au.rapport.le).toLocaleDateString('fr-FR')}`;
+      window.addEventListener('afterprint', () => { document.title = titre; }, { once: true });
+      window.print();
+    }
+  }
+  async function copierTexte(t) {
+    try { await navigator.clipboard.writeText(t); return true; } catch (e) {
+      const zone = document.createElement('textarea');
+      zone.value = t;
+      zone.style.cssText = 'position:fixed;opacity:0';
+      document.body.append(zone);
+      zone.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e2) { ok = false; }
+      zone.remove();
+      return ok;
+    }
+  }
+
   /* ---------- Outil : copier un serveur existant ---------- */
   async function rendreImporter(main) {
     main.innerHTML = `<div class="at-tete"><div class="at-titre"><h1 class="at-h1">Copier un serveur existant</h1><p class="r-aide">Ses rôles, ses catégories, ses salons et leurs permissions deviennent un nouveau modèle, que tu pourras modifier puis appliquer à un autre serveur. Les messages ne sont pas copiés.</p></div></div>`
@@ -1436,9 +1714,14 @@ ${accepte}`;
       } catch (err) { toast(err.message); g.disabled = false; }
       return;
     }
+    // Auditer un serveur
+    if (g && etat.vue === 'audit') { await lancerAudit(g.dataset.guilde, g); return; }
+    const au = t.closest('[data-au]');
+    if (au) { await actionAudit(au.dataset.au); return; }
     if (t.closest('[data-guildes="actualiser"]')) {
       try { await chargerGuildes(true); } catch (err) { toast(err.message); return; }
       if (etat.vue === 'importer') $('#importer-liste').innerHTML = choixServeurs(etat.guildes.guildes, 'Copier');
+      if (etat.vue === 'audit') rendreListeAudit();
       return;
     }
     // Éditeur de message (structure)
