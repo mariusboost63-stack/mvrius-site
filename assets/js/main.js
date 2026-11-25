@@ -311,15 +311,18 @@
     }).catch(() => 0); // Discord injoignable : on garde les valeurs affichées
   });
 
-  // Somme des membres de toutes les communautés, affichée sous l'accueil
-  const totalEl = $('.js-total');
-  if (totalEl && invites.length) {
+  // Somme des membres de toutes les communautés (sous la présentation et dans « À propos »)
+  const totalEls = $$('.js-total');
+  if (totalEls.length && invites.length) {
     Promise.all(invites).then(values => {
       const sum = values.reduce((a, b) => a + b, 0);
       if (!sum) return;
-      totalEl.closest('[hidden]')?.removeAttribute('hidden');
-      const start = () => animateNumber(totalEl, sum);
-      if (root.classList.contains('is-ready')) start(); else setTimeout(start, 1600);
+      totalEls.forEach(el => {
+        el.closest('[hidden]')?.removeAttribute('hidden');
+        const start = () => animateNumber(el, sum);
+        if (!el.closest('.hero')) whenVisible(el, start);
+        else if (root.classList.contains('is-ready')) start(); else setTimeout(start, 1600);
+      });
     });
   }
 
@@ -706,6 +709,25 @@
       const msg = form.elements.Message;
       if (msg && !msg.value.trim()) msg.value = T.diagMessage(summary.score, summary.weak);
     }
+  }
+
+  /* ---------- Anatomie d'un serveur (page Services) ---------- */
+  // La note qui passe au milieu de l'écran allume ses salons dans le serveur, qui reste affiché à côté
+  const anatomy = $('.js-anatomy');
+  if (anatomy && 'IntersectionObserver' in window) {
+    const steps = $$('.anatomy__step', anatomy);
+    const chans = $$('.anatomy__ch', anatomy);
+    const light = n => {
+      anatomy.classList.add('is-live');
+      steps.forEach(st => st.classList.toggle('is-current', st.dataset.step === n));
+      chans.forEach(ch => ch.classList.toggle('is-lit', ch.dataset.step === n));
+    };
+    const io = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) light(e.target.dataset.step); }),
+      { rootMargin: '-45% 0px -45% 0px' });
+    steps.forEach(st => {
+      io.observe(st);
+      st.addEventListener('pointerenter', () => light(st.dataset.step));
+    });
   }
 
   /* ---------- Statut Discord (heure de Paris) ---------- */

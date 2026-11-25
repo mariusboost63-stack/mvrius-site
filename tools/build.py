@@ -371,7 +371,7 @@ T = [
     ('Conçu avec soin · Hébergé sur GitHub Pages', 'Crafted with care · Hosted on GitHub Pages', 1),
 
     # --- Menu des pages (accueil) ---
-    ('<h2 class="title" data-split>Par où <em>commencer</em>&nbsp;?</h2>', '<h2 class="title" data-split>Where to <em>start</em>?</h2>', 1),
+    ('<h2 class="title" data-split>Que voulez-vous <em>découvrir</em>&nbsp;?</h2>', '<h2 class="title" data-split>What would you like to <em>explore</em>?</h2>', 1),
     ("Choisissez une page&nbsp;: mes services, mes projets, l'avis de mes clients ou un diagnostic de votre serveur.",
      'Pick a page: my services, my projects, what my clients say or a check-up of your server.', 1),
     ('aria-label="Pages du site"', 'aria-label="Site pages"', 1),
@@ -406,6 +406,49 @@ T = [
     ('Mon profil et tous mes liens sur une page.', 'My profile and all my links on one page.', 1),
     ('Pour une bio ou un partage&nbsp;: <a href="liens/">tous mes liens sur une seule page</a>',
      'For a bio or a share: <a href="liens/" hreflang="fr">all my links on a single page</a>', 1),
+
+    # --- À propos (accueil) ---
+    ('<p class="eyebrow" data-reveal>À propos</p>', '<p class="eyebrow" data-reveal>About</p>', 1),
+    ('Derrière Mvrius, il y a <em>Marius</em>.', 'Behind Mvrius, there is <em>Marius</em>.', 1),
+    ("Je gère Le Café Français, je dirige Arvenis, un collectif de bots Discord, et j'administre les serveurs de créateurs comme Nico Là et Byilhan. Mon métier&nbsp;: des communautés saines, actives et bien organisées.",
+     'I manage Le Café Français, run Arvenis, a Discord bot collective, and administer servers for creators such as Nico Là and Byilhan. My job: healthy, active and well-organised communities.', 1),
+    ('<span>communautés accompagnées</span>', '<span>communities supported</span>', 1),
+    ('<b class="js-total">169 603</b><span>membres réunis, en direct</span>', '<b class="js-total">169,603</b><span>members brought together, live</span>', 1),
+    ('<span>clients qui recommandent mon travail</span>', '<span>clients who recommend my work</span>', 1),
+    ('aria-label="Profil Discord de Mvrius"', 'aria-label="Mvrius\'s Discord profile"', 1),
+    ('<p class="dprofile__tagline">Community manager Discord</p>', '<p class="dprofile__tagline">Discord community manager</p>', 1),
+    ('<p class="dprofile__label">À propos de moi</p>', '<p class="dprofile__label">About me</p>', 1),
+    ("Je fais grandir des communautés Discord, de la modération au quotidien jusqu'aux grands événements.",
+     'I grow Discord communities, from day-to-day moderation to big events.', 1),
+    ('<p class="dprofile__label">Rôles</p>', '<p class="dprofile__label">Roles</p>', 1),
+    ('<i></i>Gérant · Le Café Français</li>', '<i></i>Manager · Le Café Français</li>', 1),
+    ('<i></i>Créateur · Guizzi</li>', '<i></i>Creator · Guizzi</li>', 1),
+    ('<p class="dprofile__label">Serveurs en commun · 8</p>', '<p class="dprofile__label">Mutual servers · 8</p>', 1),
+    ('Envoyer un message à Mvrius<svg', 'Message Mvrius<svg', 1),
+
+    # --- Services : anatomie d'un serveur ---
+    ('<p class="eyebrow" data-reveal>Méthode</p>', '<p class="eyebrow" data-reveal>Method</p>', 1),
+    ('Anatomie d\'un serveur&nbsp;: <em>Le Café Français</em>.', 'Anatomy of a server: <em>Le Café Français</em>.', 1),
+    ("Chaque salon a une raison d'être. Voici comment est construit le serveur que je gère, de l'arrivée d'un membre à ses habitudes.",
+     "Every channel has a reason to exist. Here is how the server I run is built, from a member's arrival to their daily habits.", 1),
+    ('<h4 class="anatomy__h">L\'arrivée</h4>', '<h4 class="anatomy__h">Arriving</h4>', 1),
+    ("Le premier salon qu'un nouveau membre ouvre est le règlement, dans #🏠 | accueil. Juste au-dessus, les statistiques montrent d'un coup d'œil que la communauté est vivante.",
+     'The first channel a new member opens is the rules, in #🏠 | accueil. Just above, the stats show at a glance that the community is alive.', 1),
+    ('<h4 class="anatomy__h">L\'information</h4>', '<h4 class="anatomy__h">Information</h4>', 1),
+    ("Annonces, mises à jour du serveur et petit savoir&nbsp;: chaque type d'information a son salon, réservé à l'équipe. Rien ne se perd dans la discussion.",
+     'Announcements, server updates and the knowledge corner: each type of information has its own staff-only channel. Nothing gets lost in the chat.', 1),
+    ('<h4 class="anatomy__h">Les temps forts</h4>', '<h4 class="anatomy__h">Highlights</h4>', 1),
+    ('Concours et événements donnent aux membres un rendez-vous régulier. Un salon réservé récompense les plus fidèles.',
+     'Contests and events give members a regular meeting point. A reserved channel rewards the most loyal ones.', 1),
+    ('<h4 class="anatomy__h">L\'équipe à l\'écoute</h4>', '<h4 class="anatomy__h">A team that listens</h4>', 1),
+    ('Deux salons à part pour les demandes adressées au staff&nbsp;: elles ne se mélangent pas à la conversation et chacune reçoit une réponse.',
+     "Two separate channels for requests to the staff: they don't get mixed up with the conversation and each one gets an answer.", 1),
+    ('<h4 class="anatomy__h">L\'identité</h4>', '<h4 class="anatomy__h">Identity</h4>', 1),
+    ('Choisir sa couleur, se présenter&nbsp;: chacun trouve sa place et devient reconnaissable dans la discussion.',
+     'Picking a colour, introducing yourself: everyone finds their place and becomes recognisable in the chat.', 1),
+    ('<h4 class="anatomy__h">Le cœur du serveur</h4>', '<h4 class="anatomy__h">The heart of the server</h4>', 1),
+    ('Une seule discussion générale, pour que la conversation reste toujours animée, avec un espace réservé et un salon pour les membres qui ne parlent pas français.',
+     "A single general chat so the conversation always stays lively, plus a reserved space and a channel for members who don't speak French.", 1),
 ]
 
 FAQ_EN = [

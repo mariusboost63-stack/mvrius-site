@@ -31,7 +31,7 @@
   <meta name="apple-mobile-web-app-title" content="Mvrius">
   <link rel="preload" href="../assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="../assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="../assets/css/style.css?v=03008259">
+  <link rel="stylesheet" href="../assets/css/style.css?v=8ceef3b1">
 
   <script>
     (function (d) {
@@ -60,7 +60,7 @@
       setTimeout(function () { if (!window.MV) d.classList.remove('js'); }, 4000);
     })(document.documentElement);
   </script>
-  <script src="../assets/js/main.js?v=03008259" defer></script>
+  <script src="../assets/js/main.js?v=8ceef3b1" defer></script>
 
   <script type="application/ld+json">
   {
@@ -286,13 +286,49 @@
     </div>
     </div>
 
+    <!-- À PROPOS (accueil uniquement) : profil Discord de Mvrius et chiffres clés -->
+    <section class="section about" id="apropos">
+      <div class="container about__grid">
+        <div class="about__copy">
+          <p class="eyebrow" data-reveal>About</p>
+          <h2 class="title" data-split>Behind Mvrius, there is <em>Marius</em>.</h2>
+          <p class="section__lead" data-reveal>I manage Le Café Français, run Arvenis, a Discord bot collective, and administer servers for creators such as Nico Là and Byilhan. My job: healthy, active and well-organised communities.</p>
+          <ul class="figures" data-stagger>
+            <li data-reveal><b>8</b><span>communities supported</span></li>
+            <li data-reveal><b class="js-total">169,603</b><span>members brought together, live</span></li>
+            <li data-reveal><b>7</b><span>clients who recommend my work</span></li>
+          </ul>
+        </div>
+        <article class="dprofile" data-reveal aria-label="Mvrius's Discord profile">
+          <div class="dprofile__banner" aria-hidden="true"></div>
+          <div class="dprofile__top">
+            <span class="dprofile__avatar"><span class="avatar"><span class="avatar__fallback">M</span><img src="../assets/img/profile-sm.jpg" alt="" width="96" height="96" loading="lazy" onerror="this.remove()"></span><span class="status js-status" hidden></span></span>
+            <span class="dprofile__badge"><svg class="ico ico--fill" aria-hidden="true"><use href="#b-discord"/></svg>Discord</span>
+          </div>
+          <div class="dprofile__body">
+            <p class="dprofile__name">Mvrius</p>
+            <p class="dprofile__tagline">Discord community manager</p>
+            <div class="dprofile__box">
+              <p class="dprofile__label">About me</p>
+              <p>I grow Discord communities, from day-to-day moderation to big events.</p>
+              <p class="dprofile__label">Roles</p>
+              <ul class="dprofile__roles" data-stagger><li data-reveal><i></i>Manager · Le Café Français</li><li data-reveal><i></i>CEO · Arvenis</li><li data-reveal><i></i>Admin · Nico Là</li><li data-reveal><i></i>Admin · Byilhan</li><li data-reveal><i></i>Creator · Guizzi</li><li data-reveal><i></i>Admin · CIT</li><li data-reveal><i></i>Admin · Jayzz</li><li data-reveal><i></i>Admin · GuiGui</li></ul>
+              <p class="dprofile__label">Mutual servers · 8</p>
+              <p class="dprofile__servers" aria-hidden="true"><img src="../assets/img/projets/cafe-logo.webp" alt="" width="30" height="30" loading="lazy"><img src="../assets/img/projets/arvenis-logo.webp" alt="" width="30" height="30" loading="lazy"><img src="../assets/img/projets/nico-pdp.webp" alt="" width="30" height="30" loading="lazy"><img src="../assets/img/projets/byilhan-pdp.webp" alt="" width="30" height="30" loading="lazy"><img src="../assets/img/projets/guizzi-pdp.webp" alt="" width="30" height="30" loading="lazy"><img src="../assets/img/projets/cit-pdp.webp" alt="" width="30" height="30" loading="lazy"><img src="../assets/img/projets/jayzz-pdp.webp" alt="" width="30" height="30" loading="lazy"><img src="../assets/img/projets/guigui-pdp.webp" alt="" width="30" height="30" loading="lazy"></p>
+            </div>
+            <a class="dprofile__cta" href="contact/">Message Mvrius<svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+          </div>
+        </article>
+      </div>
+    </section>
+
     <!-- MENU DES PAGES (accueil uniquement) -->
     <section class="section home-menu" id="pages">
       <div class="container">
         <header class="section__head section__head--row">
           <div>
             <p class="eyebrow" data-reveal>Menu</p>
-            <h2 class="title" data-split>Where to <em>start</em>?</h2>
+            <h2 class="title" data-split>What would you like to <em>explore</em>?</h2>
           </div>
           <p class="section__lead" data-reveal>Pick a page: my services, my projects, what my clients say or a check-up of your server.</p>
         </header>
