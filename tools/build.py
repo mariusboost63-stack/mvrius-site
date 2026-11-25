@@ -418,7 +418,6 @@ T = [
     ('aria-label="Profil Discord de Mvrius"', 'aria-label="Mvrius\'s Discord profile"', 1),
     ('<p class="dprofile__tagline">Community manager Discord</p>', '<p class="dprofile__tagline">Discord community manager</p>', 1),
     ('aria-label="Badges Discord"', 'aria-label="Discord badges"', 1),
-    ('title="Quête accomplie" aria-label="Quête accomplie"', 'title="Completed a Quest" aria-label="Completed a Quest"', 1),
     ('title="Booster de serveur" aria-label="Booster de serveur"', 'title="Server Booster" aria-label="Server Booster"', 1),
     ('<p class="dprofile__label">À propos de moi</p>', '<p class="dprofile__label">About me</p>', 1),
     ("Je fais grandir des communautés Discord, de la modération au quotidien jusqu'aux grands événements.",

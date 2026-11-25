@@ -557,8 +557,9 @@ em {
 }
 .marquee__track { display: flex; align-items: center; gap: 36px; width: max-content; will-change: transform; }
 .marquee__track span { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.8rem, 4.2vw, 3.4rem); letter-spacing: -.03em; line-height: 1.1; white-space: nowrap; }
-.marquee__track .o { color: transparent; -webkit-text-stroke: 1px rgba(var(--accent-rgb), .55); }
-.marquee__track .star { width: 28px; height: 28px; fill: var(--accent); stroke: none; flex: none; }
+/* Un mot sur deux en italique fin et gris (le contour faisait apparaître les traits internes de la police) */
+.marquee__track .o { font-family: var(--font-serif); font-style: italic; font-weight: 400; font-size: clamp(2rem, 4.7vw, 3.8rem); letter-spacing: -.01em; color: var(--muted); }
+.marquee__track .star { width: 22px; height: 22px; fill: var(--muted); stroke: none; flex: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ---------- Révélations au scroll ---------- */
