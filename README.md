@@ -9,8 +9,11 @@ Chaque modification poussée sur la branche `main` est publiée automatiquement.
 ## Structure
 
 ```
-index.html              → toutes les sections du site (français)
-en/index.html           → version anglaise, générée par tools/build.py
+tools/site.html         → source de l'accueil et des pages : toutes les sections du site (français)
+index.html              → accueil (présentation + menu des pages), généré par tools/build.py
+services/, projets/, avis/, diagnostic/, faq/, contact/
+                         → une page par section, générées par tools/build.py depuis tools/site.html
+en/                      → version anglaise de l'accueil et des pages (en/conseils/ en plus), générée aussi
 staff/index.html        → page « Rejoindre l'équipe » (candidatures, en français)
 liens/index.html        → page « Liens » à mettre dans les bios des réseaux sociaux
 conseils/                → liste et articles « Conseils », générés depuis tools/articles/ (modifier le texte là-bas)
@@ -35,7 +38,8 @@ assets/img/             → photo de profil, logos et visuels des projets, image
   relevé fait toutes les heures par GitHub Actions (`.github/workflows/discord-counts.yml` et
   `tools/discord_counts.py`), publié sur la branche `data` (`discord.json`). En dernier recours,
   la dernière valeur vue par le visiteur, ou celle écrite dans `index.html`, reste affichée.
-  Le total sous l'accueil additionne toutes les communautés.
+  Le total sous l'accueil additionne toutes les communautés (l'accueil reçoit les invitations de la
+  page Projets, cachées).
 - **Formulaire de devis** : envoyé via [FormSubmit](https://formsubmit.co) vers
   `contact@mvriuus.fr`. La première demande déclenche un e-mail d'activation à valider.
 - **Bots Arvenis** : l'article des bots affiche les photos et bannières hébergées par Discord,
@@ -136,7 +140,16 @@ python3 tools/build.py
 
 Ce script ajoute un numéro de version aux liens vers `style.css` et `main.js` (les
 navigateurs rechargent ainsi les fichiers modifiés), génère les pages « Conseils »
-à partir de `tools/articles/`, régénère la version anglaise, puis `sitemap.xml` et `robots.txt`.
+à partir de `tools/articles/`, génère l'accueil et les pages des sections à partir de
+`tools/site.html` (en français et en anglais), puis `sitemap.xml` et `robots.txt`.
+
+Pour modifier un texte de l'accueil ou d'une section : le changer dans `tools/site.html` (jamais
+dans `index.html`, `services/index.html`… qui sont écrasés), puis lancer le script. Chaque section
+de `tools/site.html` (`<section … id="services">`…) devient sa page ; les liens `#services`,
+`#contact`… deviennent des liens vers ces pages. Titre et description de chaque page :
+`SITE_PAGES` dans `tools/build.py`. Les anciens liens `mvriuus.fr/#contact` ouvrent la page Contact.
+Le bouton « Améliorer mon serveur » du diagnostic garde le résultat (sessionStorage) et pré-remplit
+le devis de la page Contact.
 
 Pour ajouter un article : créer `tools/articles/<nom>.html` (même en-tête que les autres :
 titre, description, extrait, catégorie, durée, date, icône), ajouter `<nom>` en tête de la liste
@@ -157,7 +170,7 @@ son verdict. À relancer si les questions ou les verdicts du diagnostic changent
 
 ## Version anglaise
 
-`en/index.html` est générée à partir de `index.html` :
+Les pages de `en/` sont générées à partir de `tools/site.html` :
 
 ```
 python3 tools/build.py

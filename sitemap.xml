@@ -13,8 +13,89 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/"/>
   </url>
   <url>
+    <loc>https://mvriuus.fr/services/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/services/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/services/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/services/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/en/services/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/services/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/services/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/services/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/projets/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/projets/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/projets/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/projets/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/en/projets/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/projets/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/projets/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/projets/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/avis/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/avis/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/avis/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/avis/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/en/avis/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/avis/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/avis/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/avis/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/diagnostic/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/diagnostic/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/diagnostic/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/diagnostic/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/en/diagnostic/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/diagnostic/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/diagnostic/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/diagnostic/"/>
+  </url>
+  <url>
     <loc>https://mvriuus.fr/conseils/</loc>
     <lastmod>2026-10-17</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/en/conseils/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/faq/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/faq/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/faq/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/faq/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/en/faq/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/faq/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/faq/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/faq/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/contact/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/contact/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/contact/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/contact/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/en/contact/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/contact/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/contact/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/contact/"/>
   </url>
   <url>
     <loc>https://mvriuus.fr/conseils/bots-arvenis-discord/</loc>

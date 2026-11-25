@@ -18,7 +18,7 @@ const ORIGIN = 'http://og.local/';
 const OUT = path.join(ROOT, 'assets', 'img', 'og');
 const TYPES = { '.woff2': 'font/woff2', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.png': 'image/png', '.svg': 'image/svg+xml' };
 
-const home = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const home = fs.readFileSync(path.join(ROOT, 'tools', 'site.html'), 'utf8');
 const icon = id => {
   const m = home.match(new RegExp(`<symbol id="${id}" viewBox="([^"]+)">(.*?)</symbol>`));
   return m ? `<svg viewBox="${m[1]}">${m[2]}</svg>` : '';
@@ -30,13 +30,13 @@ function readArticle(file) {
   return JSON.parse(raw.match(/<!--([\s\S]*?)-->/)[1]);
 }
 
-// Scores possibles et verdicts : repris du diagnostic de index.html (comme tools/build.py)
+// Scores possibles et verdicts : repris du diagnostic de tools/site.html (comme tools/build.py)
 function diagnostic() {
   const questions = (home.match(/class="diag__q[ "]/g) || []).length;
   const verdicts = [...home.matchAll(/<li data-min="(\d+)" data-title="([^"]+)" data-text="([^"]+)"><\/li>/g)]
     .map(m => ({ min: +m[1], title: m[2] })).sort((a, b) => b.min - a.min);
   const scores = [...new Set(Array.from({ length: questions * 2 + 1 }, (_, t) => Math.round(t / (questions * 2) * 100)))];
-  const colors = ['#3ddc84', '#f0b232', '#ff6b6b'];
+  const colors = ['#ffffff', '#a6a6a6', '#6e6e6e'];
   return scores.map(score => {
     const rank = verdicts.findIndex(v => score >= v.min);
     return { score, title: verdicts[rank].title, color: colors[Math.min(rank, 2)] };
@@ -53,26 +53,26 @@ function diagPage({ score, title, color }) {
 @font-face { font-family: "Inter"; src: url("${ORIGIN}assets/fonts/inter.woff2") format("woff2"); font-weight: 100 900; }
 * { box-sizing: border-box; margin: 0; }
 html, body { width: 1200px; height: 630px; overflow: hidden; }
-body { position: relative; background: #0e0b08; color: #f5ecde; font-family: Inter, sans-serif; }
+body { position: relative; background: #000; color: #fff; font-family: Inter, sans-serif; }
 .blob { position: absolute; border-radius: 50%; }
 .b1 { width: 900px; height: 900px; left: -420px; top: -360px; background: radial-gradient(closest-side, ${color}55, transparent); }
-.b2 { width: 800px; height: 800px; right: -300px; top: -300px; background: radial-gradient(closest-side, rgba(232,180,106,.3), transparent); }
-.grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(245,236,222,.055) 1px, transparent 1px), linear-gradient(90deg, rgba(245,236,222,.055) 1px, transparent 1px); background-size: 60px 60px; -webkit-mask-image: radial-gradient(ellipse 75% 75% at 30% 50%, #000 20%, transparent 80%); }
+.b2 { width: 800px; height: 800px; right: -300px; top: -300px; background: radial-gradient(closest-side, rgba(255,255,255,.13), transparent); }
+.grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.055) 1px, transparent 1px); background-size: 60px 60px; -webkit-mask-image: radial-gradient(ellipse 75% 75% at 30% 50%, #000 20%, transparent 80%); }
 .wrap { position: absolute; inset: 0; padding: 0 80px 0 72px; display: grid; grid-template-columns: 340px 1fr; gap: 64px; align-items: center; }
 .gauge { position: relative; width: 340px; height: 340px; }
 .gauge svg { width: 100%; height: 100%; overflow: visible; transform: rotate(-90deg); }
 .gauge circle { fill: none; stroke-width: 18; }
-.gauge .track { stroke: rgba(245,236,222,.1); }
+.gauge .track { stroke: rgba(255,255,255,.1); }
 .gauge .ring { stroke: ${color}; stroke-linecap: round; stroke-dasharray: ${len}; stroke-dashoffset: ${len * (1 - score / 100)}; filter: drop-shadow(0 0 18px ${color}88); }
 .gauge p { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
 .gauge b { font-family: Bricolage; font-weight: 700; font-size: 120px; line-height: 1; letter-spacing: -.05em; }
-.gauge small { font-size: 26px; color: #b6a993; }
-.eyebrow { font-size: 18px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #e8b46a; }
+.gauge small { font-size: 26px; color: #a6a6a6; }
+.eyebrow { font-size: 18px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #fff; }
 h1 { margin-top: 18px; font-family: Bricolage; font-weight: 700; font-size: 60px; line-height: 1.04; letter-spacing: -.04em; text-wrap: balance; }
-.sub { margin-top: 20px; font-size: 26px; line-height: 1.4; color: #c9bca6; }
+.sub { margin-top: 20px; font-size: 26px; line-height: 1.4; color: #cfcfcf; }
 .foot { margin-top: 44px; display: flex; align-items: center; gap: 14px; font-size: 22px; font-weight: 600; }
-.foot img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(245,236,222,.25); }
-.foot span { background: linear-gradient(110deg, #f7dfb5, #e8b46a 48%, #e07a4c); -webkit-background-clip: text; color: transparent; }
+.foot img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,.25); }
+.foot span { background: linear-gradient(110deg, #fff, #dcdcdc 48%, #9c9c9c); -webkit-background-clip: text; color: transparent; }
 </style></head>
 <body>
   <div class="blob b1"></div><div class="blob b2"></div><div class="grid"></div>
@@ -100,27 +100,27 @@ function page(meta) {
 @font-face { font-family: "Inter"; src: url("${ORIGIN}assets/fonts/inter.woff2") format("woff2"); font-weight: 100 900; }
 * { box-sizing: border-box; margin: 0; }
 html, body { width: 1200px; height: 630px; overflow: hidden; }
-body { position: relative; background: #0e0b08; color: #f5ecde; font-family: Inter, sans-serif; }
+body { position: relative; background: #000; color: #fff; font-family: Inter, sans-serif; }
 .blob { position: absolute; border-radius: 50%; }
-.b1 { width: 900px; height: 900px; left: -380px; top: -520px; background: radial-gradient(closest-side, rgba(232,180,106,.3), transparent); }
-.b2 { width: 800px; height: 800px; right: -300px; top: -260px; background: radial-gradient(closest-side, rgba(224,122,76,.24), transparent); }
-.b3 { width: 760px; height: 760px; right: 80px; bottom: -560px; background: radial-gradient(closest-side, rgba(150,70,40,.3), transparent); }
-.grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(245,236,222,.055) 1px, transparent 1px), linear-gradient(90deg, rgba(245,236,222,.055) 1px, transparent 1px); background-size: 60px 60px; -webkit-mask-image: radial-gradient(ellipse 75% 75% at 30% 35%, #000 20%, transparent 80%); }
+.b1 { width: 900px; height: 900px; left: -380px; top: -520px; background: radial-gradient(closest-side, rgba(255,255,255,.13), transparent); }
+.b2 { width: 800px; height: 800px; right: -300px; top: -260px; background: radial-gradient(closest-side, rgba(200,200,200,.1), transparent); }
+.b3 { width: 760px; height: 760px; right: 80px; bottom: -560px; background: radial-gradient(closest-side, rgba(140,140,140,.22), transparent); }
+.grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.055) 1px, transparent 1px); background-size: 60px 60px; -webkit-mask-image: radial-gradient(ellipse 75% 75% at 30% 35%, #000 20%, transparent 80%); }
 .wrap { position: absolute; inset: 0; padding: 60px 72px 58px; display: flex; flex-direction: column; }
 .head { display: flex; align-items: center; gap: 16px; }
-.av { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(245,236,222,.25); }
+.av { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,.25); }
 .name { font-family: Bricolage; font-weight: 700; font-size: 28px; letter-spacing: -.02em; }
-.pill { margin-left: 6px; padding: 8px 16px; border-radius: 999px; border: 1px solid rgba(232,180,106,.4); background: rgba(232,180,106,.1); font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #e8b46a; }
+.pill { margin-left: 6px; padding: 8px 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,.4); background: rgba(255,255,255,.1); font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #fff; }
 .bots { margin-left: auto; display: flex; }
-.bots img { width: 64px; height: 64px; border-radius: 50%; border: 4px solid #0e0b08; margin-left: -14px; object-fit: cover; }
+.bots img { width: 64px; height: 64px; border-radius: 50%; border: 4px solid #000; margin-left: -14px; object-fit: cover; }
 h1 { position: relative; margin-top: auto; font-family: Bricolage; font-weight: 700; font-size: 66px; line-height: 1.03; letter-spacing: -.04em; max-width: 860px; text-wrap: balance; }
-.deco { position: absolute; right: 64px; top: 190px; width: 230px; height: 230px; color: #e8b46a; opacity: .16; transform: rotate(-8deg); }
+.deco { position: absolute; right: 64px; top: 190px; width: 230px; height: 230px; color: #fff; opacity: .16; transform: rotate(-8deg); }
 .deco svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
-.foot { margin-top: 44px; display: flex; align-items: center; gap: 18px; font-size: 21px; color: #b6a993; }
-.ico { width: 60px; height: 60px; border-radius: 18px; display: grid; place-items: center; color: #e8b46a; background: rgba(232,180,106,.1); border: 1px solid rgba(232,180,106,.3); }
+.foot { margin-top: 44px; display: flex; align-items: center; gap: 18px; font-size: 21px; color: #a6a6a6; }
+.ico { width: 60px; height: 60px; border-radius: 18px; display: grid; place-items: center; color: #fff; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.3); }
 .ico svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.foot b { color: #f5ecde; font-weight: 600; }
-.url { margin-left: auto; font-weight: 600; background: linear-gradient(110deg, #f7dfb5, #e8b46a 48%, #e07a4c); -webkit-background-clip: text; color: transparent; }
+.foot b { color: #fff; font-weight: 600; }
+.url { margin-left: auto; font-weight: 600; background: linear-gradient(110deg, #fff, #dcdcdc 48%, #9c9c9c); -webkit-background-clip: text; color: transparent; }
 </style></head>
 <body>
   <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="grid"></div>

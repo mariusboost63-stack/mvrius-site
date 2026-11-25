@@ -7,10 +7,12 @@ Usage : python3 tools/build.py
    à partir de leur contenu : les navigateurs rechargent ainsi les fichiers à
    chaque mise à jour au lieu de garder une ancienne version en mémoire.
 2. Génère les pages « Conseils » (conseils/index.html et conseils/<article>/index.html)
-   à partir des textes de tools/articles/, avec la navigation et le pied de page de l'accueil.
-3. Génère la version anglaise (en/index.html) à partir de index.html. Chaque texte
-   français de la table doit exister dans index.html : si une phrase a été modifiée
-   côté français, le script s'arrête et indique laquelle.
+   à partir des textes de tools/articles/, avec la navigation et le pied de page du site.
+3. Génère les pages du site à partir de tools/site.html (toutes les sections) : l'accueil
+   (index.html : présentation + menu des pages) et une page par section (services/,
+   projets/, avis/, diagnostic/, faq/, contact/), en français puis en anglais (en/…).
+   Chaque texte français de la table doit exister dans tools/site.html : si une phrase a
+   été modifiée côté français, le script s'arrête et indique laquelle.
 4. Génère sitemap.xml et robots.txt pour les moteurs de recherche.
 5. Génère les pages des scores partagés du diagnostic express (diagnostic/<score>/).
 """
@@ -23,9 +25,8 @@ import unicodedata
 import urllib.parse
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SRC = ROOT / "index.html"
-OUT = ROOT / "en" / "index.html"
-STAMPED = ["index.html", "staff/index.html", "liens/index.html", "404.html"]
+SRC = ROOT / "tools" / "site.html"  # source de l'accueil et des pages du site (toutes les sections)
+STAMPED = ["tools/site.html", "staff/index.html", "liens/index.html", "404.html"]
 
 # Articles « Conseils », du plus récent au plus ancien (textes dans tools/articles/<nom>.html)
 ARTICLES = [
@@ -41,6 +42,23 @@ ARTICLE_ICONS = (
     '      <symbol id="b-x" viewBox="0 0 24 24"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></symbol>\n'
 )
 SECTIONS = ("services", "projets", "avis", "diagnostic", "conseils", "faq", "contact")
+# Une page par section de tools/site.html : titre et description (français, anglais).
+# En français, conseils/ est la liste des articles (build_listing) ; en anglais, la section suffit.
+SITE_PAGES = {
+    "services": (("Services", "Modération, administration technique, développement communautaire et réseaux sociaux : les services de Mvrius pour votre serveur Discord."),
+                 ("Services", "Moderation, technical administration, community growth and social media: Mvrius's services for your Discord server.")),
+    "projets": (("Projets", "Les communautés Discord que je gère et accompagne : Le Café Français, Arvenis, Nico Là, Byilhan et d'autres, avec leurs chiffres en direct."),
+                ("Projects", "The Discord communities I run and support: Le Café Français, Arvenis, Nico Là, Byilhan and more, with live numbers.")),
+    "avis": (("Avis clients", "Ce que disent les créateurs et les serveurs Discord accompagnés par Mvrius."),
+             ("Client reviews", "What the creators and Discord servers I work with say about my work.")),
+    "diagnostic": (("Diagnostic express", "6 questions, une minute : obtenez un score sur 100 et des conseils personnalisés pour votre serveur Discord."),
+                   ("Quick check-up", "6 questions, one minute: get a score out of 100 and personalised tips for your Discord server.")),
+    "conseils": (None, ("Tips", "Practical advice to structure, run and grow your Discord server. Articles in French.")),
+    "faq": (("FAQ", "Tarifs, déroulé d'une mission, délais, paiement, accès : les réponses aux questions fréquentes."),
+            ("FAQ", "Pricing, how a project works, timing, payment, access: answers to frequently asked questions.")),
+    "contact": (("Contact", "Parlez-moi de votre projet Discord : demande de devis, e-mail ou appel."),
+                ("Contact", "Tell me about your Discord project: quote request, email or call.")),
+}
 
 # (texte français, texte anglais, nombre d'occurrences attendu)
 T = [
@@ -50,14 +68,12 @@ T = [
      '<title>Mvrius — Discord Community Manager &amp; Social Media</title>', 1),
     ('content="Marius (Mvrius), expert en gestion de communautés Discord : modération professionnelle, administration technique, stratégies d\'engagement et gestion des réseaux sociaux."',
      'content="Marius (Mvrius), Discord community management expert: professional moderation, technical administration, engagement strategies and social media management."', 1),
-    ('<link rel="canonical" href="https://mvriuus.fr/">', '<link rel="canonical" href="https://mvriuus.fr/en/">', 1),
     ('<meta property="og:locale" content="fr_FR">',
      '<meta property="og:locale" content="en_US">\n  <meta property="og:locale:alternate" content="fr_FR">', 1),
     ('<meta property="og:title" content="Mvrius — Community Manager Discord">',
      '<meta property="og:title" content="Mvrius — Discord Community Manager">', 1),
     ('content="CEO d\'Arvenis, gérant du Café Français et administrateur des communautés de Nico Là et Byilhan. Modération, administration et stratégies d\'engagement sur Discord."',
      'content="CEO of Arvenis, manager of Le Café Français and administrator of the Nico Là and Byilhan communities. Moderation, administration and engagement strategies on Discord."', 1),
-    ('<meta property="og:url" content="https://mvriuus.fr/">', '<meta property="og:url" content="https://mvriuus.fr/en/">', 1),
     ('content="Mvrius, Community Manager Discord : Le Café Français, Arvenis, Nico Là et Byilhan"',
      'content="Mvrius, Discord Community Manager: Le Café Français, Arvenis, Nico Là and Byilhan"', 1),
 
@@ -68,10 +84,10 @@ T = [
     ('data-text="Projets"><span>Projets</span>', 'data-text="Projects"><span>Projects</span>', 1),
     ('data-text="Avis"><span>Avis</span>', 'data-text="Reviews"><span>Reviews</span>', 1),
     ('<a href="staff/" data-text="Rejoindre l\'équipe"><span>Rejoindre l\'équipe</span></a>',
-     '<a href="../staff/" data-text="Join the team" hreflang="fr"><span>Join the team</span></a>', 1),
-    ('<a href="staff/"><small>07</small>Rejoindre l\'équipe</a>', '<a href="../staff/" hreflang="fr"><small>07</small>Join the team</a>', 1),
+     '<a href="staff/" data-text="Join the team" hreflang="fr"><span>Join the team</span></a>', 1),
+    ('<a href="staff/"><small>07</small>Rejoindre l\'équipe</a>', '<a href="staff/" hreflang="fr"><small>07</small>Join the team</a>', 1),
     ('<a class="lang" href="en/" hreflang="en" lang="en" aria-label="English version">EN</a>',
-     '<a class="lang" href="../" hreflang="fr" lang="fr" aria-label="Version française">FR</a>', 1),
+     '<a class="lang" href="" hreflang="fr" lang="fr" aria-label="Version française">FR</a>', 1),  # lien posé par build_site
     ('aria-label="Ouvrir le menu"', 'aria-label="Open menu"', 1),
     ('aria-label="Menu mobile"', 'aria-label="Mobile menu"', 1),
     ('<small>02</small>Projets</a>', '<small>02</small>Projects</a>', 1),
@@ -217,7 +233,7 @@ T = [
     ('<span>Voir toutes les questions</span>', '<span>See all questions</span>', 1),
     ('Pouvez-vous recruter et gérer un staff&nbsp;?', 'Can you recruit and manage a staff team?', 1),
     ('Envie d\'en faire partie&nbsp;? <a class="faq__link" href="staff/">Postulez ici</a>.',
-     'Want to join? <a class="faq__link" href="../staff/">Apply here</a> (in French).', 1),
+     'Want to join? <a class="faq__link" href="staff/">Apply here</a> (in French).', 1),
     ('Oui. Je dispose d\'équipes et je mène des recrutements pour constituer un staff adapté à votre communauté.',
      'Yes. I have teams and I run recruitment to build a staff that fits your community.', 1),
     ('Pouvez-vous intervenir sur un serveur existant&nbsp;?', 'Can you work on an existing server?', 1),
@@ -324,7 +340,7 @@ T = [
     ('Mes conseils pour votre <em>serveur</em>.', 'Tips for your <em>server</em>.', 1),
     ('Des astuces concrètes, tirées de mon expérience, pour faire grandir votre communauté.',
      'Practical advice from my experience to help your community grow. Articles in French.', 1),
-    ('href="conseils/', 'hreflang="fr" href="../conseils/', 5),
+    ('href="conseils/', 'hreflang="fr" href="conseils/', 5),
     ('<span>Voir tous les conseils</span>', '<span>See all tips</span>', 1),
     ('Communauté · 4 min de lecture', 'Community · 4 min read', 1),
     ('Organisation · 5 min de lecture', 'Organisation · 5 min read', 1),
@@ -346,20 +362,35 @@ T = [
     ('aria-label="Navigation du pied de page"', 'aria-label="Footer navigation"', 1),
     ('<a href="#projets">Projets</a>', '<a href="#projets">Projects</a>', 1),
     ('<a href="#avis">Avis</a>', '<a href="#avis">Reviews</a>', 1),
-    ('<a href="liens/">Tous mes liens</a>', '<a href="../liens/" hreflang="fr">All my links</a>', 1),
-    ('<a href="staff/">Rejoindre l\'équipe</a>\n', '<a href="../staff/" hreflang="fr">Join the team (FR)</a>\n', 1),
+    ('<a href="liens/">Tous mes liens</a>', '<a href="liens/" hreflang="fr">All my links</a>', 1),
+    ('<a href="staff/">Rejoindre l\'équipe</a>\n', '<a href="staff/" hreflang="fr">Join the team (FR)</a>\n', 1),
     ('Retour en haut <svg', 'Back to top <svg', 1),
     ('Mvrius. Tous droits réservés.', 'Mvrius. All rights reserved.', 1),
     ('<p class="contact__alt" data-reveal>Vous préférez en parler de vive voix&nbsp;? <a href="rendez-vous/">Réservez un appel</a></p>',
-     '<p class="contact__alt" data-reveal>Prefer to talk it through? <a href="../rendez-vous/" hreflang="fr">Book a call (in French)</a></p>', 1),
+     '<p class="contact__alt" data-reveal>Prefer to talk it through? <a href="rendez-vous/" hreflang="fr">Book a call (in French)</a></p>', 1),
     ('<a href="mentions-legales/">Mentions légales</a> · <a href="cgu/">CGU</a> · ',
-     '<a href="../mentions-legales/" hreflang="fr">Legal notice (FR)</a> · <a href="../cgu/" hreflang="fr">Terms of use (FR)</a> · ', 1),
+     '<a href="mentions-legales/" hreflang="fr">Legal notice (FR)</a> · <a href="cgu/" hreflang="fr">Terms of use (FR)</a> · ', 1),
     ('Conçu avec soin · Hébergé sur GitHub Pages', 'Crafted with care · Hosted on GitHub Pages', 1),
 
-    # --- Chemins : la page anglaise est un dossier plus bas ---
-    ('href="assets/', 'href="../assets/', None),
-    ('src="assets/', 'src="../assets/', None),
-    ('href="site.webmanifest"', 'href="../site.webmanifest"', 1),
+    # --- Menu des pages (accueil) ---
+    ('<h2 class="title" data-split>Par où <em>commencer</em>&nbsp;?</h2>', '<h2 class="title" data-split>Where to <em>start</em>?</h2>', 1),
+    ("Choisissez une page&nbsp;: mes services, mes projets, l'avis de mes clients ou un diagnostic de votre serveur.",
+     'Pick a page: my services, my projects, what my clients say or a check-up of your server.', 1),
+    ('aria-label="Pages du site"', 'aria-label="Site pages"', 1),
+    ('Modération, administration, engagement et réseaux sociaux</span>', 'Moderation, administration, engagement and social media</span>', 1),
+    ('<span class="hmenu__name">Projets</span>', '<span class="hmenu__name">Projects</span>', 1),
+    ('Les communautés que je gère, chiffres en direct</span>', 'The communities I run, with live numbers</span>', 1),
+    ('<span class="hmenu__name">Avis</span>', '<span class="hmenu__name">Reviews</span>', 1),
+    ('Les retours des créateurs et serveurs accompagnés</span>', 'Feedback from the creators and servers I work with</span>', 1),
+    ('<span class="hmenu__name">Diagnostic</span>', '<span class="hmenu__name">Check-up</span>', 1),
+    ('Votre serveur noté sur 100 en une minute</span>', 'Your server scored out of 100 in one minute</span>', 1),
+    ('<span class="hmenu__name">Conseils</span>', '<span class="hmenu__name">Tips</span>', 1),
+    ('Des articles pour structurer et animer votre serveur</span>', 'Articles on structuring and running your server</span>', 1),
+    ("Tarifs, déroulé d'une mission, délais et accès</span>", 'Pricing, how a project works, timing and access</span>', 1),
+    ('Demande de devis, e-mail ou appel</span>', 'Quote request, email or call</span>', 1),
+    ('<a class="hmenu__item" href="staff/" data-reveal>', '<a class="hmenu__item" href="staff/" hreflang="fr" data-reveal>', 1),
+    ('<span class="hmenu__name">Rejoindre l\'équipe</span>', '<span class="hmenu__name">Join the team</span>', 1),
+    ('Candidatures pour le staff de mes communautés</span>', "Apply to join my communities' staff (in French)</span>", 1),
 ]
 
 FAQ_EN = [
@@ -419,7 +450,7 @@ def page_parts(home, prefix):
     def fix(block):
         block = block.replace('href="#top" class="footer__top"', 'href="#main" class="footer__top"')
         block = block.replace('href="#top"', f'href="{prefix}"')
-        block = re.sub(r'href="#(' + "|".join(SECTIONS) + r')"', rf'href="{prefix}#\1"', block)
+        block = re.sub(r'href="#(' + "|".join(SECTIONS) + r')"', rf'href="{prefix}\1/"', block)
         return re.sub(r'(href|src)="(assets/|staff/|liens/|en/|mentions-legales/|cgu/|rendez-vous/)', rf'\1="{prefix}\2', block)
 
     return sprite, fix(nav), fix(footer)
@@ -496,7 +527,7 @@ def doc_head(title, description, url, version, prefix, og_type="website", ld=Non
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{title} — Mvrius</title>
   <meta name="description" content="{description}">
-  <meta name="theme-color" content="#0e0b08">{robots}
+  <meta name="theme-color" content="#000">{robots}
   <link rel="canonical" href="{url}">
 
   <meta property="og:type" content="{og_type}">
@@ -538,8 +569,8 @@ def layout(home, prefix, current):
     sprite, nav, footer = page_parts(home, prefix)
     sprite = sprite.replace("    </defs>\n", ARTICLE_ICONS + "    </defs>\n", 1)
     listing = "./" if current else f"{prefix}conseils/"
-    nav = nav.replace(f'href="{prefix}#conseils"', f'href="{listing}"')
-    footer = footer.replace(f'href="{prefix}#conseils"', f'href="{listing}"')
+    nav = nav.replace(f'href="{prefix}conseils/"', f'href="{listing}"')
+    footer = footer.replace(f'href="{prefix}conseils/"', f'href="{listing}"')
     if current:
         nav = nav.replace(f'<a href="{listing}" data-text="Conseils">', f'<a href="{listing}" data-text="Conseils" aria-current="page">')
         nav = re.sub(r'<a href="\./"><small>(\d+)</small>Conseils', r'<a href="./" aria-current="page"><small>\1</small>Conseils', nav)
@@ -588,8 +619,8 @@ def build_listing(home, data, version):
           <p class="article__cta-title">Et votre serveur, où en est-il&nbsp;?</p>
           <p>Faites le diagnostic express en une minute, ou parlez-moi directement de votre projet.</p>
           <div class="article__cta-actions">
-            <a class="btn btn--primary magnetic" href="../#diagnostic"><span>Faire le diagnostic</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
-            <a class="btn btn--ghost magnetic" href="../#contact"><span>Demander un devis</span></a>
+            <a class="btn btn--primary magnetic" href="../diagnostic/"><span>Faire le diagnostic</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
+            <a class="btn btn--ghost magnetic" href="../contact/"><span>Demander un devis</span></a>
           </div>
         </aside>
       </div>
@@ -620,7 +651,7 @@ def build_diag_pages(version):
     home = SRC.read_text(encoding="utf-8")
     sprite, nav, footer = page_parts(home, "../../")
     verdicts = diag_verdicts(home)
-    colors = ["var(--online)", "#f0b232", "#ff6b6b"]
+    colors = ["var(--text)", "#a6a6a6", "#6e6e6e"]
     scores = diag_scores(home)
     for score in scores:
         rank = next(i for i, v in enumerate(verdicts) if score >= v[0])
@@ -648,7 +679,7 @@ def build_diag_pages(version):
           <p class="score__verdict" data-reveal><b>{title}</b>{text}</p>
           <p class="score__invite" data-reveal>Et le vôtre&nbsp;? 6 questions, une minute&nbsp;: obtenez votre score et des conseils personnalisés pour votre serveur.</p>
           <div class="page-hero__cta score__cta" data-reveal>
-            <a class="btn btn--primary magnetic" href="../../#diagnostic"><span>Faire le diagnostic</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
+            <a class="btn btn--primary magnetic" href="../"><span>Faire le diagnostic</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
             <a class="btn btn--ghost magnetic" href="../../"><span>Découvrir Mvrius</span></a>
           </div>
         </div>
@@ -732,8 +763,8 @@ def build_articles(version):
           <p class="article__cta-title">Besoin d'un coup de main pour votre serveur&nbsp;?</p>
           <p>Je m'occupe de la structure, de la modération et de l'animation de votre communauté.</p>
           <div class="article__cta-actions">
-            <a class="btn btn--primary magnetic" href="../../#contact"><span>Demander un devis</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
-            <a class="btn btn--ghost magnetic" href="../../#diagnostic"><span>Faire le diagnostic</span></a>
+            <a class="btn btn--primary magnetic" href="../../contact/"><span>Demander un devis</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
+            <a class="btn btn--ghost magnetic" href="../../diagnostic/"><span>Faire le diagnostic</span></a>
           </div>
         </aside>
 
@@ -873,7 +904,7 @@ def build_reservation_page(version):
           <h2>Je n'ai pas de disponibilités pour le moment.</h2>
           <p>Vous pouvez m'écrire directement&nbsp;: je vous réponds rapidement.</p>
           <div class="resa__boutons">
-            <a class="btn btn--primary btn--sm" href="../#contact"><span>Me contacter</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
+            <a class="btn btn--primary btn--sm" href="../contact/"><span>Me contacter</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
           </div>
         </div>
       </div>
@@ -885,7 +916,7 @@ def build_reservation_page(version):
           <li><b>Je valide votre demande</b>, en général dans la journée. Je ne vous contacte qu'une fois le rendez-vous validé.</li>
           <li><b>On s'appelle sur Discord</b>&nbsp;: votre serveur, vos objectifs, mes conseils.</li>
         </ol>
-        <p>Vous préférez écrire&nbsp;? <a href="../#contact">Demandez un devis</a>.</p>
+        <p>Vous préférez écrire&nbsp;? <a href="../contact/">Demandez un devis</a>.</p>
       </aside>
     </section>
   </main>
@@ -902,10 +933,14 @@ def build_reservation_page(version):
 def build_sitemap(data):
     """sitemap.xml (pages publiques) et robots.txt."""
     last = max(meta["date"] for meta, _ in data.values())
-    alt = (f'\n    <xhtml:link rel="alternate" hreflang="fr" href="{SITE}"/>'
-           f'\n    <xhtml:link rel="alternate" hreflang="en" href="{SITE}en/"/>'
-           f'\n    <xhtml:link rel="alternate" hreflang="x-default" href="{SITE}"/>')
-    urls = [(SITE, None, alt), (f"{SITE}en/", None, alt), (f"{SITE}conseils/", last, "")]
+    urls = []
+    for page in [None, *SITE_PAGES]:
+        fr = SITE + (f"{page}/" if page else "")
+        en = f"{SITE}en/" + (f"{page}/" if page else "")
+        alt = (f'\n    <xhtml:link rel="alternate" hreflang="fr" href="{fr}"/>'
+               f'\n    <xhtml:link rel="alternate" hreflang="en" href="{en}"/>'
+               f'\n    <xhtml:link rel="alternate" hreflang="x-default" href="{fr}"/>')
+        urls += [(fr, last if page == "conseils" else None, alt), (en, None, alt)]
     urls += [(f"{SITE}conseils/{slug}/", meta["date"], "") for slug, (meta, _) in data.items()]
     urls += [(f"{SITE}staff/", None, ""), (f"{SITE}liens/", None, "")]
     urls += [(f"{SITE}{slug}/", None, "") for slug in PAGES + [RESA]]
@@ -936,15 +971,8 @@ def sync_staff_page():
     path.write_text(page, encoding="utf-8")
 
 
-def main():
-    sync_staff_page()
-    version = stamp()
-    build_sitemap(build_articles(version))
-    build_diag_pages(version)
-    build_legal_pages(version)
-    build_reservation_page(version)
-    html = SRC.read_text(encoding="utf-8")
-
+def translate(html):
+    """Version anglaise de tools/site.html (table T) : chemins et liens restent ceux de la source."""
     # Données structurées en anglais (remplacées d'abord : elles reprennent les textes de la FAQ)
     blocks = re.findall(r'<script type="application/ld\+json">.*?</script>', html, flags=re.S)
     if len(blocks) != 2:
@@ -969,10 +997,116 @@ def main():
     html, n = re.subn(r'(<div class="dchan js-dchan".*?<div class="dchan__list"[^>]*>.*?</div>\s*</div>\s*</div>)', r'\1\n        <p class="t-note">Reviews translated from French.</p>', html, count=1, flags=re.S)
     if n != 1:
         sys.exit("Salon d'avis introuvable")
+    return html
 
-    OUT.parent.mkdir(exist_ok=True)
-    OUT.write_text(html, encoding="utf-8")
-    print(f"OK : {OUT.relative_to(ROOT)}")
+
+def sub1(pattern, repl, html, what, flags=0):
+    """Remplacement qui doit avoir lieu exactement une fois (sinon le script s'arrête)."""
+    html, n = re.subn(pattern, lambda m: repl if isinstance(repl, str) else repl(m), html, count=1, flags=flags)
+    if n != 1:
+        sys.exit(f"Pages du site : {what} introuvable")
+    return html
+
+
+def site_section(html, name):
+    """Bloc <section … id="name"> de tools/site.html, avec le commentaire qui le précède."""
+    m = re.search(rf'    <!-- [^\n]*-->\n    <section [^>]*id="{name}">.*?\n    </section>\n\n?', html, re.S)
+    if not m:
+        sys.exit(f"Section « {name} » introuvable dans tools/site.html")
+    return m.group(0)
+
+
+def site_page(html, lang, page):
+    """Accueil (page=None) ou page d'une section, dans la langue de html."""
+    en = lang == "en"
+    depth = int(en) + (1 if page else 0)
+    root = "../" * depth            # vers la racine du site (assets, pages en français)
+    up = "../" if page else ""      # vers l'accueil de la même langue
+    sections = {name: site_section(html, name) for name in SECTIONS}
+    sub = lambda pattern, repl, what, flags=0: sub1(pattern, repl, html, what, flags)  # noqa: E731
+
+    if page:
+        # Une page ne garde que sa section, dont le titre devient le titre principal (h1)
+        body = re.sub(r"<h2([^>]*)>(.*?)</h2>", r"<h1\1>\2</h1>", sections[page], count=1, flags=re.S)
+        start, end = html.index("    <!-- HERO -->"), html.index("  </main>")
+        html = html[:start] + body.rstrip("\n") + "\n" + html[end:]
+        html = sub(r'<main id="main">', f'<main id="main" class="page page--{page}">', "<main>")
+        html = sub(r"  <!-- Écran d'intro -->.*?\n  </div>\n\n", "", "écran d'intro", re.S)
+        if page == "contact":
+            html = sub(r'\n  <a class="fab-cta[^\n]*</a>', "", "bouton flottant")
+        title, desc = SITE_PAGES[page][1 if en else 0]
+        html = sub(r"<title>.*?</title>", f"<title>{title} — Mvrius</title>", "<title>")
+        html = sub(r'<meta name="description" content="[^"]*">', f'<meta name="description" content="{desc}">', "description")
+        html = sub(r'<meta property="og:title" content="[^"]*">', f'<meta property="og:title" content="{title} — Mvrius">', "og:title")
+        html = sub(r'<meta property="og:description" content="[^"]*">', f'<meta property="og:description" content="{desc}">', "og:description")
+    else:
+        # L'accueil garde la présentation, le bandeau et le menu des pages
+        for block in sections.values():
+            html = html.replace(block, "")
+        # Invitations des projets (cachées) : le total des membres sous la présentation
+        codes = re.findall(r'data-invite="([^"]+)"', sections["projets"])
+        hidden = "".join(f'<span data-invite="{c}"></span>' for c in codes)
+        html = sub(r"\n  </main>", f'\n    <div hidden>{hidden}</div>\n  </main>', "</main>")
+        # Anciens liens vers une partie de l'accueil (mvriuus.fr/#contact…) : on ouvre sa page
+        html = sub(r"    \(function \(d\) \{\n", "    (function (d) {\n"
+                   "      // Anciens liens vers une partie de l'accueil (mvriuus.fr/#contact…) : on ouvre sa page\n"
+                   f"      var old = /^#({'|'.join(SECTIONS)})$/.exec(location.hash);\n"
+                   "      if (old) { location.replace(old[1] + '/'); return; }\n", "script d'en-tête")
+
+    # Données structurées : la personne sur l'accueil, les questions sur la page FAQ
+    keep = {None: 0, "faq": 1}.get(page)
+    for i, block in enumerate(re.findall(r'\n  <script type="application/ld\+json">.*?</script>', html, flags=re.S)):
+        if i != keep:
+            html = html.replace(block, "", 1)
+
+    # Adresses de la page et de ses versions française et anglaise
+    url_fr = SITE + (f"{page}/" if page else "")
+    url_en = f"{SITE}en/" + (f"{page}/" if page else "")
+    url = url_en if en else url_fr
+    html = sub(r'<link rel="canonical" href="[^"]*">', f'<link rel="canonical" href="{url}">', "canonical")
+    html = sub(r'<meta property="og:url" content="[^"]*">', f'<meta property="og:url" content="{url}">', "og:url")
+    for code, target in (("fr", url_fr), ("en", url_en), ("x-default", url_fr)):
+        html = sub(rf'<link rel="alternate" hreflang="{code}" href="[^"]*">', f'<link rel="alternate" hreflang="{code}" href="{target}">', f"hreflang {code}")
+
+    # Liens : fichiers et pages françaises depuis la racine, sections vers leur page
+    if root:
+        html = re.sub(r'(href|src)="(assets/|staff/|liens/|conseils/|mentions-legales/|cgu/|rendez-vous/|site\.webmanifest)', rf'\1="{root}\2', html)
+    other = f"{root}{page}/" if en and page else root if en else f"{root}en/" + (f"{page}/" if page else "")
+    html = sub(r'<a class="lang" href="[^"]*"', f'<a class="lang" href="{other}"', "lien de langue")
+    if page:
+        html = html.replace('href="#top" class="footer__top"', 'href="#main" class="footer__top"')
+        html = html.replace('href="#top"', 'href="../"')
+    html = re.sub(r'href="#(' + "|".join(SECTIONS) + r')"', lambda m: f'href="{up}{m[1]}/"', html)
+    if page:
+        html = html.replace(f'href="../{page}/"', 'href="./"')
+        html = html.replace('<a href="./" data-text=', '<a href="./" aria-current="page" data-text=')
+        html = html.replace('<a href="./"><small>', '<a href="./" aria-current="page"><small>')
+    return html.replace("<body>\n", "<body>\n  <!-- Page générée par tools/build.py à partir de tools/site.html : modifier le texte là-bas -->\n", 1)
+
+
+def build_site(version):
+    """Accueil et pages des sections, en français puis en anglais, à partir de tools/site.html."""
+    fr = SRC.read_text(encoding="utf-8")
+    count = 0
+    for lang, html in (("fr", fr), ("en", translate(fr))):
+        for page in [None, *SITE_PAGES]:
+            if lang == "fr" and page == "conseils":
+                continue  # la liste des articles (build_listing)
+            out = ROOT / ("en" if lang == "en" else "") / (page or "") / "index.html"
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(site_page(html, lang, page), encoding="utf-8")
+            count += 1
+    print(f"Pages du site : {count} (accueil et sections, français et anglais)")
+
+
+def main():
+    sync_staff_page()
+    version = stamp()
+    build_sitemap(build_articles(version))
+    build_diag_pages(version)
+    build_legal_pages(version)
+    build_reservation_page(version)
+    build_site(version)
 
 
 if __name__ == "__main__":

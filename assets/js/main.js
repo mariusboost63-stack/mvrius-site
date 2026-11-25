@@ -211,7 +211,7 @@
       diagDone: 'Result', colon: ': ',
       diagShare: score => ({
         text: `My Discord server scored ${score}/100 on the quick check-up. What about yours?`,
-        url: 'https://mvriuus.fr/en/#diagnostic',
+        url: 'https://mvriuus.fr/en/diagnostic/',
       }),
       shareCopied: 'Copied! Paste it on Discord',
       diagMessage: (score, weak) => `Hi, I took the quick check-up: ${score}/100.`
@@ -296,7 +296,7 @@
       if (!total) return 0;
       const count = $('.prow__count', row);
       const live = $('.prow__live', row);
-      whenVisible(row, () => {
+      if (count && live) whenVisible(row, () => {
         count.hidden = false;
         live.hidden = !online;
         animateNumber($('[data-members]', row), total);
@@ -572,6 +572,7 @@
   }
 
   /* ---------- Diagnostic express ---------- */
+  const DIAG_KEY = 'mv-diag'; // résultat gardé le temps d'aller sur la page Contact
   const diag = $('.js-diag');
   if (diag) {
     const qs = $$('.diag__q', diag);
@@ -623,7 +624,7 @@
         list.append(li);
       });
       go(qs.length);
-      ring.style.stroke = score >= 80 ? 'var(--online)' : score >= 50 ? '#f0b232' : '#ff6b6b';
+      ring.style.stroke = score >= 80 ? 'var(--text)' : score >= 50 ? '#a6a6a6' : '#6e6e6e';
       requestAnimationFrame(() => { ring.style.strokeDashoffset = 327 * (1 - score / 100); });
       animateNumber($('.js-diag-score', diag), score);
       summary = { score, weak: weak.map(x => x.q.dataset.label) };
@@ -674,10 +675,20 @@
       shareT = setTimeout(() => { shareLabel.textContent = shareText; shareBtn.classList.remove('is-copied'); }, 2600);
     });
 
-    // « Améliorer mon serveur » : le formulaire de devis est pré-rempli avec le résultat
+    // « Améliorer mon serveur » : le résultat est gardé pour pré-remplir le devis de la page Contact
     $('.js-diag-cta', diag).addEventListener('click', () => {
-      const form = $('#contact .js-quote');
-      if (!form || !summary) return;
+      if (!summary) return;
+      try { sessionStorage.setItem(DIAG_KEY, JSON.stringify(summary)); } catch (e) { /* stockage indisponible */ }
+    });
+  }
+
+  /* ---------- Devis pré-rempli avec le résultat du diagnostic ---------- */
+  const quoteForm = $('#contact .js-quote');
+  if (quoteForm) {
+    let summary = null;
+    try { summary = JSON.parse(sessionStorage.getItem(DIAG_KEY) || 'null'); sessionStorage.removeItem(DIAG_KEY); } catch (e) { /* stockage indisponible */ }
+    if (summary && typeof summary.score === 'number' && Array.isArray(summary.weak)) {
+      const form = quoteForm;
       let hidden = form.elements.Diagnostic;
       if (!hidden) {
         hidden = document.createElement('input');
@@ -693,7 +704,7 @@
       }
       const msg = form.elements.Message;
       if (msg && !msg.value.trim()) msg.value = T.diagMessage(summary.score, summary.weak);
-    });
+    }
   }
 
   /* ---------- Statut Discord (heure de Paris) ---------- */
@@ -728,12 +739,12 @@
 
   /* ---------- Bouton flottant (mobile) ---------- */
   const fab = $('.js-fab');
-  const fabHero = $('.hero');
-  const fabContact = $('#contact');
-  if (fab && fabHero && fabContact && 'IntersectionObserver' in window) {
+  // Caché tant que la présentation (ou l'en-tête de la page) est à l'écran, et sur le formulaire de contact
+  const fabWatch = [$('.hero') || $('main header'), $('#contact')].filter(Boolean);
+  if (fab && fabWatch.length && 'IntersectionObserver' in window) {
     const seen = new Map();
     const update = () => {
-      const show = !seen.get(fabHero) && !seen.get(fabContact);
+      const show = fabWatch.every(el => !seen.get(el));
       fab.classList.toggle('is-visible', show);
       fab.toggleAttribute('inert', !show);
     };
@@ -741,8 +752,7 @@
       entries.forEach(e => seen.set(e.target, e.isIntersecting));
       update();
     });
-    io.observe(fabHero);
-    io.observe(fabContact);
+    fabWatch.forEach(el => io.observe(el));
   }
 
   /* ---------- FAQ ---------- */
