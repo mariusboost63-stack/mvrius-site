@@ -37,11 +37,7 @@ SITE = "https://mvriuus.fr/"
 # Pages légales (textes dans tools/pages/<nom>.html)
 PAGES = ["mentions-legales", "cgu"]
 RESA = "rendez-vous"  # page « Réserver un appel » (créneaux venant du serveur de l'agenda)
-# Icônes utilisées seulement dans les articles (ajoutées au sprite de l'accueil)
-ARTICLE_ICONS = (
-    '      <symbol id="b-x" viewBox="0 0 24 24"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></symbol>\n'
-)
-SECTIONS = ("services", "projets", "avis", "diagnostic", "conseils", "faq", "contact")
+SECTIONS = ("services", "projets", "avis", "diagnostic", "conseils", "faq", "reseaux", "contact")
 # Une page par section de tools/site.html : titre et description (français, anglais).
 # En français, conseils/ est la liste des articles (build_listing) ; en anglais, la section suffit.
 SITE_PAGES = {
@@ -56,6 +52,8 @@ SITE_PAGES = {
     "conseils": (None, ("Tips", "Practical advice to structure, run and grow your Discord server. Articles in French.")),
     "faq": (("FAQ", "Tarifs, déroulé d'une mission, délais, paiement, accès : les réponses aux questions fréquentes."),
             ("FAQ", "Pricing, how a project works, timing, payment, access: answers to frequently asked questions.")),
+    "reseaux": (("Réseaux", "Retrouvez Mvrius sur X (@mariusatqz), Instagram, Discord et Guns.lol."),
+                ("Socials", "Find Mvrius on X (@mariusatqz), Instagram, Discord and Guns.lol.")),
     "contact": (("Contact", "Parlez-moi de votre projet Discord : demande de devis, e-mail ou appel."),
                 ("Contact", "Tell me about your Discord project: quote request, email or call.")),
 }
@@ -85,7 +83,7 @@ T = [
     ('data-text="Avis"><span>Avis</span>', 'data-text="Reviews"><span>Reviews</span>', 1),
     ('<a href="staff/" data-text="Rejoindre l\'équipe"><span>Rejoindre l\'équipe</span></a>',
      '<a href="staff/" data-text="Join the team" hreflang="fr"><span>Join the team</span></a>', 1),
-    ('<a href="staff/"><small>07</small>Rejoindre l\'équipe</a>', '<a href="staff/" hreflang="fr"><small>07</small>Join the team</a>', 1),
+    ('<a href="staff/"><small>08</small>Rejoindre l\'équipe</a>', '<a href="staff/" hreflang="fr"><small>08</small>Join the team</a>', 1),
     ('<a class="lang" href="en/" hreflang="en" lang="en" aria-label="English version">EN</a>',
      '<a class="lang" href="" hreflang="fr" lang="fr" aria-label="Version française">FR</a>', 1),  # lien posé par build_site
     ('aria-label="Ouvrir le menu"', 'aria-label="Open menu"', 1),
@@ -391,6 +389,23 @@ T = [
     ('<a class="hmenu__item" href="staff/" data-reveal>', '<a class="hmenu__item" href="staff/" hreflang="fr" data-reveal>', 1),
     ('<span class="hmenu__name">Rejoindre l\'équipe</span>', '<span class="hmenu__name">Join the team</span>', 1),
     ('Candidatures pour le staff de mes communautés</span>', "Apply to join my communities' staff (in French)</span>", 1),
+
+    # --- Réseaux ---
+    ('data-text="Réseaux"><span>Réseaux</span>', 'data-text="Socials"><span>Socials</span>', 1),
+    ('<small>07</small>Réseaux</a>', '<small>07</small>Socials</a>', 1),
+    ('<a href="#reseaux">Réseaux</a>', '<a href="#reseaux">Socials</a>', 1),
+    ('<span class="hmenu__name">Réseaux</span>', '<span class="hmenu__name">Socials</span>', 1),
+    ('X, Instagram, Discord et tous mes liens</span>', 'X, Instagram, Discord and all my links</span>', 1),
+    ('<p class="eyebrow" data-reveal>Réseaux</p>', '<p class="eyebrow" data-reveal>Socials</p>', 1),
+    ('Retrouvez-moi sur les <em>réseaux</em>.', 'Find me on <em>social media</em>.', 1),
+    ('Mes actualités, mes projets en cours et les nouveautés de mes communautés, au quotidien.',
+     "My news, current projects and what's new in my communities, every day.", 1),
+    ('Actualités, projets en cours et échanges.', 'News, current projects and conversations.', 1),
+    ('Mes projets et leurs coulisses en images.', 'My projects and their behind-the-scenes, in pictures.', 1),
+    ("Le serveur d'Arvenis, mon collectif de bots Discord.", 'The Arvenis server, my Discord bot collective.', 1),
+    ('Mon profil et tous mes liens sur une page.', 'My profile and all my links on one page.', 1),
+    ('Pour une bio ou un partage&nbsp;: <a href="liens/">tous mes liens sur une seule page</a>',
+     'For a bio or a share: <a href="liens/" hreflang="fr">all my links on a single page</a>', 1),
 ]
 
 FAQ_EN = [
@@ -414,7 +429,7 @@ PERSON_EN = {
     "url": "https://mvriuus.fr/en/",
     "jobTitle": "Discord Community Manager, CEO of Arvenis",
     "email": "mailto:contact@mvriuus.fr",
-    "sameAs": ["https://www.instagram.com/mvriuus_/", "https://guns.lol/an"],
+    "sameAs": ["https://x.com/mariusatqz", "https://www.instagram.com/mvriuus_/", "https://guns.lol/an"],
     "knowsAbout": ["Discord", "Moderation", "Community management", "Social media"],
 }
 
@@ -567,15 +582,14 @@ def doc_head(title, description, url, version, prefix, og_type="website", ld=Non
 def layout(home, prefix, current):
     """Sprite, navigation et pied de page pour une page des conseils (lien « Conseils » vers la liste)."""
     sprite, nav, footer = page_parts(home, prefix)
-    sprite = sprite.replace("    </defs>\n", ARTICLE_ICONS + "    </defs>\n", 1)
     listing = "./" if current else f"{prefix}conseils/"
     nav = nav.replace(f'href="{prefix}conseils/"', f'href="{listing}"')
     footer = footer.replace(f'href="{prefix}conseils/"', f'href="{listing}"')
     if current:
         nav = nav.replace(f'<a href="{listing}" data-text="Conseils">', f'<a href="{listing}" data-text="Conseils" aria-current="page">')
         nav = re.sub(r'<a href="\./"><small>(\d+)</small>Conseils', r'<a href="./" aria-current="page"><small>\1</small>Conseils', nav)
-    if sprite.count(ARTICLE_ICONS) != 1 or nav.count(f'href="{listing}"') != 2:
-        sys.exit("Conseils : sprite ou lien « Conseils » introuvable dans la navigation")
+    if nav.count(f'href="{listing}"') != 2:
+        sys.exit("Conseils : lien « Conseils » introuvable dans la navigation")
     return sprite, nav, footer
 
 
