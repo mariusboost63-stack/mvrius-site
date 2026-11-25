@@ -88,6 +88,7 @@
   const loader = $('.loader');
   const startIntro = () => {
     root.classList.add('is-ready');
+    document.dispatchEvent(new Event('mv:ready'));
     setTimeout(measureSmoothness, 400);
   };
 
@@ -904,9 +905,9 @@
   const SCRIPT = [
     n => ({ name: n[0], h: n[1], join: true, text: "Coucou, je viens d'arriver sur le serveur ! 🥐", react: '👋 9' }),
     n => ({ name: 'Hugo', h: 160, text: `Bienvenue <b>@${n[0]}</b> ! Installe-toi, le café est servi ☕` }),
-    () => ({ me: true, name: 'Mvrius', tag: 'GÉRANT', text: 'Nouveau concours ce soir à 21h, tous les détails dans <b>#🍬 | concours</b> !' }),
+    () => ({ me: true, name: 'Mvrius', tag: 'GÉRANT', text: 'Nouveau concours ce soir à 21h, tous les détails dans <b>#🎁 | concours</b> !' }),
     () => ({ name: 'Sarah', h: 20, text: 'Trop bien, je participe 🔥', react: '🔥 7' }),
-    n => ({ name: n[0], h: n[1], text: "L'ambiance ici est vraiment top 🎃", react: '❤️ 12' }),
+    n => ({ name: n[0], h: n[1], text: "L'ambiance ici est vraiment top 🥰", react: '❤️ 12' }),
   ];
 
   function messageEl(m) {
@@ -924,7 +925,7 @@
     while (chat.children.length > 6) chat.firstElementChild.remove();
   }
 
-  let memberCount = 9208;
+  let memberCount = +(membersRaw?.textContent || 0); // valeur écrite dans la page, puis chiffre en direct
   const showMembers = () => {
     if (!members) return;
     members.textContent = fmt(memberCount);
@@ -935,6 +936,20 @@
     memberCount = e.detail.members;
     showMembers();
   });
+
+  // Liste des salons : on arrive en haut du serveur, puis la liste descend jusqu'au salon actif
+  const mockScroll = $('.js-mock-scroll');
+  let mockScrolled = false;
+  const fitMockList = () => {
+    if (!mockScroll || !mockScrolled) return;
+    const overflow = mockScroll.offsetHeight - mockScroll.parentElement.clientHeight;
+    mockScroll.style.setProperty('--scroll', `${-Math.max(0, overflow)}px`);
+  };
+  if (mockScroll) {
+    const scrollDown = () => setTimeout(() => { mockScrolled = true; fitMockList(); }, reduced ? 0 : 1500);
+    if (root.classList.contains('is-ready')) scrollDown();
+    else document.addEventListener('mv:ready', scrollDown, { once: true });
+  }
 
   if (chat) {
     // La conversation a déjà commencé quand on arrive
@@ -1112,7 +1127,7 @@
   }
 
   /* ---------- Initialisation & redimensionnement ---------- */
-  const relayout = () => { vh = innerHeight; scrollTop = scrollY; buildMarquee(); activeLink = undefined; dirty = true; wake(); };
+  const relayout = () => { vh = innerHeight; scrollTop = scrollY; buildMarquee(); fitMockList(); activeLink = undefined; dirty = true; wake(); };
   let rT;
   addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(relayout, 150); });
   addEventListener('load', relayout);
