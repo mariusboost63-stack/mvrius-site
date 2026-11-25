@@ -544,22 +544,28 @@ em {
 .scroll-cue__line::after { content: ""; position: absolute; left: 0; top: 0; width: 100%; height: 50%; background: var(--grad); transform: translateY(-100%); animation: scrollLine 2s var(--ease-io) infinite; }
 @keyframes scrollLine { to { transform: translateY(200%); } }
 
-/* ---------- Marquee ---------- */
-.marquee-wrap { overflow: hidden; padding-block: 28px; margin-block: -28px; position: relative; z-index: 2; }
-.marquee {
-  position: relative;
-  padding: 26px 0;
-  border-block: 1px solid var(--line);
-  background: var(--bg-elev);
-  overflow: hidden;
-  transform: rotate(-1.5deg);
-  width: 104%; margin-left: -2%;
+/* ---------- Accueil : communautés accompagnées (sous la présentation) ---------- */
+.proof { position: relative; z-index: 2; padding-block: clamp(32px, 4.5vw, 52px); border-block: 1px solid var(--line); background: var(--bg-elev); }
+.proof__head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 20px; }
+.proof__title { color: var(--muted); font-size: 12.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+.proof__link { display: inline-flex; align-items: center; gap: 6px; flex: none; color: var(--muted); font-size: 14px; font-weight: 600; transition: color .3s; }
+.proof__link:hover { color: var(--text); }
+.proof__link .ico { transition: transform .45s var(--ease); }
+.proof__link:hover .ico { transform: translateX(4px); }
+.proof__list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.proof__item {
+  display: flex; align-items: center; gap: 12px; min-width: 0; height: 100%;
+  padding: 12px 14px; border-radius: 16px;
+  border: 1px solid var(--line); background: rgba(var(--fg-rgb), .02);
+  transition: border-color .3s, background-color .3s;
 }
-.marquee__track { display: flex; align-items: center; gap: 36px; width: max-content; will-change: transform; }
-.marquee__track span { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.8rem, 4.2vw, 3.4rem); letter-spacing: -.03em; line-height: 1.1; white-space: nowrap; }
-/* Un mot sur deux en italique fin et gris (le contour faisait apparaître les traits internes de la police) */
-.marquee__track .o { font-family: var(--font-serif); font-style: italic; font-weight: 400; font-size: clamp(2rem, 4.7vw, 3.8rem); letter-spacing: -.01em; color: var(--muted); }
-.marquee__track .star { width: 22px; height: 22px; fill: var(--muted); stroke: none; flex: none; }
+.proof__item:hover, .proof__item:focus-visible { border-color: var(--line-2); background: rgba(var(--fg-rgb), .06); }
+.proof__item img { width: 44px; height: 44px; flex: none; border-radius: 50%; object-fit: cover; border: 1px solid var(--line-2); transition: transform .6s var(--ease); }
+.proof__item:hover img { transform: scale(1.08) rotate(-6deg); }
+.proof__text { display: grid; min-width: 0; line-height: 1.35; }
+.proof__text > b { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.proof__text small { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.proof__text small b { color: var(--text-2); font-weight: 600; font-variant-numeric: tabular-nums; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ---------- Révélations au scroll ---------- */
@@ -1554,6 +1560,7 @@ a.copy { padding-right: 18px; }
 }
 @media (max-width: 960px) {
   .nav__links, .nav__cta { display: none; }
+  .proof__list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .about__grid { grid-template-columns: 1fr; }
   .dprofile { max-width: 440px; }
   .anatomy__grid { grid-template-columns: 1fr; }
@@ -1597,6 +1604,12 @@ a.copy { padding-right: 18px; }
 
 @media (max-width: 640px) {
   .hero { padding-bottom: 120px; }
+  .proof__head { flex-direction: column; gap: 8px; }
+  /* Mobile : une ligne de cartes qu'on fait glisser */
+  .proof__list { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+    margin-inline: calc(-1 * var(--gutter)); padding-inline: var(--gutter); scroll-padding-inline: var(--gutter); scrollbar-width: none; }
+  .proof__list::-webkit-scrollbar { display: none; }
+  .proof__list > li { flex: 0 0 74%; scroll-snap-align: start; }
   .figures { grid-template-columns: 1fr; }
   .figures li, .figures li + li { padding: 18px 0; border-left: 0; border-bottom: 1px solid var(--line); }
   .anatomy__step { padding-left: 44px; }

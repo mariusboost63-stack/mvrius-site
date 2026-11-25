@@ -303,6 +303,12 @@
         animateNumber($('[data-members]', row), total);
         if (online) animateNumber($('[data-online]', row), online);
       });
+      // Rangée des communautés de l'accueil : « rôle · N membres »
+      const proof = $('.proof__count', row);
+      if (proof) whenVisible(row, () => {
+        proof.hidden = false;
+        animateNumber($('[data-members]', proof), total);
+      });
       // Carte d'aperçu au survol
       const card = $(`.pcard[data-code="${code}"] .pcard__count`);
       if (card) { $('b', card).textContent = fmt(total); card.hidden = false; }

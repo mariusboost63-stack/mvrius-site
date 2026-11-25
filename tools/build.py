@@ -116,11 +116,14 @@ T = [
     ('<use href="#i-bot"/></svg>Bots &amp; automatisations</div>', '<use href="#i-bot"/></svg>Bots &amp; automations</div>', 1),
     ('aria-label="Défiler vers la suite"', 'aria-label="Scroll down"', 1),
 
-    # --- Bandeau ---
-    ('<span>Modération</span><svg class="star">', '<span>Moderation</span><svg class="star">', 1),
-    ('<span>Bots &amp; automatisations</span><svg class="star">', '<span>Bots &amp; automations</span><svg class="star">', 1),
-    ('<span>Événements</span><svg class="star">', '<span>Events</span><svg class="star">', 1),
-    ('<span class="o">Réseaux sociaux</span>', '<span class="o">Social media</span>', 1),
+    # --- Communautés (accueil, sous la présentation) ---
+    ('aria-label="Communautés accompagnées"', 'aria-label="Communities I support"', 1),
+    ('<p class="proof__title">Les communautés que je gère et accompagne</p>', '<p class="proof__title">The communities I run and support</p>', 1),
+    ('>Voir les projets<svg', '>See the projects<svg', 1),
+    ('<span class="proof__role">Gérant</span>', '<span class="proof__role">Manager</span>', 1),
+    ('<span class="proof__role">Administrateur</span>', '<span class="proof__role">Administrator</span>', 5),
+    ('<span class="proof__role">Créateur</span>', '<span class="proof__role">Creator</span>', 1),
+    ('<b data-members></b>&nbsp;membres</span>', '<b data-members></b>&nbsp;members</span>', 8),
 
     # --- Services ---
     ('<h2 class="title" data-split>Une expertise <em>complète</em></h2>', '<h2 class="title" data-split>End-to-end <em>expertise</em></h2>', 1),
@@ -1102,10 +1105,6 @@ def site_page(html, lang, page):
         # L'accueil garde la présentation, le bandeau et le menu des pages
         for block in sections.values():
             html = html.replace(block, "")
-        # Invitations des projets (cachées) : le total des membres sous la présentation
-        codes = re.findall(r'data-invite="([^"]+)"', sections["projets"])
-        hidden = "".join(f'<span data-invite="{c}"></span>' for c in codes)
-        html = sub(r"\n  </main>", f'\n    <div hidden>{hidden}</div>\n  </main>', "</main>")
         # Anciens liens vers une partie de l'accueil (mvriuus.fr/#contact…) : on ouvre sa page
         html = sub(r"    \(function \(d\) \{\n", "    (function (d) {\n"
                    "      // Anciens liens vers une partie de l'accueil (mvriuus.fr/#contact…) : on ouvre sa page\n"

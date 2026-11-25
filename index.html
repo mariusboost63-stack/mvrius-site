@@ -30,7 +30,7 @@
   <meta name="apple-mobile-web-app-title" content="Mvrius">
   <link rel="preload" href="assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="assets/css/style.css?v=aef7431e">
+  <link rel="stylesheet" href="assets/css/style.css?v=8f623518">
 
   <script>
     (function (d) {
@@ -59,7 +59,7 @@
       setTimeout(function () { if (!window.MV) d.classList.remove('js'); }, 4000);
     })(document.documentElement);
   </script>
-  <script src="assets/js/main.js?v=aef7431e" defer></script>
+  <script src="assets/js/main.js?v=8f623518" defer></script>
 
   <script type="application/ld+json">
   {
@@ -262,19 +262,25 @@
       <a href="#pages" class="scroll-cue" aria-label="Défiler vers la suite"><span class="scroll-cue__line"></span>Scroll</a>
     </section>
 
-    <!-- MARQUEE -->
-    <div class="marquee-wrap" aria-hidden="true">
-    <div class="marquee">
-      <div class="marquee__track js-marquee">
-        <span>Modération</span><svg class="star"><use href="#i-sparkle"/></svg>
-        <span class="o">Administration</span><svg class="star"><use href="#i-sparkle"/></svg>
-        <span>Bots &amp; automatisations</span><svg class="star"><use href="#i-sparkle"/></svg>
-        <span class="o">Engagement</span><svg class="star"><use href="#i-sparkle"/></svg>
-        <span>Événements</span><svg class="star"><use href="#i-sparkle"/></svg>
-        <span class="o">Réseaux sociaux</span><svg class="star"><use href="#i-sparkle"/></svg>
+    <!-- COMMUNAUTÉS (accueil) : logos, rôle et membres en direct (main.js) -->
+    <section class="proof" aria-label="Communautés accompagnées">
+      <div class="container">
+        <div class="proof__head">
+          <p class="proof__title">Les communautés que je gère et accompagne</p>
+          <a class="proof__link" href="projets/">Voir les projets<svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+        </div>
+        <ul class="proof__list" data-stagger>
+          <li data-reveal><a class="proof__item" href="https://discord.gg/france" target="_blank" rel="noopener" data-invite="france"><img src="assets/img/projets/cafe-logo.webp" alt="" width="44" height="44" loading="lazy"><span class="proof__text"><b>Le Café Français</b><small><span class="proof__role">Gérant</span><span class="proof__count" hidden> · <b data-members></b>&nbsp;membres</span></small></span></a></li>
+          <li data-reveal><a class="proof__item" href="https://discord.gg/arvenis" target="_blank" rel="noopener" data-invite="arvenis"><img src="assets/img/projets/arvenis-logo.webp" alt="" width="44" height="44" loading="lazy"><span class="proof__text"><b>Arvenis</b><small><span class="proof__role">CEO</span><span class="proof__count" hidden> · <b data-members></b>&nbsp;membres</span></small></span></a></li>
+          <li data-reveal><a class="proof__item" href="https://discord.gg/UVfazTaEBj" target="_blank" rel="noopener" data-invite="UVfazTaEBj"><img src="assets/img/projets/nico-pdp.webp" alt="" width="44" height="44" loading="lazy"><span class="proof__text"><b>Nico Là</b><small><span class="proof__role">Administrateur</span><span class="proof__count" hidden> · <b data-members></b>&nbsp;membres</span></small></span></a></li>
+          <li data-reveal><a class="proof__item" href="https://discord.gg/byilhan" target="_blank" rel="noopener" data-invite="byilhan"><img src="assets/img/projets/byilhan-pdp.webp" alt="" width="44" height="44" loading="lazy"><span class="proof__text"><b>Byilhan</b><small><span class="proof__role">Administrateur</span><span class="proof__count" hidden> · <b data-members></b>&nbsp;membres</span></small></span></a></li>
+          <li data-reveal><a class="proof__item" href="https://discord.gg/SCr2TFptsx" target="_blank" rel="noopener" data-invite="SCr2TFptsx"><img src="assets/img/projets/guizzi-pdp.webp" alt="" width="44" height="44" loading="lazy"><span class="proof__text"><b>Guizzi</b><small><span class="proof__role">Créateur</span><span class="proof__count" hidden> · <b data-members></b>&nbsp;membres</span></small></span></a></li>
+          <li data-reveal><a class="proof__item" href="https://discord.gg/Xk6xZ36vXt" target="_blank" rel="noopener" data-invite="Xk6xZ36vXt"><img src="assets/img/projets/cit-pdp.webp" alt="" width="44" height="44" loading="lazy"><span class="proof__text"><b>CIT</b><small><span class="proof__role">Administrateur</span><span class="proof__count" hidden> · <b data-members></b>&nbsp;membres</span></small></span></a></li>
+          <li data-reveal><a class="proof__item" href="https://discord.gg/CfQPWT9rkE" target="_blank" rel="noopener" data-invite="CfQPWT9rkE"><img src="assets/img/projets/jayzz-pdp.webp" alt="" width="44" height="44" loading="lazy"><span class="proof__text"><b>Jayzz</b><small><span class="proof__role">Administrateur</span><span class="proof__count" hidden> · <b data-members></b>&nbsp;membres</span></small></span></a></li>
+          <li data-reveal><a class="proof__item" href="https://discord.gg/6TtmSPjHD3" target="_blank" rel="noopener" data-invite="6TtmSPjHD3"><img src="assets/img/projets/guigui-pdp.webp" alt="" width="44" height="44" loading="lazy"><span class="proof__text"><b>GuiGui</b><small><span class="proof__role">Administrateur</span><span class="proof__count" hidden> · <b data-members></b>&nbsp;membres</span></small></span></a></li>
+        </ul>
       </div>
-    </div>
-    </div>
+    </section>
 
     <!-- À PROPOS (accueil uniquement) : profil Discord de Mvrius et chiffres clés -->
     <section class="section about" id="apropos">
@@ -344,7 +350,6 @@
       </div>
     </section>
 
-    <div hidden><span data-invite="france"></span><span data-invite="arvenis"></span><span data-invite="UVfazTaEBj"></span><span data-invite="byilhan"></span><span data-invite="SCr2TFptsx"></span><span data-invite="Xk6xZ36vXt"></span><span data-invite="CfQPWT9rkE"></span><span data-invite="6TtmSPjHD3"></span></div>
   </main>
 
   <footer class="footer">
