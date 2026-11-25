@@ -25,7 +25,7 @@ HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; mvriuus.fr-counts/1.0; +https
 
 
 def invite_codes():
-    html = (ROOT / "index.html").read_text(encoding="utf-8")
+    html = (ROOT / "tools" / "site.html").read_text(encoding="utf-8")  # source des pages (section Projets)
     return list(dict.fromkeys(re.findall(r'data-invite="([^"]+)"', html)))
 
 
