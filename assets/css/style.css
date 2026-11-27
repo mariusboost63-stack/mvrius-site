@@ -197,7 +197,7 @@ em {
   transition: transform 1s var(--ease-io);
 }
 .loader.is-done { transform: translateY(-100%); pointer-events: none; }
-.loader__word { display: flex; overflow: hidden; font-family: var(--font-display); font-weight: 800; font-size: clamp(3.4rem, 12vw, 9rem); letter-spacing: -.05em; line-height: 1; padding-bottom: .06em; }
+.loader__word { display: flex; overflow: hidden; font-family: var(--font-display); font-weight: 800; font-size: clamp(3.4rem, 12vw, 9rem); letter-spacing: -.05em; line-height: 1; padding: 0 .12em .06em; }
 .loader__word span { display: inline-block; transform: translateY(110%); animation: rise .9s var(--ease) forwards paused; }
 .fonts-ready .loader__word span { animation-play-state: running; }
 .loader__word span:nth-child(2) { animation-delay: .06s; }
@@ -1527,6 +1527,8 @@ a.copy { padding-right: 18px; }
 }
 .footer__word span {
   display: inline-block;
+  /* Marge pour l'encre qui déborde (lettres serrées) : sinon le dégradé rogne le bord droit des lettres */
+  padding: 0 .1em; margin: 0 -.1em;
   background: linear-gradient(180deg, rgba(var(--fg-rgb), .14), rgba(var(--fg-rgb), 0) 85%);
   -webkit-background-clip: text; background-clip: text; color: transparent;
   transition: transform 1.2s var(--ease), background-position .6s;
