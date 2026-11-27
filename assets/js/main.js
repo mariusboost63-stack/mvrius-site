@@ -6,8 +6,12 @@
   window.MV = true;
 
   const root = document.documentElement;
-  // Animations réduites si l'appareil le demande (déjà posé par le script d'en-tête sur la plupart des pages)
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) root.classList.add('reduced');
+  // Animations réduites : choix du visiteur (bouton en bas de page), sinon réglage de l'appareil
+  // (déjà posé par le script d'en-tête sur la plupart des pages)
+  const MOTION_KEY = 'mv-motion';
+  let motionChoice = null;
+  try { motionChoice = localStorage.getItem(MOTION_KEY); } catch (e) { /* stockage indisponible */ }
+  if (motionChoice === 'reduce' || (motionChoice !== 'full' && matchMedia('(prefers-reduced-motion: reduce)').matches)) root.classList.add('reduced');
   const reduced = root.classList.contains('reduced');
   const finePointer = matchMedia('(hover: hover) and (pointer: fine)').matches;
   const wide = matchMedia('(min-width: 961px)');
@@ -196,6 +200,7 @@
       copied: 'Adresse copiée !', linkCopied: 'Lien copié !', sending: 'Envoi en cours…',
       invalid: 'Merci de compléter les champs en rouge.', failed: "L'envoi n'a pas fonctionné. Écrivez-moi directement à",
       menuOpen: 'Ouvrir le menu', menuClose: 'Fermer le menu',
+      motionOff: 'Réduire les animations', motionOn: 'Activer les animations',
       diagDone: 'Résultat', colon: '\u00a0: ',
       diagShare: score => ({
         text: `J'ai obtenu ${score}/100 au diagnostic express de mon serveur Discord. Et le vôtre\u00a0?`,
@@ -211,6 +216,7 @@
       copied: 'Address copied!', linkCopied: 'Link copied!', sending: 'Sending…',
       invalid: 'Please fill in the fields in red.', failed: "Sending didn't work. Email me directly at",
       menuOpen: 'Open menu', menuClose: 'Close menu',
+      motionOff: 'Reduce motion', motionOn: 'Turn animations on',
       diagDone: 'Result', colon: ': ',
       diagShare: score => ({
         text: `My Discord server scored ${score}/100 on the quick check-up. What about yours?`,
@@ -1167,5 +1173,14 @@
   });
 
   $$('.js-year').forEach(el => { el.textContent = new Date().getFullYear(); });
+
+  // Bouton « Réduire / Activer les animations » du pied de page : choix gardé dans le navigateur
+  $$('.js-motion').forEach(btn => {
+    btn.textContent = reduced ? T.motionOn : T.motionOff;
+    btn.addEventListener('click', () => {
+      try { localStorage.setItem(MOTION_KEY, reduced ? 'full' : 'reduce'); } catch (e) { /* stockage indisponible */ }
+      location.reload();
+    });
+  });
   wake();
 })();

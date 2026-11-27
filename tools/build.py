@@ -378,6 +378,7 @@ T = [
     ('<a href="mentions-legales/">Mentions légales</a> · <a href="cgu/">CGU</a> · ',
      '<a href="mentions-legales/" hreflang="fr">Legal notice (FR)</a> · <a href="cgu/" hreflang="fr">Terms of use (FR)</a> · ', 1),
     ('Conçu avec soin · Hébergé sur GitHub Pages', 'Crafted with care · Hosted on GitHub Pages', 1),
+    ('<button class="js-motion" type="button">Réduire les animations</button>', '<button class="js-motion" type="button">Reduce motion</button>', 1),
 
     # --- Menu des pages (accueil) ---
     ('<h2 class="title" data-split>Que voulez-vous <em>découvrir</em>&nbsp;?</h2>', '<h2 class="title" data-split>What would you like to <em>explore</em>?</h2>', 1),
@@ -702,8 +703,9 @@ def doc_head(title, description, url, version, prefix, og_type="website", ld=Non
   <script>
     (function (d) {{
       d.classList.add('js');
-      // Animations coupées si l'appareil demande à les réduire (réglage d'accessibilité)
-      if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) d.classList.add('reduced');
+      // Animations réduites : choix du visiteur (bouton en bas de page), sinon réglage de l'appareil
+      var motion = null; try {{ motion = localStorage.getItem('mv-motion'); }} catch (e) {{}}
+      if (motion === 'reduce' || (motion !== 'full' && window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) d.classList.add('reduced');
       // Filet de sécurité : si le JS principal ne démarre pas, on affiche tout le contenu.
       setTimeout(function () {{ if (!window.MV) d.classList.remove('js'); }}, 4000);
     }})(document.documentElement);

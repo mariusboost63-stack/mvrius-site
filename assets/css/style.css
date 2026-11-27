@@ -1550,6 +1550,9 @@ a.copy { padding-right: 18px; }
 .js .footer__word.is-in span { transform: none; }
 .footer__word span:hover { background-image: var(--grad); }
 .footer__bottom { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-block: 26px 30px; border-top: 1px solid var(--line); color: var(--dim); font-size: 13.5px; }
+.footer__motion button { padding: 0; border: 0; background: none; font: inherit; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(var(--fg-rgb), .25); cursor: pointer; transition: color .3s; }
+.footer__motion button:hover { color: var(--text); }
+html:not(.js) .footer__motion { display: none; }
 
 /* ---------- Responsive ---------- */
 /* Navigation : 9 liens, on passe au menu burger dès que la place manque */
