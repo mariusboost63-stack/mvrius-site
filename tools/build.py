@@ -81,9 +81,9 @@ T = [
     ('aria-label="Navigation principale"', 'aria-label="Main navigation"', 1),
     ('data-text="Projets"><span>Projets</span>', 'data-text="Projects"><span>Projects</span>', 1),
     ('data-text="Avis"><span>Avis</span>', 'data-text="Reviews"><span>Reviews</span>', 1),
-    ('<a href="staff/" data-text="Rejoindre l\'équipe"><span>Rejoindre l\'équipe</span></a>',
+    ('<a href="staff/" data-text="Recrutement"><span>Recrutement</span></a>',
      '<a href="staff/" data-text="Join the team" hreflang="fr"><span>Join the team</span></a>', 1),
-    ('<a href="staff/"><small>08</small>Rejoindre l\'équipe</a>', '<a href="staff/" hreflang="fr"><small>08</small>Join the team</a>', 1),
+    ('<a href="staff/"><small>08</small>Recrutement</a>', '<a href="staff/" hreflang="fr"><small>08</small>Join the team</a>', 1),
     ('<a class="lang" href="en/" hreflang="en" lang="en" aria-label="English version">EN</a>',
      '<a class="lang" href="" hreflang="fr" lang="fr" aria-label="Version française">FR</a>', 1),  # lien posé par build_site
     ('aria-label="Ouvrir le menu"', 'aria-label="Open menu"', 1),
@@ -1021,7 +1021,7 @@ def sync_staff_page():
     home = SRC.read_text(encoding="utf-8")
     _, nav, footer = page_parts(home, "../")
     nav = nav.replace('aria-label="Mvrius, retour en haut"', 'aria-label="Mvrius, retour à l\'accueil"')
-    nav = nav.replace('<a href="../staff/" data-text="Rejoindre l\'équipe">', '<a href="./" data-text="Rejoindre l\'équipe" aria-current="page">')
+    nav = nav.replace('<a href="../staff/" data-text="Recrutement">', '<a href="./" data-text="Recrutement" aria-current="page">')
     nav = re.sub(r'<a href="\.\./staff/"><small>(\d+)</small>', r'<a href="./" aria-current="page"><small>\1</small>', nav)
     footer = footer.replace('href="../staff/"', 'href="./"')
     path = ROOT / "staff" / "index.html"
