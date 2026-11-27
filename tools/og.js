@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /*
  * Génère les images d'aperçu (1200 × 630) affichées quand une page est partagée sur Discord, X, WhatsApp… :
- * - articles « Conseils » : assets/img/og/<article>.jpg
+ * - articles « Conseils » : assets/img/og/<article>.jpg (et en-<article>.jpg pour la version anglaise)
  * - scores du diagnostic express : assets/img/og/diagnostic-<score>.jpg
  *
  * Usage : node tools/og.js               (toutes les images)
- *         node tools/og.js <article>     (un seul article)
+ *         node tools/og.js <article>     (un seul article, en français et en anglais)
  *         node tools/og.js diagnostic    (les scores du diagnostic)
  * Nécessite Playwright (npm i -D playwright). Relancer ensuite python3 tools/build.py.
  */
@@ -25,8 +25,8 @@ const icon = id => {
 };
 const typo = text => text.replace(/ ([:;?!])/g, '&nbsp;$1');
 
-function readArticle(file) {
-  const raw = fs.readFileSync(path.join(ROOT, 'tools', 'articles', file), 'utf8');
+function readArticle(file, lang = 'fr') {
+  const raw = fs.readFileSync(path.join(ROOT, 'tools', 'articles', lang === 'en' ? 'en' : '', file), 'utf8');
   return JSON.parse(raw.match(/<!--([\s\S]*?)-->/)[1]);
 }
 
@@ -91,10 +91,17 @@ h1 { margin-top: 18px; font-family: Bricolage; font-weight: 700; font-size: 60px
 </body></html>`;
 }
 
-function page(meta) {
+// Textes de l'image selon la langue de l'article
+const OG_TEXT = {
+  fr: { pill: 'Conseils', read: r => `${r} de lecture`, url: 'mvriuus.fr/conseils', typo },
+  en: { pill: 'Tips', read: r => `${r} read`, url: 'mvriuus.fr/en/conseils', typo: t => t },
+};
+
+function page(meta, lang = 'fr') {
   const avatars = (meta.og_avatars || []).map(src => `<img src="${ORIGIN}${src}" alt="">`).join('');
+  const t = OG_TEXT[lang];
   return `<!doctype html>
-<html lang="fr"><head><meta charset="utf-8">
+<html lang="${lang}"><head><meta charset="utf-8">
 <style>
 @font-face { font-family: "Bricolage"; src: url("${ORIGIN}assets/fonts/bricolage.woff2") format("woff2"); font-weight: 200 800; }
 @font-face { font-family: "Inter"; src: url("${ORIGIN}assets/fonts/inter.woff2") format("woff2"); font-weight: 100 900; }
@@ -129,14 +136,14 @@ h1 { position: relative; margin-top: auto; font-family: Bricolage; font-weight: 
     <div class="head">
       <img class="av" src="${ORIGIN}assets/img/profile.jpg" alt="">
       <span class="name">Mvrius</span>
-      <span class="pill">Conseils</span>
+      <span class="pill">${t.pill}</span>
       ${avatars ? `<span class="bots">${avatars}</span>` : ''}
     </div>
-    <h1>${typo(meta.title)}</h1>
+    <h1>${t.typo(meta.title)}</h1>
     <div class="foot">
       <span class="ico">${icon(meta.icon)}</span>
-      <span><b>${meta.tag}</b> · ${meta.read} de lecture</span>
-      <span class="url">mvriuus.fr/conseils</span>
+      <span><b>${meta.tag}</b> · ${t.read(meta.read)}</span>
+      <span class="url">${t.url}</span>
     </div>
   </div>
 </body></html>`;
@@ -151,7 +158,12 @@ h1 { position: relative; margin-top: auto; font-family: Bricolage; font-weight: 
   if (only !== 'diagnostic') {
     fs.readdirSync(path.join(ROOT, 'tools', 'articles'))
       .filter(f => f.endsWith('.html') && (!only || f === `${only}.html`))
-      .forEach(f => jobs.push({ name: f.replace(/\.html$/, ''), html: () => page(readArticle(f)) }));
+      .forEach(f => {
+        jobs.push({ name: f.replace(/\.html$/, ''), html: () => page(readArticle(f)) });
+        if (fs.existsSync(path.join(ROOT, 'tools', 'articles', 'en', f))) {
+          jobs.push({ name: `en-${f.replace(/\.html$/, '')}`, html: () => page(readArticle(f, 'en'), 'en') });
+        }
+      });
   }
   if (!jobs.length) throw new Error(`Article introuvable : ${only}`);
   fs.mkdirSync(OUT, { recursive: true });

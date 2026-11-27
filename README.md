@@ -13,10 +13,11 @@ tools/site.html         → source de l'accueil et des pages : toutes les sectio
 index.html              → accueil (présentation + menu des pages), généré par tools/build.py
 services/, projets/, avis/, diagnostic/, faq/, contact/
                          → une page par section, générées par tools/build.py depuis tools/site.html
-en/                      → version anglaise de l'accueil et des pages (en/conseils/ en plus), générée aussi
-staff/index.html        → page « Rejoindre l'équipe » (candidatures, en français)
+en/                      → version anglaise de l'accueil, des pages, des conseils et du recrutement, générée aussi
+staff/index.html        → page « Recrutement » (candidatures) ; sa version anglaise en/staff/ est générée
 liens/index.html        → page « Liens » à mettre dans les bios des réseaux sociaux
-conseils/                → liste et articles « Conseils », générés depuis tools/articles/ (modifier le texte là-bas)
+conseils/                → liste et articles « Conseils », générés depuis tools/articles/ (modifier le texte là-bas ;
+                           traduction anglaise dans tools/articles/en/)
 sitemap.xml, robots.txt  → pour Google, générés par tools/build.py
 diagnostic/<score>/      → pages d'arrivée des scores partagés du diagnostic, générées par tools/build.py
 agenda/                  → agenda privé (connexion Discord, voir « Agenda privé » plus bas)
@@ -24,8 +25,9 @@ atelier/                 → atelier privé : construire des serveurs Discord av
 espace/                  → espace client privé (un lien secret par client)
 404.html                → page « introuvable »
 site.webmanifest        → nom et icônes quand le site est ajouté à l'écran d'accueil
-assets/css/style.css    → styles et animations
-assets/js/main.js       → interactions (intro, maquette Discord, carrousel, FAQ, formulaire…)
+assets/css/style.css    → styles et animations (fichier à modifier)
+assets/js/main.js       → interactions (intro, maquette Discord, carrousel, FAQ, formulaire…) (fichier à modifier)
+assets/**/*.min.*       → versions allégées chargées par les pages, générées par tools/build.py (ne pas modifier)
 assets/fonts/           → polices auto-hébergées (Bricolage Grotesque, Inter, Instrument Serif)
 assets/img/             → photo de profil, logos et visuels des projets, image d'aperçu (og.jpg)
 ```
@@ -63,6 +65,13 @@ par changement).
   `agenda-donnees` avec « Contents : Read and write »), `DISCORD_BOT_TOKEN` (secret, rappels). Changer l'un des secrets déconnecte tous
   les appareils.
 - **Application Discord** : redirection OAuth2 `https://<worker>/retour`, scope `identify`.
+- **Boutons et commandes Discord** (Rappel dans 5 min, Décaler, Annuler, Confirmer/Refuser une
+  demande, /rdv…) : dans le portail développeur Discord (application › General Information),
+  **Interactions Endpoint URL** = `https://<worker>/interactions`, et la « Public Key » de la même
+  page dans la variable `DISCORD_PUBLIC_KEY` du Worker (texte). Le bot apparaît toujours
+  « hors ligne » : c'est normal, il ne reste pas connecté, Discord envoie chaque clic au Worker.
+  Si les boutons affichent « Échec de l'interaction », c'est que l'adresse n'est pas renseignée,
+  que la clé ne correspond pas, ou que le Worker n'a pas la dernière version du code.
 - **Rappels en message privé** : le bot de l'application Discord (`DISCORD_BOT_TOKEN`, secret)
   écrit au compte autorisé. Il doit partager un serveur avec ce compte (invitation :
   `https://discord.com/oauth2/authorize?client_id=<DISCORD_CLIENT_ID>&scope=bot&permissions=0`).
@@ -138,10 +147,15 @@ clients ne voient pas leurs devis.
 python3 tools/build.py
 ```
 
-Ce script ajoute un numéro de version aux liens vers `style.css` et `main.js` (les
-navigateurs rechargent ainsi les fichiers modifiés), génère les pages « Conseils »
-à partir de `tools/articles/`, génère l'accueil et les pages des sections à partir de
-`tools/site.html` (en français et en anglais), puis `sitemap.xml` et `robots.txt`.
+Ce script écrit les versions allégées `style.min.css`, `main.min.js` et `reservation.min.js`
+(commentaires et espaces retirés par `tools/minify.py`, sans dépendance ; ce sont elles que les
+pages chargent), ajoute un numéro de version à leurs liens (les navigateurs rechargent ainsi les
+fichiers modifiés), génère les pages « Conseils » à partir de `tools/articles/` (en français et en
+anglais), génère l'accueil et les pages des sections à partir de `tools/site.html` (en français et
+en anglais), la page Recrutement anglaise, puis `sitemap.xml` et `robots.txt`.
+
+Les animations sont coupées pour les visiteurs dont l'appareil demande à les réduire (réglage
+d'accessibilité « Réduire les animations ») : classe `reduced` posée sur `<html>`.
 
 Pour modifier un texte de l'accueil ou d'une section : le changer dans `tools/site.html` (jamais
 dans `index.html`, `services/index.html`… qui sont écrasés), puis lancer le script. Chaque section
@@ -152,8 +166,9 @@ Le bouton « Améliorer mon serveur » du diagnostic garde le résultat (session
 le devis de la page Contact.
 
 Pour ajouter un article : créer `tools/articles/<nom>.html` (même en-tête que les autres :
-titre, description, extrait, catégorie, durée, date, icône), ajouter `<nom>` en tête de la liste
-`ARTICLES` dans `tools/build.py`, puis lancer le script.
+titre, description, extrait, catégorie, durée, date, icône) et sa traduction
+`tools/articles/en/<nom>.html` (même nom de fichier, obligatoire : sans elle le script s'arrête),
+ajouter `<nom>` en tête de la liste `ARTICLES` dans `tools/build.py`, puis lancer le script.
 
 Image d'aperçu de l'article (affichée quand il est partagé sur Discord, X…) :
 
@@ -162,6 +177,7 @@ node tools/og.js <nom>     # nécessite Playwright (npm i -D playwright)
 python3 tools/build.py
 ```
 
+`node tools/og.js <nom>` crée l'image française (`<nom>.jpg`) et l'anglaise (`en-<nom>.jpg`).
 Sans image propre, l'article utilise l'aperçu général du site (`assets/img/og.jpg`).
 
 Les scores du diagnostic express ont aussi leur image d'aperçu (`node tools/og.js diagnostic`) :
@@ -176,6 +192,7 @@ Les pages de `en/` sont générées à partir de `tools/site.html` :
 python3 tools/build.py
 ```
 
-Le script contient la table de traduction. Si un texte français a changé, il s'arrête
-et indique la phrase à retraduire. Les valeurs envoyées par le formulaire restent en
+Le script contient la table de traduction (`T`, et `STAFF_EN` pour la page Recrutement, traduite
+depuis `staff/index.html`). Si un texte français a changé, il s'arrête et indique la phrase à
+retraduire. Les valeurs envoyées par le formulaire restent en
 français pour que les e-mails reçus soient identiques dans les deux langues.

@@ -30,7 +30,7 @@
   <meta name="apple-mobile-web-app-title" content="Mvrius">
   <link rel="preload" href="../assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="../assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="../assets/css/style.css?v=e67887f8">
+  <link rel="stylesheet" href="../assets/css/style.min.css?v=179baa12">
 
   <script>
     (function (d) {
@@ -50,14 +50,73 @@
       // L'écran d'intro attend la police du titre (au plus 0,7 s) pour éviter un changement de police en pleine animation
       var fontsReady = function () { d.classList.add('fonts-ready'); };
       if (document.fonts && document.fonts.load) { document.fonts.load('800 1em Bricolage').then(fontsReady, fontsReady); setTimeout(fontsReady, 700); } else fontsReady();
-      // Animations affichées pour tous, même si l'appareil demande à les réduire
-      // (pour les couper : ajouter la classe « reduced » à <html>)
+      // Animations coupées si l'appareil demande à les réduire (réglage d'accessibilité)
+      if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) d.classList.add('reduced');
       // Filet de sécurité : si le JS principal ne démarre pas, on affiche tout le contenu.
       setTimeout(function () { if (!window.MV) d.classList.remove('js'); }, 4000);
     })(document.documentElement);
   </script>
-  <script src="../assets/js/main.js?v=e67887f8" defer></script>
+  <script src="../assets/js/main.min.js?v=179baa12" defer></script>
 
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "name": "Gestion de communautés Discord",
+    "serviceType": "Community management",
+    "description": "Modération, administration technique, développement communautaire et réseaux sociaux : les services de Mvrius pour votre serveur Discord.",
+    "url": "https://mvriuus.fr/services/",
+    "inLanguage": "fr",
+    "provider": {
+      "@type": "Person",
+      "name": "Marius",
+      "alternateName": "Mvrius",
+      "url": "https://mvriuus.fr/"
+    },
+    "availableChannel": {
+      "@type": "ServiceChannel",
+      "serviceUrl": "https://mvriuus.fr/contact/"
+    },
+    "hasOfferCatalog": {
+      "@type": "OfferCatalog",
+      "name": "Services",
+      "itemListElement": [
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "Modération professionnelle",
+            "description": "Maintien d'un environnement sain avec une application équitable des règles et une gestion des conflits."
+          }
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "Administration technique",
+            "description": "Configuration optimale, automatisation et gestion avancée des permissions."
+          }
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "Développement communautaire",
+            "description": "Stratégies d'engagement pour fidéliser et faire grandir votre communauté."
+          }
+        },
+        {
+          "@type": "Offer",
+          "itemOffered": {
+            "@type": "Service",
+            "name": "Gestion des réseaux sociaux",
+            "description": "Aide à la gestion et au développement de votre présence sur les réseaux sociaux."
+          }
+        }
+      ]
+    }
+  }
+  </script>
 </head>
 <body>
   <!-- Page générée par tools/build.py à partir de tools/site.html : modifier le texte là-bas -->

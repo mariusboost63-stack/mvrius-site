@@ -1691,8 +1691,8 @@ a.copy { padding-right: 18px; }
 .lite .mock, .lite .dchan, .lite .diag__card, .lite .quote, .lite .recruit { box-shadow: 0 30px 60px -30px rgba(var(--shadow-rgb), .8); }
 
 /* ---------- Mouvement réduit ---------- */
-/* Animations coupées : uniquement si la classe « reduced » est ajoutée à <html> (aucune page ne le fait :
-   les animations sont affichées pour tous, même si l'appareil demande à les réduire) */
+/* Animations coupées quand l'appareil demande à les réduire : la classe « reduced » est posée sur <html>
+   par le script d'en-tête de chaque page (et par main.js en secours) */
 html.reduced { scroll-behavior: auto; }
 .reduced *, .reduced *::before, .reduced *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; transition-delay: 0s !important; }
 

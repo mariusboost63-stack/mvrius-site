@@ -31,7 +31,7 @@
   <meta name="apple-mobile-web-app-title" content="Mvrius">
   <link rel="preload" href="../../assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="../../assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="../../assets/css/style.css?v=e67887f8">
+  <link rel="stylesheet" href="../../assets/css/style.min.css?v=179baa12">
 
   <script>
     (function (d) {
@@ -51,13 +51,13 @@
       // L'écran d'intro attend la police du titre (au plus 0,7 s) pour éviter un changement de police en pleine animation
       var fontsReady = function () { d.classList.add('fonts-ready'); };
       if (document.fonts && document.fonts.load) { document.fonts.load('800 1em Bricolage').then(fontsReady, fontsReady); setTimeout(fontsReady, 700); } else fontsReady();
-      // Animations affichées pour tous, même si l'appareil demande à les réduire
-      // (pour les couper : ajouter la classe « reduced » à <html>)
+      // Animations coupées si l'appareil demande à les réduire (réglage d'accessibilité)
+      if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) d.classList.add('reduced');
       // Filet de sécurité : si le JS principal ne démarre pas, on affiche tout le contenu.
       setTimeout(function () { if (!window.MV) d.classList.remove('js'); }, 4000);
     })(document.documentElement);
   </script>
-  <script src="../../assets/js/main.js?v=e67887f8" defer></script>
+  <script src="../../assets/js/main.min.js?v=179baa12" defer></script>
 
 </head>
 <body>
@@ -110,7 +110,7 @@
         <a href="../conseils/" data-text="Tips"><span>Tips</span></a>
         <a href="../faq/" data-text="FAQ"><span>FAQ</span></a>
         <a href="../reseaux/" data-text="Socials"><span>Socials</span></a>
-        <a href="../../staff/" data-text="Join the team" hreflang="fr"><span>Join the team</span></a>
+        <a href="../staff/" data-text="Join us"><span>Join us</span></a>
         <span class="nav__indicator" aria-hidden="true"></span>
       </nav>
       <a class="lang" href="../../diagnostic/" hreflang="fr" lang="fr" aria-label="Version française">FR</a>
@@ -130,7 +130,7 @@
       <a href="../conseils/"><small>05</small>Tips</a>
       <a href="../faq/"><small>06</small>FAQ</a>
       <a href="../reseaux/"><small>07</small>Socials</a>
-      <a href="../../staff/" hreflang="fr"><small>08</small>Join the team</a>
+      <a href="../staff/"><small>08</small>Join us</a>
       <a href="../contact/"><small>09</small>Contact</a>
     </nav>
     <p class="menu__foot">Available for new collaborations</p>
@@ -248,7 +248,7 @@
       <div>
         <p class="footer__title">Contact</p>
         <a href="mailto:contact@mvriuus.fr">contact@mvriuus.fr</a>
-        <a href="../../staff/" hreflang="fr">Join the team (FR)</a>
+        <a href="../staff/">Join the team</a>
         <a href="#main" class="footer__top">Back to top <svg class="ico"><use href="#i-arrow-up"/></svg></a>
       </div>
     </div>

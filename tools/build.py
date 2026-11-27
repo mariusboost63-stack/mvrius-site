@@ -3,11 +3,14 @@
 
 Usage : python3 tools/build.py
 
-1. Ajoute aux liens vers style.css et main.js un numéro de version (?v=…) calculé
-   à partir de leur contenu : les navigateurs rechargent ainsi les fichiers à
-   chaque mise à jour au lieu de garder une ancienne version en mémoire.
+1. Écrit les versions allégées (minifiées) de style.css, main.js et reservation.js
+   (style.min.css, main.min.js, reservation.min.js : ce sont elles que les pages chargent),
+   puis ajoute aux liens un numéro de version (?v=…) calculé à partir de leur contenu :
+   les navigateurs rechargent ainsi les fichiers à chaque mise à jour au lieu de garder
+   une ancienne version en mémoire. On modifie toujours les fichiers d'origine, jamais les .min.
 2. Génère les pages « Conseils » (conseils/index.html et conseils/<article>/index.html)
-   à partir des textes de tools/articles/, avec la navigation et le pied de page du site.
+   à partir des textes de tools/articles/, avec la navigation et le pied de page du site,
+   et leur version anglaise (en/conseils/…) à partir de tools/articles/en/.
 3. Génère les pages du site à partir de tools/site.html (toutes les sections) : l'accueil
    (index.html : présentation + menu des pages) et une page par section (services/,
    projets/, avis/, diagnostic/, faq/, contact/), en français puis en anglais (en/…).
@@ -24,12 +27,16 @@ import sys
 import unicodedata
 import urllib.parse
 
+from minify import minify_css, minify_js
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "tools" / "site.html"  # source de l'accueil et des pages du site (toutes les sections)
 STAMPED = ["tools/site.html", "staff/index.html", "liens/index.html", "404.html"]
 
-# Articles « Conseils », du plus récent au plus ancien (textes dans tools/articles/<nom>.html)
+# Articles « Conseils », du plus récent au plus ancien (textes dans tools/articles/<nom>.html,
+# et leur traduction anglaise dans tools/articles/en/<nom>.html, obligatoire)
 ARTICLES = [
+    "securiser-serveur-discord", "reglement-serveur-discord", "relancer-serveur-discord-inactif",
     "bots-arvenis-discord", "organiser-evenement-discord", "discord-createurs-de-contenu",
     "erreurs-serveur-discord", "structurer-salons-discord", "recruter-equipe-moderation",
 ]
@@ -39,7 +46,7 @@ PAGES = ["mentions-legales", "cgu"]
 RESA = "rendez-vous"  # page « Réserver un appel » (créneaux venant du serveur de l'agenda)
 SECTIONS = ("services", "projets", "avis", "diagnostic", "conseils", "faq", "reseaux", "contact")
 # Une page par section de tools/site.html : titre et description (français, anglais).
-# En français, conseils/ est la liste des articles (build_listing) ; en anglais, la section suffit.
+# conseils/ et en/conseils/ sont les listes des articles (build_listing), pas des pages de section.
 SITE_PAGES = {
     "services": (("Services", "Modération, administration technique, développement communautaire et réseaux sociaux : les services de Mvrius pour votre serveur Discord."),
                  ("Services", "Moderation, technical administration, community growth and social media: Mvrius's services for your Discord server.")),
@@ -49,7 +56,7 @@ SITE_PAGES = {
              ("Client reviews", "What the creators and Discord servers I work with say about my work.")),
     "diagnostic": (("Diagnostic express", "6 questions, une minute : obtenez un score sur 100 et des conseils personnalisés pour votre serveur Discord."),
                    ("Quick check-up", "6 questions, one minute: get a score out of 100 and personalised tips for your Discord server.")),
-    "conseils": (None, ("Tips", "Practical advice to structure, run and grow your Discord server. Articles in French.")),
+    "conseils": (None, None),
     "faq": (("FAQ", "Tarifs, déroulé d'une mission, délais, paiement, accès : les réponses aux questions fréquentes."),
             ("FAQ", "Pricing, how a project works, timing, payment, access: answers to frequently asked questions.")),
     "reseaux": (("Réseaux", "Retrouvez Mvrius sur X (@mariusatqz), Instagram, Discord et Guns.lol."),
@@ -82,8 +89,8 @@ T = [
     ('data-text="Projets"><span>Projets</span>', 'data-text="Projects"><span>Projects</span>', 1),
     ('data-text="Avis"><span>Avis</span>', 'data-text="Reviews"><span>Reviews</span>', 1),
     ('<a href="staff/" data-text="Recrutement"><span>Recrutement</span></a>',
-     '<a href="staff/" data-text="Join the team" hreflang="fr"><span>Join the team</span></a>', 1),
-    ('<a href="staff/"><small>08</small>Recrutement</a>', '<a href="staff/" hreflang="fr"><small>08</small>Join the team</a>', 1),
+     '<a href="staff/" data-text="Join us"><span>Join us</span></a>', 1),
+    ('<a href="staff/"><small>08</small>Recrutement</a>', '<a href="staff/"><small>08</small>Join us</a>', 1),
     ('<a class="lang" href="en/" hreflang="en" lang="en" aria-label="English version">EN</a>',
      '<a class="lang" href="" hreflang="fr" lang="fr" aria-label="Version française">FR</a>', 1),  # lien posé par build_site
     ('aria-label="Ouvrir le menu"', 'aria-label="Open menu"', 1),
@@ -230,11 +237,11 @@ T = [
      'On Discord, I need full access to the server. For social media, the access required depends on the project.', 1),
     ('Quels bots utilisez-vous&nbsp;?', 'Which bots do you use?', 1),
     ('J\'utilise les bots développés par Arvenis, le collectif que je dirige.', 'I use the bots developed by Arvenis, the collective I run.', 1),
-    ('Découvrez-les ici</a>.', 'Discover them here</a> (in French).', 1),
+    ('Découvrez-les ici</a>.', 'Discover them here</a>.', 1),
     ('<span>Voir toutes les questions</span>', '<span>See all questions</span>', 1),
     ('Pouvez-vous recruter et gérer un staff&nbsp;?', 'Can you recruit and manage a staff team?', 1),
     ('Envie d\'en faire partie&nbsp;? <a class="faq__link" href="staff/">Postulez ici</a>.',
-     'Want to join? <a class="faq__link" href="staff/">Apply here</a> (in French).', 1),
+     'Want to join? <a class="faq__link" href="staff/">Apply here</a>.', 1),
     ('Oui. Je dispose d\'équipes et je mène des recrutements pour constituer un staff adapté à votre communauté.',
      'Yes. I have teams and I run recruitment to build a staff that fits your community.', 1),
     ('Pouvez-vous intervenir sur un serveur existant&nbsp;?', 'Can you work on an existing server?', 1),
@@ -336,12 +343,11 @@ T = [
     ('Continuez à faire évoluer votre serveur avec vos membres : sondages, nouveautés et partenariats.',
      'Keep evolving your server with your members: polls, new features and partnerships.', 1),
 
-    # --- Conseils (articles en français) ---
+    # --- Conseils ---
     ('<p class="eyebrow" data-reveal>Conseils</p>', '<p class="eyebrow" data-reveal>Tips</p>', 1),
     ('Mes conseils pour votre <em>serveur</em>.', 'Tips for your <em>server</em>.', 1),
     ('Des astuces concrètes, tirées de mon expérience, pour faire grandir votre communauté.',
-     'Practical advice from my experience to help your community grow. Articles in French.', 1),
-    ('href="conseils/', 'hreflang="fr" href="conseils/', 5),
+     'Practical advice from my experience to help your community grow.', 1),
     ('<span>Voir tous les conseils</span>', '<span>See all tips</span>', 1),
     ('Communauté · 4 min de lecture', 'Community · 4 min read', 1),
     ('Organisation · 5 min de lecture', 'Organisation · 5 min read', 1),
@@ -364,7 +370,7 @@ T = [
     ('<a href="#projets">Projets</a>', '<a href="#projets">Projects</a>', 1),
     ('<a href="#avis">Avis</a>', '<a href="#avis">Reviews</a>', 1),
     ('<a href="liens/">Tous mes liens</a>', '<a href="liens/" hreflang="fr">All my links</a>', 1),
-    ('<a href="staff/">Rejoindre l\'équipe</a>\n', '<a href="staff/" hreflang="fr">Join the team (FR)</a>\n', 1),
+    ('<a href="staff/">Rejoindre l\'équipe</a>\n', '<a href="staff/">Join the team</a>\n', 1),
     ('Retour en haut <svg', 'Back to top <svg', 1),
     ('Mvrius. Tous droits réservés.', 'Mvrius. All rights reserved.', 1),
     ('<p class="contact__alt" data-reveal>Vous préférez en parler de vive voix&nbsp;? <a href="rendez-vous/">Réservez un appel</a></p>',
@@ -389,9 +395,8 @@ T = [
     ('Des articles pour structurer et animer votre serveur</span>', 'Articles on structuring and running your server</span>', 1),
     ("Tarifs, déroulé d'une mission, délais et accès</span>", 'Pricing, how a project works, timing and access</span>', 1),
     ('Demande de devis, e-mail ou appel</span>', 'Quote request, email or call</span>', 1),
-    ('<a class="hmenu__item" href="staff/" data-reveal>', '<a class="hmenu__item" href="staff/" hreflang="fr" data-reveal>', 1),
     ('<span class="hmenu__name">Rejoindre l\'équipe</span>', '<span class="hmenu__name">Join the team</span>', 1),
-    ('Candidatures pour le staff de mes communautés</span>', "Apply to join my communities' staff (in French)</span>", 1),
+    ('Candidatures pour le staff de mes communautés</span>', "Apply to join my communities' staff</span>", 1),
 
     # --- Réseaux ---
     ('data-text="Réseaux"><span>Réseaux</span>', 'data-text="Socials"><span>Socials</span>', 1),
@@ -487,6 +492,28 @@ def ld_block(data):
     return f'<script type="application/ld+json">\n  {body}\n  </script>'
 
 
+def build_assets():
+    """Versions minifiées des feuilles de style et des scripts (fichiers .min chargés par les pages)."""
+    assets = ROOT / "assets"
+    for src, fn in (("css/style.css", minify_css), ("js/main.js", minify_js), ("js/reservation.js", minify_js)):
+        path = assets / src
+        text = path.read_text(encoding="utf-8")
+        mini = fn(text)
+        path.with_name(path.stem + ".min" + path.suffix).write_text(mini, encoding="utf-8")
+        print(f"{src} : {len(text.encode()) // 1024} Ko → {len(mini.encode()) // 1024} Ko")
+
+
+def alternates(url_fr, url_en):
+    return "".join(f'\n  <link rel="alternate" hreflang="{code}" href="{target}">'
+                   for code, target in (("fr", url_fr), ("en", url_en), ("x-default", url_fr)))
+
+
+def with_alternates(html, url_fr, url_en):
+    """Ajoute (ou remplace) les liens hreflang juste après la balise canonical."""
+    html = re.sub(r'\n  <link rel="alternate" hreflang="[^"]+" href="[^"]*">', "", html)
+    return sub1(r'(<link rel="canonical" href="[^"]*">)', lambda m: m.group(1) + alternates(url_fr, url_en), html, "canonical")
+
+
 def stamp():
     assets = ROOT / "assets"
     digest = hashlib.md5((assets / "css" / "style.css").read_bytes() + (assets / "js" / "main.js").read_bytes() + (assets / "js" / "reservation.js").read_bytes())
@@ -494,7 +521,7 @@ def stamp():
     for page in STAMPED:
         path = ROOT / page
         html = path.read_text(encoding="utf-8")
-        html, n = re.subn(r'(style\.css|main\.js)(\?v=[0-9a-z]+)?"', rf'\1?v={version}"', html)
+        html, n = re.subn(r'/(style|main)(?:\.min)?\.(css|js)(\?v=[0-9a-z]+)?"', rf'/\1.min.\2?v={version}"', html)
         if not n:
             sys.exit(f"Aucun lien style.css / main.js dans {page}")
         path.write_text(html, encoding="utf-8")
@@ -502,8 +529,11 @@ def stamp():
     return version
 
 
-def page_parts(home, prefix):
-    """Sprite d'icônes, navigation et pied de page de l'accueil, liens adaptés à une page plus bas."""
+def page_parts(home, prefix, local=None):
+    """Sprite d'icônes, navigation et pied de page de l'accueil, liens adaptés à une page plus bas.
+    prefix : chemin vers la racine du site (fichiers, pages seulement en français) ;
+    local : chemin vers l'accueil de la langue (sections, recrutement, conseils), par défaut prefix."""
+    local = prefix if local is None else local
     sprite = re.search(r"  <!-- Sprite d'icônes.*?</svg>\n", home, re.S).group(0)
     nav = re.search(r'  <a class="skip".*?</div>\n\n  <main id="main">', home, re.S).group(0)
     nav = re.sub(r"  <!-- Écran d'intro -->.*?\n  </div>\n\n", "", nav, count=1, flags=re.S)
@@ -512,15 +542,19 @@ def page_parts(home, prefix):
 
     def fix(block):
         block = block.replace('href="#top" class="footer__top"', 'href="#main" class="footer__top"')
-        block = block.replace('href="#top"', f'href="{prefix}"')
-        block = re.sub(r'href="#(' + "|".join(SECTIONS) + r')"', rf'href="{prefix}\1/"', block)
-        return re.sub(r'(href|src)="(assets/|staff/|liens/|en/|mentions-legales/|cgu/|rendez-vous/)', rf'\1="{prefix}\2', block)
+        block = block.replace('href="#top"', f'href="{local}"')
+        block = re.sub(r'href="#(' + "|".join(SECTIONS) + r')"', rf'href="{local}\1/"', block)
+        block = re.sub(r'(href|src)="(staff/|conseils/)', rf'\1="{local}\2', block)
+        return re.sub(r'(href|src)="(assets/|liens/|en/|mentions-legales/|cgu/|rendez-vous/)', rf'\1="{prefix}\2', block)
 
     return sprite, fix(nav), fix(footer)
 
 
-def read_article(slug):
-    raw = (ROOT / "tools" / "articles" / f"{slug}.html").read_text(encoding="utf-8")
+def read_article(slug, lang="fr"):
+    path = ROOT / "tools" / "articles" / ("en" if lang == "en" else "") / f"{slug}.html"
+    if not path.exists():
+        sys.exit(f"Conseils : traduction anglaise manquante ({path.relative_to(ROOT)})")
+    raw = path.read_text(encoding="utf-8")
     meta = json.loads(re.match(r"<!--(.*?)-->", raw, re.S).group(1))
     body = raw.split("-->", 1)[1].strip()
     return meta, body
@@ -534,6 +568,14 @@ def typo(text):
 MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
 
 
+EN_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+
+
+def en_date(iso):
+    y, m, d = (int(x) for x in iso.split("-"))
+    return f"{EN_MONTHS[m - 1]} {d}, {y}"
+
+
 def fr_date(iso):
     y, m, d = (int(x) for x in iso.split("-"))
     return f"{'1er' if d == 1 else d} {MONTHS[m - 1]} {y}"
@@ -544,9 +586,51 @@ def slugify(text):
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
 
 
-def with_toc(body):
+TIPS = {
+    "fr": {
+        "read": "{} de lecture", "more": "Lire l'article", "toc_label": "Sommaire", "toc_title": "Dans cet article",
+        "back": "Tous les conseils", "by": "Par", "share": "Cet article peut aider quelqu'un&nbsp;? Partagez-le.",
+        "share_btn": "Partager", "copy": "Copier le lien", "share_x": "Partager sur X",
+        "cta_title": "Besoin d'un coup de main pour votre serveur&nbsp;?",
+        "cta_text": "Je m'occupe de la structure, de la modération et de l'animation de votre communauté.",
+        "quote": "Demander un devis", "diag": "Faire le diagnostic",
+        "others": "Autres conseils", "next": "À lire aussi", "all": "Voir tous les conseils",
+        "list_title": "Conseils pour votre serveur Discord",
+        "list_desc": "Mes conseils pour structurer, animer, sécuriser et faire grandir un serveur Discord : accueil, salons, règlement, modération, événements, bots et créateurs de contenu.",
+        "eyebrow": "Conseils", "h1": "Mes conseils pour votre <em>serveur</em>.",
+        "lead": "Des astuces concrètes, tirées de mon expérience, pour structurer, animer et faire grandir votre communauté Discord.",
+        "list_cta_title": "Et votre serveur, où en est-il&nbsp;?",
+        "list_cta_text": "Faites le diagnostic express en une minute, ou parlez-moi directement de votre projet.",
+        "comment": "Page générée par tools/build.py à partir de tools/articles/",
+    },
+    "en": {
+        "read": "{} read", "more": "Read the article", "toc_label": "Contents", "toc_title": "In this article",
+        "back": "All tips", "by": "By", "share": "Could this article help someone? Share it.",
+        "share_btn": "Share", "copy": "Copy link", "share_x": "Share on X",
+        "cta_title": "Need a hand with your server?",
+        "cta_text": "I take care of your community's structure, moderation and engagement.",
+        "quote": "Request a quote", "diag": "Take the check-up",
+        "others": "More tips", "next": "Read next", "all": "See all tips",
+        "list_title": "Tips for your Discord server",
+        "list_desc": "My advice to structure, run, secure and grow a Discord server: welcome, channels, rules, moderation, events, bots and content creators.",
+        "eyebrow": "Tips", "h1": "Tips for your <em>server</em>.",
+        "lead": "Practical advice from my experience to structure, run and grow your Discord community.",
+        "list_cta_title": "How is your server doing?",
+        "list_cta_text": "Take the one-minute check-up, or tell me about your project directly.",
+        "comment": "Page générée par tools/build.py à partir de tools/articles/en/",
+    },
+}
+
+
+def tip_typo(lang):
+    """Typographie française (espace insécable avant : ; ? !) seulement pour le français."""
+    return typo if lang == "fr" else (lambda text: text)
+
+
+def with_toc(body, lang="fr"):
     """Ajoute un identifiant à chaque intertitre et renvoie le sommaire correspondant."""
     entries, seen = [], set()
+    L = TIPS[lang]
 
     def add_id(m):
         label = re.sub(r'<span class="(?:bot-card__badge|prose__new)">.*?</span>', "", m.group(1))
@@ -562,9 +646,9 @@ def with_toc(body):
     body = re.sub(r"<h2>(.*?)</h2>", add_id, body)
     # Cartes des bots : l'ancre vise la carte entière (bannière comprise)
     body = re.sub(r'(<div class="bot-card" data-bot="[^"]+")(.*?)<h2 id="([^"]+)">', r'\1 id="\3"\2<h2>', body, flags=re.S)
-    items = "\n".join(f'              <li><a href="#{a}">{typo(label)}</a></li>' for a, label in entries)
-    toc = f"""          <nav class="toc js-toc" aria-label="Sommaire" data-reveal>
-            <p class="toc__title">Dans cet article</p>
+    items = "\n".join(f'              <li><a href="#{a}">{tip_typo(lang)(label)}</a></li>' for a, label in entries)
+    toc = f"""          <nav class="toc js-toc" aria-label="{L["toc_label"]}" data-reveal>
+            <p class="toc__title">{L["toc_title"]}</p>
             <ol class="toc__list">
 {items}
             </ol>
@@ -578,23 +662,25 @@ def og_image(name):
     return f"{SITE}assets/img/og/{name}.jpg" if own.exists() else f"{SITE}assets/img/og.jpg"
 
 
-def doc_head(title, description, url, version, prefix, og_type="website", ld=None, image=None, noindex=False):
-    """En-tête commun aux pages générées (page des conseils et articles)."""
+def doc_head(title, description, url, version, prefix, og_type="website", ld=None, image=None, noindex=False, lang="fr", alt=None):
+    """En-tête commun aux pages générées (page des conseils et articles).
+    alt : adresses (française, anglaise) de la page quand elle existe dans les deux langues."""
+    links = alternates(*alt) if alt else ""
     ld = f"\n  {ld_block(ld)}" if ld else ""
     image = image or f"{SITE}assets/img/og.jpg"
     robots = '\n  <meta name="robots" content="noindex, follow">' if noindex else ""
     return f"""<!doctype html>
-<html lang="fr">
+<html lang="{lang}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{title} — Mvrius</title>
   <meta name="description" content="{description}">
   <meta name="theme-color" content="#000">{robots}
-  <link rel="canonical" href="{url}">
+  <link rel="canonical" href="{url}">{links}
 
   <meta property="og:type" content="{og_type}">
-  <meta property="og:locale" content="fr_FR">
+  <meta property="og:locale" content="{"en_US" if lang == "en" else "fr_FR"}">
   <meta property="og:site_name" content="Mvrius">
   <meta property="og:title" content="{title}">
   <meta property="og:description" content="{description}">
@@ -611,53 +697,61 @@ def doc_head(title, description, url, version, prefix, og_type="website", ld=Non
   <meta name="apple-mobile-web-app-title" content="Mvrius">
   <link rel="preload" href="{prefix}assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="{prefix}assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="{prefix}assets/css/style.css?v={version}">
+  <link rel="stylesheet" href="{prefix}assets/css/style.min.css?v={version}">
 
   <script>
     (function (d) {{
       d.classList.add('js');
-      // Animations affichées pour tous, même si l'appareil demande à les réduire
-      // (pour les couper : ajouter la classe « reduced » à <html>)
+      // Animations coupées si l'appareil demande à les réduire (réglage d'accessibilité)
+      if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) d.classList.add('reduced');
       // Filet de sécurité : si le JS principal ne démarre pas, on affiche tout le contenu.
       setTimeout(function () {{ if (!window.MV) d.classList.remove('js'); }}, 4000);
     }})(document.documentElement);
   </script>
-  <script src="{prefix}assets/js/main.js?v={version}" defer></script>{ld}
+  <script src="{prefix}assets/js/main.min.js?v={version}" defer></script>{ld}
 </head>
 """
 
 
-def layout(home, prefix, current):
-    """Sprite, navigation et pied de page pour une page des conseils (lien « Conseils » vers la liste)."""
-    sprite, nav, footer = page_parts(home, prefix)
-    listing = "./" if current else f"{prefix}conseils/"
-    nav = nav.replace(f'href="{prefix}conseils/"', f'href="{listing}"')
-    footer = footer.replace(f'href="{prefix}conseils/"', f'href="{listing}"')
+def layout(home, prefix, current, local=None, other=None):
+    """Sprite, navigation et pied de page pour une page des conseils (lien « Conseils » vers la liste).
+    local : chemin vers l'accueil de la langue ; other : adresse de la même page dans l'autre langue."""
+    sprite, nav, footer = page_parts(home, prefix, local)
+    local = prefix if local is None else local
+    listing = "./" if current else f"{local}conseils/"
+    nav = nav.replace(f'href="{local}conseils/"', f'href="{listing}"')
+    footer = footer.replace(f'href="{local}conseils/"', f'href="{listing}"')
     if current:
-        nav = nav.replace(f'<a href="{listing}" data-text="Conseils">', f'<a href="{listing}" data-text="Conseils" aria-current="page">')
-        nav = re.sub(r'<a href="\./"><small>(\d+)</small>Conseils', r'<a href="./" aria-current="page"><small>\1</small>Conseils', nav)
+        nav = nav.replace(f'<a href="{listing}" data-text=', f'<a href="{listing}" aria-current="page" data-text=')
+        nav = re.sub(r'<a href="\./"><small>(\d+)</small>', r'<a href="./" aria-current="page"><small>\1</small>', nav)
     if nav.count(f'href="{listing}"') != 2:
         sys.exit("Conseils : lien « Conseils » introuvable dans la navigation")
+    if other is not None:
+        nav = sub1(r'<a class="lang" href="[^"]*"', f'<a class="lang" href="{other}"', nav, "lien de langue")
     return sprite, nav, footer
 
 
-def tip_card(slug, meta, num, href):
+def tip_card(slug, meta, num, href, lang="fr"):
+    L, ty = TIPS[lang], tip_typo(lang)
     return f"""          <a class="tip-card spotlight" href="{href}" data-reveal>
             <span class="tip-card__top"><span class="tip-card__icon"><svg class="ico"><use href="#{meta["icon"]}"/></svg></span><span class="tip-card__num">{num:02d}</span></span>
-            <span class="tip-card__tag">{meta["tag"]} · {meta["read"]} de lecture</span>
-            <span class="tip-card__title">{typo(meta["title"])}</span>
-            <span class="tip-card__excerpt">{typo(meta["excerpt"])}</span>
-            <span class="tip-card__more">Lire l'article <svg class="ico"><use href="#i-arrow-right"/></svg></span>
+            <span class="tip-card__tag">{meta["tag"]} · {L["read"].format(meta["read"])}</span>
+            <span class="tip-card__title">{ty(meta["title"])}</span>
+            <span class="tip-card__excerpt">{ty(meta["excerpt"])}</span>
+            <span class="tip-card__more">{L["more"]} <svg class="ico"><use href="#i-arrow-right"/></svg></span>
           </a>"""
 
 
-def build_listing(home, data, version):
-    sprite, nav, footer = layout(home, "../", current=True)
-    cards = "\n".join(tip_card(slug, meta, i, f"{slug}/") for i, (slug, (meta, _)) in enumerate(data.items(), 1))
-    page = doc_head("Conseils pour votre serveur Discord",
-                    "Mes conseils pour structurer, animer et faire grandir un serveur Discord : accueil, salons, modération, événements, bots et créateurs de contenu.",
-                    f"{SITE}conseils/", version, "../") + f"""<body>
-  <!-- Page générée par tools/build.py à partir de tools/articles/ : modifier les textes là-bas -->
+def build_listing(home, data, version, lang="fr"):
+    """Liste des articles : conseils/ (français) ou en/conseils/ (anglais)."""
+    en = lang == "en"
+    L = TIPS[lang]
+    root, local = ("../../", "../") if en else ("../", "../")
+    sprite, nav, footer = layout(home, root, True, local, other="../../conseils/" if en else "../en/conseils/")
+    cards = "\n".join(tip_card(slug, meta, i, f"{slug}/", lang) for i, (slug, (meta, _)) in enumerate(data.items(), 1))
+    url_fr, url_en = f"{SITE}conseils/", f"{SITE}en/conseils/"
+    page = doc_head(L["list_title"], L["list_desc"], url_en if en else url_fr, version, root, lang=lang, alt=(url_fr, url_en)) + f"""<body>
+  <!-- {L["comment"]} : modifier les textes là-bas -->
 {sprite}{nav}
   <main id="main">
     <section class="page-hero page-hero--tips">
@@ -666,9 +760,9 @@ def build_listing(home, data, version):
         <div class="gridlines"></div>
       </div>
       <div class="container page-hero__inner">
-        <p class="eyebrow" data-reveal>Conseils</p>
-        <h1 class="page-hero__title" data-split>Mes conseils pour votre <em>serveur</em>.</h1>
-        <p class="section__lead" data-reveal>Des astuces concrètes, tirées de mon expérience, pour structurer, animer et faire grandir votre communauté Discord.</p>
+        <p class="eyebrow" data-reveal>{L["eyebrow"]}</p>
+        <h1 class="page-hero__title" data-split>{L["h1"]}</h1>
+        <p class="section__lead" data-reveal>{L["lead"]}</p>
       </div>
     </section>
 
@@ -678,11 +772,11 @@ def build_listing(home, data, version):
 {cards}
         </div>
         <aside class="article__cta" data-reveal>
-          <p class="article__cta-title">Et votre serveur, où en est-il&nbsp;?</p>
-          <p>Faites le diagnostic express en une minute, ou parlez-moi directement de votre projet.</p>
+          <p class="article__cta-title">{L["list_cta_title"]}</p>
+          <p>{L["list_cta_text"]}</p>
           <div class="article__cta-actions">
-            <a class="btn btn--primary magnetic" href="../diagnostic/"><span>Faire le diagnostic</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
-            <a class="btn btn--ghost magnetic" href="../contact/"><span>Demander un devis</span></a>
+            <a class="btn btn--primary magnetic" href="{local}diagnostic/"><span>{L["diag"]}</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
+            <a class="btn btn--ghost magnetic" href="{local}contact/"><span>{L["quote"]}</span></a>
           </div>
         </aside>
       </div>
@@ -692,7 +786,9 @@ def build_listing(home, data, version):
 {footer}</body>
 </html>
 """
-    (ROOT / "conseils" / "index.html").write_text(page, encoding="utf-8")
+    out = ROOT / ("en" if en else "") / "conseils" / "index.html"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(page, encoding="utf-8")
 
 
 def diag_scores(home):
@@ -759,32 +855,49 @@ def build_diag_pages(version):
 
 
 def build_articles(version):
-    home = SRC.read_text(encoding="utf-8")
-    sprite, nav, footer = layout(home, "../../", current=False)
-    data = {slug: read_article(slug) for slug in ARTICLES}
-    build_listing(home, data, version)
-    for i, (slug, (meta, body)) in enumerate(data.items()):
-        url = f"{SITE}conseils/{slug}/"
-        image = og_image(slug)
-        body, toc = with_toc(body)
-        article_ld = {
-            "@context": "https://schema.org", "@type": "Article",
-            "headline": meta["title"], "description": meta["description"], "inLanguage": "fr",
-            "datePublished": meta["date"], "dateModified": meta["date"],
-            "image": image, "mainEntityOfPage": url,
-            "author": {"@type": "Person", "name": "Mvrius", "url": SITE},
-            "publisher": {"@type": "Person", "name": "Mvrius", "url": SITE},
-        }
-        # « À lire aussi » : les deux articles suivants (en boucle)
-        nexts = [ARTICLES[(i + k) % len(ARTICLES)] for k in (1, 2)]
-        others = "\n".join(f"""          <a class="more-card spotlight" href="../{other}/" data-reveal>
-            <span class="tip-card__tag">{data[other][0]["tag"]} · {data[other][0]["read"]} de lecture</span>
-            <span class="more-card__title">{typo(data[other][0]["title"])}</span>
-            <span class="tip-card__more">Lire l'article <svg class="ico"><use href="#i-arrow-right"/></svg></span>
+    """Liste et articles « Conseils » en français (conseils/) et en anglais (en/conseils/).
+    Renvoie les articles français (pour le sitemap)."""
+    fr_home = SRC.read_text(encoding="utf-8")
+    homes = {"fr": fr_home, "en": translate(fr_home)}
+    result = {}
+    for lang in ("fr", "en"):
+        en = lang == "en"
+        L, ty = TIPS[lang], tip_typo(lang)
+        data = {slug: read_article(slug, lang) for slug in ARTICLES}
+        result[lang] = data
+        build_listing(homes[lang], data, version, lang)
+        root, local = ("../../../", "../../") if en else ("../../", "../../")
+        for i, (slug, (meta, body)) in enumerate(data.items()):
+            url_fr, url_en = f"{SITE}conseils/{slug}/", f"{SITE}en/conseils/{slug}/"
+            url = url_en if en else url_fr
+            sprite, nav, footer = layout(homes[lang], root, False, local,
+                                         other=f"../../../conseils/{slug}/" if en else f"../../en/conseils/{slug}/")
+            image = og_image(f"en-{slug}" if en else slug)
+            body, toc = with_toc(body, lang)
+            if en:  # mêmes chemins relatifs que l'article français, un dossier plus bas
+                body = body.replace('"../../assets/', '"../../../assets/')
+            article_ld = {
+                "@context": "https://schema.org", "@type": "Article",
+                "headline": meta["title"], "description": meta["description"], "inLanguage": lang,
+                "datePublished": meta["date"], "dateModified": meta["date"],
+                "image": image, "mainEntityOfPage": url,
+                "author": {"@type": "Person", "name": "Mvrius", "url": f"{SITE}en/" if en else SITE},
+                "publisher": {"@type": "Person", "name": "Mvrius", "url": f"{SITE}en/" if en else SITE},
+            }
+            # « À lire aussi » : les deux articles suivants (en boucle)
+            nexts = [ARTICLES[(i + k) % len(ARTICLES)] for k in (1, 2)]
+            others = "\n".join(f"""          <a class="more-card spotlight" href="../{other}/" data-reveal>
+            <span class="tip-card__tag">{data[other][0]["tag"]} · {L["read"].format(data[other][0]["read"])}</span>
+            <span class="more-card__title">{ty(data[other][0]["title"])}</span>
+            <span class="tip-card__more">{L["more"]} <svg class="ico"><use href="#i-arrow-right"/></svg></span>
           </a>""" for other in nexts)
-        tweet = "https://twitter.com/intent/tweet?" + urllib.parse.urlencode({"text": meta["title"], "url": url})
-        page = doc_head(meta["title"], meta["description"], url, version, "../../", "article", article_ld, image) + f"""<body class="page-article">
-  <!-- Page générée par tools/build.py à partir de tools/articles/{slug}.html : modifier le texte là-bas -->
+            tweet = "https://twitter.com/intent/tweet?" + urllib.parse.urlencode({"text": meta["title"], "url": url})
+            date = (en_date if en else fr_date)(meta["date"]).replace(" ", "&nbsp;")
+            read = L["read"].format(meta["read"]).replace(" ", "&nbsp;")
+            source = f"tools/articles/{'en/' if en else ''}{slug}.html"
+            page = doc_head(meta["title"], meta["description"], url, version, root, "article", article_ld, image,
+                            lang=lang, alt=(url_fr, url_en)) + f"""<body class="page-article">
+  <!-- Page générée par tools/build.py à partir de {source} : modifier le texte là-bas -->
 {sprite}{nav}
   <main id="main">
     <article class="article">
@@ -794,12 +907,12 @@ def build_articles(version):
           <div class="gridlines"></div>
         </div>
         <div class="container article__head">
-          <a class="article__back" href="../"><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg>Tous les conseils</a>
+          <a class="article__back" href="../"><svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg>{L["back"]}</a>
           <p class="eyebrow" data-reveal>{meta["tag"]}</p>
-          <h1 class="article__title" data-split>{typo(meta["title"])}</h1>
+          <h1 class="article__title" data-split>{ty(meta["title"])}</h1>
           <p class="article__meta" data-reveal>
-            <span class="avatar-status"><span class="avatar avatar--sm"><span class="avatar__fallback">M</span><img src="../../assets/img/profile-sm.jpg" alt="" width="36" height="36" onerror="this.remove()"></span><span class="status js-status" hidden></span></span>
-            <span>Par <b>Mvrius</b> · <time datetime="{meta["date"]}">{fr_date(meta["date"]).replace(" ", "&nbsp;")}</time> · {meta["read"].replace(" ", "&nbsp;")}&nbsp;de&nbsp;lecture</span>
+            <span class="avatar-status"><span class="avatar avatar--sm"><span class="avatar__fallback">M</span><img src="{root}assets/img/profile-sm.jpg" alt="" width="36" height="36" onerror="this.remove()"></span><span class="status js-status" hidden></span></span>
+            <span>{L["by"]} <b>Mvrius</b> · <time datetime="{meta["date"]}">{date}</time> · {read}</span>
           </p>
         </div>
       </header>
@@ -813,29 +926,29 @@ def build_articles(version):
         </div>
 
         <div class="share" data-reveal>
-          <p class="share__label">Cet article peut aider quelqu'un&nbsp;? Partagez-le.</p>
+          <p class="share__label">{L["share"]}</p>
           <div class="share__actions">
-            <button class="share__btn js-share" type="button" data-title="{meta["title"]}" data-url="{url}" hidden><svg class="ico" aria-hidden="true"><use href="#i-share"/></svg><span>Partager</span></button>
-            <button class="share__btn js-share-copy" type="button" data-url="{url}"><svg class="ico" aria-hidden="true"><use href="#i-link"/></svg><span class="js-share-label">Copier le lien</span></button>
-            <a class="share__btn" href="{tweet.replace("&", "&amp;")}" target="_blank" rel="noopener"><svg class="ico ico--fill" aria-hidden="true"><use href="#b-x"/></svg><span>Partager sur X</span></a>
+            <button class="share__btn js-share" type="button" data-title="{meta["title"]}" data-url="{url}" hidden><svg class="ico" aria-hidden="true"><use href="#i-share"/></svg><span>{L["share_btn"]}</span></button>
+            <button class="share__btn js-share-copy" type="button" data-url="{url}"><svg class="ico" aria-hidden="true"><use href="#i-link"/></svg><span class="js-share-label">{L["copy"]}</span></button>
+            <a class="share__btn" href="{tweet.replace("&", "&amp;")}" target="_blank" rel="noopener"><svg class="ico ico--fill" aria-hidden="true"><use href="#b-x"/></svg><span>{L["share_x"]}</span></a>
           </div>
         </div>
 
         <aside class="article__cta" data-reveal>
-          <p class="article__cta-title">Besoin d'un coup de main pour votre serveur&nbsp;?</p>
-          <p>Je m'occupe de la structure, de la modération et de l'animation de votre communauté.</p>
+          <p class="article__cta-title">{L["cta_title"]}</p>
+          <p>{L["cta_text"]}</p>
           <div class="article__cta-actions">
-            <a class="btn btn--primary magnetic" href="../../contact/"><span>Demander un devis</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
-            <a class="btn btn--ghost magnetic" href="../../diagnostic/"><span>Faire le diagnostic</span></a>
+            <a class="btn btn--primary magnetic" href="{local}contact/"><span>{L["quote"]}</span><svg class="ico"><use href="#i-arrow-right"/></svg></a>
+            <a class="btn btn--ghost magnetic" href="{local}diagnostic/"><span>{L["diag"]}</span></a>
           </div>
         </aside>
 
-        <nav class="article__more" aria-label="Autres conseils">
-          <p class="eyebrow">À lire aussi</p>
+        <nav class="article__more" aria-label="{L["others"]}">
+          <p class="eyebrow">{L["next"]}</p>
           <div class="more-grid" data-stagger>
 {others}
           </div>
-          <a class="article__all" href="../">Voir tous les conseils <svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+          <a class="article__all" href="../">{L["all"]} <svg class="ico" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
         </nav>
       </div>
     </article>
@@ -844,11 +957,11 @@ def build_articles(version):
 {footer}</body>
 </html>
 """
-        out = ROOT / "conseils" / slug / "index.html"
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(page, encoding="utf-8")
-    print(f"Conseils : page de liste + {len(data)} articles")
-    return data
+            out = ROOT / ("en" if en else "") / "conseils" / slug / "index.html"
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(page, encoding="utf-8")
+    print(f"Conseils : page de liste + {len(ARTICLES)} articles, en français et en anglais")
+    return result["fr"]
 
 
 def build_legal_pages(version):
@@ -901,7 +1014,7 @@ def build_reservation_page(version):
     sprite, nav, footer = page_parts(home, "../")
     url = f"{SITE}{RESA}/"
     head = doc_head("Réserver un appel", "Choisissez un créneau libre pour parler de votre serveur Discord avec Mvrius : gratuit et sans engagement.", url, version, "../")
-    head = head.replace("</head>", f'  <script src="../agenda/config.js?v={version}" defer></script>\n  <script src="../assets/js/reservation.js?v={version}" defer></script>\n</head>', 1)
+    head = head.replace("</head>", f'  <script src="../agenda/config.js?v={version}" defer></script>\n  <script src="../assets/js/reservation.min.js?v={version}" defer></script>\n</head>', 1)
     sujets = ["Création de serveur", "Restructuration", "Gestion &amp; modération", "Réseaux sociaux", "Autre"]
     options = "".join(f'<option value="{x}">{x}</option>' for x in sujets)
     page = head + f"""<body class="page-article page-resa">
@@ -1002,9 +1115,17 @@ def build_sitemap(data):
         alt = (f'\n    <xhtml:link rel="alternate" hreflang="fr" href="{fr}"/>'
                f'\n    <xhtml:link rel="alternate" hreflang="en" href="{en}"/>'
                f'\n    <xhtml:link rel="alternate" hreflang="x-default" href="{fr}"/>')
-        urls += [(fr, last if page == "conseils" else None, alt), (en, None, alt)]
-    urls += [(f"{SITE}conseils/{slug}/", meta["date"], "") for slug, (meta, _) in data.items()]
-    urls += [(f"{SITE}staff/", None, ""), (f"{SITE}liens/", None, "")]
+        urls += [(fr, last if page == "conseils" else None, alt), (en, last if page == "conseils" else None, alt)]
+    for slug, (meta, _) in data.items():
+        fr, en = f"{SITE}conseils/{slug}/", f"{SITE}en/conseils/{slug}/"
+        alt = (f'\n    <xhtml:link rel="alternate" hreflang="fr" href="{fr}"/>'
+               f'\n    <xhtml:link rel="alternate" hreflang="en" href="{en}"/>'
+               f'\n    <xhtml:link rel="alternate" hreflang="x-default" href="{fr}"/>')
+        urls += [(fr, meta["date"], alt), (en, meta["date"], alt)]
+    staff_alt = (f'\n    <xhtml:link rel="alternate" hreflang="fr" href="{SITE}staff/"/>'
+                 f'\n    <xhtml:link rel="alternate" hreflang="en" href="{SITE}en/staff/"/>'
+                 f'\n    <xhtml:link rel="alternate" hreflang="x-default" href="{SITE}staff/"/>')
+    urls += [(f"{SITE}staff/", None, staff_alt), (f"{SITE}en/staff/", None, staff_alt), (f"{SITE}liens/", None, "")]
     urls += [(f"{SITE}{slug}/", None, "") for slug in PAGES + [RESA]]
     rows = "\n".join(f"  <url>\n    <loc>{loc}</loc>" + (f"\n    <lastmod>{mod}</lastmod>" if mod else "") + f"{extra}\n  </url>"
                      for loc, mod, extra in urls)
@@ -1023,14 +1144,106 @@ def sync_staff_page():
     nav = nav.replace('aria-label="Mvrius, retour en haut"', 'aria-label="Mvrius, retour à l\'accueil"')
     nav = nav.replace('<a href="../staff/" data-text="Recrutement">', '<a href="./" data-text="Recrutement" aria-current="page">')
     nav = re.sub(r'<a href="\.\./staff/"><small>(\d+)</small>', r'<a href="./" aria-current="page"><small>\1</small>', nav)
+    nav = nav.replace('<a class="lang" href="../en/"', '<a class="lang" href="../en/staff/"')
     footer = footer.replace('href="../staff/"', 'href="./"')
     path = ROOT / "staff" / "index.html"
-    page = path.read_text(encoding="utf-8")
+    page = with_alternates(path.read_text(encoding="utf-8"), f"{SITE}staff/", f"{SITE}en/staff/")
     page, n1 = re.subn(r'  <a class="skip".*?(?=\n  <main id="main">)', lambda m: nav.rstrip("\n"), page, count=1, flags=re.S)
     page, n2 = re.subn(r'  <footer class="footer">.*?</footer>\n', lambda m: footer, page, count=1, flags=re.S)
     if n1 != 1 or n2 != 1:
         sys.exit("Page équipe : navigation ou pied de page introuvable")
     path.write_text(page, encoding="utf-8")
+
+
+# Page Recrutement en anglais : traduction de staff/index.html (même principe que la table T).
+# Les noms des champs et les valeurs envoyées restent en français (e-mail reçu identique).
+STAFF_EN = [
+    ('<html lang="fr">', '<html lang="en">', 1),
+    ("<title>Rejoindre l'équipe — Mvrius</title>", "<title>Join the team — Mvrius</title>", 1),
+    ('content="Rejoins l\'équipe de Mvrius : modération, animation, support. Présente-toi pour être contacté selon les besoins de mes projets."',
+     'content="Join Mvrius\'s team: moderation, events, support. Introduce yourself and I\'ll reach out when one of my projects needs you."', 1),
+    ('<link rel="canonical" href="https://mvriuus.fr/staff/">', '<link rel="canonical" href="https://mvriuus.fr/en/staff/">', 1),
+    ('<meta property="og:url" content="https://mvriuus.fr/staff/">', '<meta property="og:url" content="https://mvriuus.fr/en/staff/">', 1),
+    ('<meta property="og:locale" content="fr_FR">', '<meta property="og:locale" content="en_US">', 1),
+    ('<meta property="og:title" content="Rejoindre l\'équipe — Mvrius">', '<meta property="og:title" content="Join the team — Mvrius">', 1),
+    ('content="Modération, animation, support : présente-toi pour rejoindre mon équipe sur mes prochains projets."',
+     'content="Moderation, events, support: introduce yourself to join my team on upcoming projects."', 1),
+    ('<p class="eyebrow" data-reveal>Recrutement</p>', '<p class="eyebrow" data-reveal>Recruitment</p>', 1),
+    ("Rejoins <em>l'équipe</em>.", "Join <em>the team</em>.", 1),
+    ("Je garde sous le coude des personnes motivées pour renforcer mes projets quand le besoin se présente. Tu veux faire partie de l'équipe&nbsp;? Présente-toi ci-dessous&nbsp;: je reviens vers toi dès qu'une mission correspond à ton profil.",
+     "I keep in touch with motivated people who can strengthen my projects when the need arises. Want to be part of the team? Introduce yourself below: I'll get back to you as soon as a role matches your profile.", 1),
+    ("<span>Postuler maintenant</span>", "<span>Apply now</span>", 1),
+    ("📢 | recrutements</div>", "📢 | recruitment</div>", 1),
+    ('<span class="msg__tag msg__tag--mod">GÉRANT</span><time>Aujourd\'hui</time>', '<span class="msg__tag msg__tag--mod">OWNER</span><time>Today</time>', 1),
+    ("<strong>📢 Les recrutements sont ouverts&nbsp;!</strong>", "<strong>📢 Recruitment is open!</strong>", 1),
+    ("<span>Je cherche des personnes motivées pour renforcer mon équipe sur mes prochains projets.</span>",
+     "<span>I'm looking for motivated people to strengthen my team on upcoming projects.</span>", 1),
+    ("<span>🛡️ Modération</span><span>🎉 Animation</span><span>💬 Support</span>", "<span>🛡️ Moderation</span><span>🎉 Events</span><span>💬 Support</span>", 1),
+    ('<span class="recruit__btn">Postuler</span>', '<span class="recruit__btn">Apply</span>', 1),
+    ('<p class="eyebrow" data-reveal>Les postes</p>', '<p class="eyebrow" data-reveal>The roles</p>', 1),
+    ("Trouve ta <em>place</em>.", "Find your <em>place</em>.", 1),
+    ("<h3>Modération</h3>", "<h3>Moderation</h3>", 1),
+    ("<p>Faire respecter le règlement, désamorcer les conflits et veiller à ce que chacun se sente bien sur le serveur.</p>",
+     "<p>Enforce the rules, defuse conflicts and make sure everyone feels welcome on the server.</p>", 1),
+    ("<h3>Animation</h3>", "<h3>Events</h3>", 1),
+    ("<p>Organiser des événements et des concours, lancer des discussions et faire vivre les salons.</p>",
+     "<p>Organise events and contests, start conversations and keep the channels lively.</p>", 1),
+    ("<p>Aider les membres, répondre à leurs questions et traiter les tickets.</p>",
+     "<p>Help members, answer their questions and handle tickets.</p>", 1),
+    ('<p class="eyebrow" data-reveal>Candidature</p>', '<p class="eyebrow" data-reveal>Application</p>', 1),
+    ("Présente-<em>toi</em>.", "Introduce <em>yourself</em>.", 1),
+    ('data-mail-subject="Candidature staff"', 'data-mail-subject="Staff application"', 1),
+    ('value="Nouvelle candidature staff — mvriuus.fr"', 'value="Nouvelle candidature staff (version anglaise) — mvriuus.fr"', 1),
+    ("<legend>Poste visé</legend>", "<legend>Role</legend>", 1),
+    ('value="Modération" required><span>Modération</span>', 'value="Modération" required><span>Moderation</span>', 1),
+    ('value="Animation" required><span>Animation</span>', 'value="Animation" required><span>Events</span>', 1),
+    ('value="Autre" required><span>Autre</span>', 'value="Autre" required><span>Other</span>', 1),
+    ("<span>Pseudo Discord</span>", "<span>Discord username</span>", 1),
+    ("<span>Âge</span>", "<span>Age</span>", 1),
+    ("<span>E-mail</span>", "<span>Email</span>", 1),
+    ("<option>Quelques heures par semaine</option>", '<option value="Quelques heures par semaine">A few hours a week</option>', 1),
+    ("<option>Un peu chaque jour</option>", '<option value="Un peu chaque jour">A little every day</option>', 1),
+    ("<option>Surtout le week-end</option>", '<option value="Surtout le week-end">Mostly at weekends</option>', 1),
+    ("<span>Disponibilités</span>", "<span>Availability</span>", 1),
+    ("<span>Ton expérience (serveurs, rôles…) — facultatif</span>", "<span>Your experience (servers, roles…) — optional</span>", 1),
+    ("<span>Pourquoi veux-tu rejoindre l'équipe&nbsp;?</span>", "<span>Why do you want to join the team?</span>", 1),
+    ('<span class="quote__label">Envoyer ma candidature</span>', '<span class="quote__label">Send my application</span>', 1),
+    ("Tes informations servent uniquement à étudier ta candidature.", "Your information is only used to review your application.", 1),
+    ("Merci, ta candidature est bien partie&nbsp;!", "Thanks, your application has been sent!", 1),
+    ("Je reviens vers toi sur Discord ou par e-mail dès qu'une mission correspond à ton profil.",
+     "I'll get back to you on Discord or by email as soon as a role matches your profile.", 1),
+    ("<!-- EN-TÊTE -->", "<!-- HEADER -->", 1),
+    ("<!-- POSTES -->", "<!-- ROLES -->", 1),
+    ("<!-- CANDIDATURE -->", "<!-- APPLICATION -->", 1),
+]
+
+
+def build_staff_en():
+    """Page Recrutement anglaise (en/staff/) à partir de la page française, avec la navigation anglaise."""
+    html = (ROOT / "staff" / "index.html").read_text(encoding="utf-8")
+    errors = []
+    for fr, en, expected in STAFF_EN:
+        if html.count(fr) != expected:
+            errors.append(f"{html.count(fr)} occurrence(s) au lieu de {expected} : {fr[:90]}")
+        html = html.replace(fr, en)
+    if errors:
+        sys.exit("Page Recrutement anglaise, traduction à mettre à jour :\n- " + "\n- ".join(errors))
+    html = html.replace('href="../assets/', 'href="../../assets/').replace('href="../site.webmanifest"', 'href="../../site.webmanifest"')
+    html = html.replace('src="../assets/', 'src="../../assets/')
+    _, nav, footer = page_parts(translate(SRC.read_text(encoding="utf-8")), "../../", "../")
+    nav = nav.replace('aria-label="Mvrius, back to top"', 'aria-label="Mvrius, back to home"')
+    nav = nav.replace('<a href="../staff/" data-text=', '<a href="./" aria-current="page" data-text=')
+    nav = re.sub(r'<a href="\.\./staff/"><small>(\d+)</small>', r'<a href="./" aria-current="page"><small>\1</small>', nav)
+    nav = sub1(r'<a class="lang" href="[^"]*"', '<a class="lang" href="../../staff/"', nav, "lien de langue")
+    footer = footer.replace('href="../staff/"', 'href="./"')
+    html = sub1(r'  <a class="skip".*?(?=\n  <main id="main">)', lambda m: nav.rstrip("\n"), html, "navigation", re.S)
+    html = sub1(r'  <footer class="footer">.*?</footer>\n', lambda m: footer, html, "pied de page", re.S)
+    html = with_alternates(html, f"{SITE}staff/", f"{SITE}en/staff/")
+    html = html.replace("<body>\n", "<body>\n  <!-- Page générée par tools/build.py à partir de staff/index.html : modifier le texte là-bas (traduction : STAFF_EN) -->\n", 1)
+    out = ROOT / "en" / "staff" / "index.html"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(html, encoding="utf-8")
+    print("Page Recrutement anglaise : OK")
 
 
 def translate(html):
@@ -1078,6 +1291,33 @@ def site_section(html, name):
     return m.group(0)
 
 
+def services_ld(html, lang, url):
+    """Données structurées de la page Services : un service par carte (titre et texte de la carte)."""
+    section = site_section(html, "services")
+    cards = re.findall(r"<h3>(.*?)</h3>\s*<p>(.*?)</p>", section, re.S)
+    if len(cards) < 2:
+        sys.exit("Services : cartes introuvables pour les données structurées")
+    clean = lambda t: re.sub(r"<[^>]+>", "", t).replace("&nbsp;", " ").replace("&amp;", "&").strip()  # noqa: E731
+    en = lang == "en"
+    return {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        "name": "Discord community management" if en else "Gestion de communautés Discord",
+        "serviceType": "Community management",
+        "description": SITE_PAGES["services"][1 if en else 0][1],
+        "url": url,
+        "inLanguage": lang,
+        "provider": {"@type": "Person", "name": "Marius", "alternateName": "Mvrius", "url": f"{SITE}en/" if en else SITE},
+        "availableChannel": {"@type": "ServiceChannel", "serviceUrl": f"{SITE}{'en/' if en else ''}contact/"},
+        "hasOfferCatalog": {
+            "@type": "OfferCatalog",
+            "name": "Services",
+            "itemListElement": [{"@type": "Offer", "itemOffered": {"@type": "Service", "name": clean(t), "description": clean(d)}}
+                                for t, d in cards],
+        },
+    }
+
+
 def site_page(html, lang, page):
     """Accueil (page=None) ou page d'une section, dans la langue de html."""
     en = lang == "en"
@@ -1121,14 +1361,20 @@ def site_page(html, lang, page):
     url_fr = SITE + (f"{page}/" if page else "")
     url_en = f"{SITE}en/" + (f"{page}/" if page else "")
     url = url_en if en else url_fr
+    if page == "services":
+        html = sub(r"\n</head>", f"\n  {ld_block(services_ld(html, lang, url))}\n</head>", "</head>")
     html = sub(r'<link rel="canonical" href="[^"]*">', f'<link rel="canonical" href="{url}">', "canonical")
     html = sub(r'<meta property="og:url" content="[^"]*">', f'<meta property="og:url" content="{url}">', "og:url")
     for code, target in (("fr", url_fr), ("en", url_en), ("x-default", url_fr)):
         html = sub(rf'<link rel="alternate" hreflang="{code}" href="[^"]*">', f'<link rel="alternate" hreflang="{code}" href="{target}">', f"hreflang {code}")
 
     # Liens : fichiers et pages françaises depuis la racine, sections vers leur page
+    # (en anglais, la page Recrutement et les conseils ont leur version anglaise sous en/)
     if root:
-        html = re.sub(r'(href|src)="(assets/|staff/|liens/|conseils/|mentions-legales/|cgu/|rendez-vous/|site\.webmanifest)', rf'\1="{root}\2', html)
+        shared = r"assets/|liens/|mentions-legales/|cgu/|rendez-vous/|site\.webmanifest" + ("" if en else r"|staff/|conseils/")
+        html = re.sub(rf'(href|src)="({shared})', rf'\1="{root}\2', html)
+    if en and up:
+        html = re.sub(r'href="(staff/|conseils/)', rf'href="{up}\1', html)
     other = f"{root}{page}/" if en and page else root if en else f"{root}en/" + (f"{page}/" if page else "")
     html = sub(r'<a class="lang" href="[^"]*"', f'<a class="lang" href="{other}"', "lien de langue")
     if page:
@@ -1148,7 +1394,7 @@ def build_site(version):
     count = 0
     for lang, html in (("fr", fr), ("en", translate(fr))):
         for page in [None, *SITE_PAGES]:
-            if lang == "fr" and page == "conseils":
+            if page == "conseils":
                 continue  # la liste des articles (build_listing)
             out = ROOT / ("en" if lang == "en" else "") / (page or "") / "index.html"
             out.parent.mkdir(parents=True, exist_ok=True)
@@ -1158,6 +1404,7 @@ def build_site(version):
 
 
 def main():
+    build_assets()
     sync_staff_page()
     version = stamp()
     build_sitemap(build_articles(version))
@@ -1165,6 +1412,7 @@ def main():
     build_legal_pages(version)
     build_reservation_page(version)
     build_site(version)
+    build_staff_en()
 
 
 if __name__ == "__main__":

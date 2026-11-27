@@ -62,13 +62,14 @@
   </url>
   <url>
     <loc>https://mvriuus.fr/conseils/</loc>
-    <lastmod>2026-10-17</lastmod>
+    <lastmod>2026-11-27</lastmod>
     <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/"/>
   </url>
   <url>
     <loc>https://mvriuus.fr/en/conseils/</loc>
+    <lastmod>2026-11-27</lastmod>
     <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/"/>
@@ -110,31 +111,142 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/contact/"/>
   </url>
   <url>
+    <loc>https://mvriuus.fr/conseils/securiser-serveur-discord/</loc>
+    <lastmod>2026-11-27</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/securiser-serveur-discord/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/securiser-serveur-discord/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/securiser-serveur-discord/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/en/conseils/securiser-serveur-discord/</loc>
+    <lastmod>2026-11-27</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/securiser-serveur-discord/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/securiser-serveur-discord/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/securiser-serveur-discord/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/conseils/reglement-serveur-discord/</loc>
+    <lastmod>2026-11-27</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/reglement-serveur-discord/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/reglement-serveur-discord/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/reglement-serveur-discord/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/en/conseils/reglement-serveur-discord/</loc>
+    <lastmod>2026-11-27</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/reglement-serveur-discord/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/reglement-serveur-discord/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/reglement-serveur-discord/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/conseils/relancer-serveur-discord-inactif/</loc>
+    <lastmod>2026-11-27</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/relancer-serveur-discord-inactif/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/relancer-serveur-discord-inactif/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/relancer-serveur-discord-inactif/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/en/conseils/relancer-serveur-discord-inactif/</loc>
+    <lastmod>2026-11-27</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/relancer-serveur-discord-inactif/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/relancer-serveur-discord-inactif/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/relancer-serveur-discord-inactif/"/>
+  </url>
+  <url>
     <loc>https://mvriuus.fr/conseils/bots-arvenis-discord/</loc>
     <lastmod>2026-10-17</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/bots-arvenis-discord/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/bots-arvenis-discord/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/bots-arvenis-discord/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/en/conseils/bots-arvenis-discord/</loc>
+    <lastmod>2026-10-17</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/bots-arvenis-discord/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/bots-arvenis-discord/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/bots-arvenis-discord/"/>
   </url>
   <url>
     <loc>https://mvriuus.fr/conseils/organiser-evenement-discord/</loc>
     <lastmod>2026-10-17</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/organiser-evenement-discord/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/organiser-evenement-discord/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/organiser-evenement-discord/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/en/conseils/organiser-evenement-discord/</loc>
+    <lastmod>2026-10-17</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/organiser-evenement-discord/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/organiser-evenement-discord/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/organiser-evenement-discord/"/>
   </url>
   <url>
     <loc>https://mvriuus.fr/conseils/discord-createurs-de-contenu/</loc>
     <lastmod>2026-10-17</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/discord-createurs-de-contenu/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/discord-createurs-de-contenu/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/discord-createurs-de-contenu/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/en/conseils/discord-createurs-de-contenu/</loc>
+    <lastmod>2026-10-17</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/discord-createurs-de-contenu/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/discord-createurs-de-contenu/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/discord-createurs-de-contenu/"/>
   </url>
   <url>
     <loc>https://mvriuus.fr/conseils/erreurs-serveur-discord/</loc>
     <lastmod>2026-10-17</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/erreurs-serveur-discord/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/erreurs-serveur-discord/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/erreurs-serveur-discord/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/en/conseils/erreurs-serveur-discord/</loc>
+    <lastmod>2026-10-17</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/erreurs-serveur-discord/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/erreurs-serveur-discord/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/erreurs-serveur-discord/"/>
   </url>
   <url>
     <loc>https://mvriuus.fr/conseils/structurer-salons-discord/</loc>
     <lastmod>2026-10-17</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/structurer-salons-discord/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/structurer-salons-discord/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/structurer-salons-discord/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/en/conseils/structurer-salons-discord/</loc>
+    <lastmod>2026-10-17</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/structurer-salons-discord/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/structurer-salons-discord/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/structurer-salons-discord/"/>
   </url>
   <url>
     <loc>https://mvriuus.fr/conseils/recruter-equipe-moderation/</loc>
     <lastmod>2026-10-17</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/recruter-equipe-moderation/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/recruter-equipe-moderation/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/recruter-equipe-moderation/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/en/conseils/recruter-equipe-moderation/</loc>
+    <lastmod>2026-10-17</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/conseils/recruter-equipe-moderation/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/conseils/recruter-equipe-moderation/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/conseils/recruter-equipe-moderation/"/>
   </url>
   <url>
     <loc>https://mvriuus.fr/staff/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/staff/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/staff/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/staff/"/>
+  </url>
+  <url>
+    <loc>https://mvriuus.fr/en/staff/</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://mvriuus.fr/staff/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mvriuus.fr/en/staff/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mvriuus.fr/staff/"/>
   </url>
   <url>
     <loc>https://mvriuus.fr/liens/</loc>

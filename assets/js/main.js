@@ -6,6 +6,8 @@
   window.MV = true;
 
   const root = document.documentElement;
+  // Animations réduites si l'appareil le demande (déjà posé par le script d'en-tête sur la plupart des pages)
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) root.classList.add('reduced');
   const reduced = root.classList.contains('reduced');
   const finePointer = matchMedia('(hover: hover) and (pointer: fine)').matches;
   const wide = matchMedia('(min-width: 961px)');
